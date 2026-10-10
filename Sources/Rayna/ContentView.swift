@@ -16,7 +16,7 @@ struct ContentView: View {
                 HStack(alignment: .center, spacing: 12) {
                     ZStack {
                         ProgressRing(progress: state.progress).frame(width: 110, height: 110)
-                        RaynaView(progress: state.progress, wiggleAt: wiggleAt, flipAt: flipAt)
+                        RaynaView(progress: state.progress, wiggleAt: wiggleAt, flipAt: flipAt, accessories: state.accessories)
                             .scaleEffect(0.95)
                     }
                     VStack(alignment: .leading, spacing: 8) {
@@ -45,6 +45,24 @@ struct ContentView: View {
                         .controlSize(.large)
                 }
 
+                if state.showSwap {
+                    Button { state.logSwap() } label: {
+                        HStack(spacing: 6) {
+                            Text("🍺➡️💧")
+                            VStack(alignment: .leading, spacing: 0) {
+                                Text(state.swapThanks ?? "I swapped a drink for water").font(.system(size: 12, weight: .semibold))
+                                let st = state.extras.swapStreak()
+                                Text(st > 0 ? "Swap streak \(st) · \(state.extras.swapsTotal) total" : "Optional evening challenge · logs a glass")
+                                    .font(.system(size: 10)).foregroundColor(.secondary)
+                            }
+                            Spacer(minLength: 0)
+                        }
+                        .padding(8)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.accentColor.opacity(0.1)))
+                    }
+                    .buttonStyle(.plain)
+                }
+
                 HStack {
                     Text("Streak").font(.system(size: 12))
                     HStack(spacing: 3) {
@@ -68,6 +86,11 @@ struct ContentView: View {
                         Label("Settings…", systemImage: "gearshape")
                     }
                     .keyboardShortcut(",")
+                    Button {
+                        JourneyWindowController.shared.show(state: state)
+                    } label: {
+                        Label("Journey…", systemImage: "trophy")
+                    }
                     Spacer()
                     Button("Quit Rayna") { NSApp.terminate(nil) }
                         .keyboardShortcut("q")
@@ -78,6 +101,10 @@ struct ContentView: View {
 
             if showConfetti {
                 ConfettiView().id(confettiID)
+            }
+            if let u = state.unlockBanner {
+                RaynaUnlockBanner(unlock: u) { state.unlockBanner = nil }
+                    .scaleEffect(0.9)
             }
         }
         .frame(width: 340)
@@ -123,6 +150,9 @@ struct SettingsView: View {
             DatePicker("Quiet from", selection: timeBinding(\.quietStartMin), displayedComponents: .hourAndMinute)
             DatePicker("Quiet until", selection: timeBinding(\.quietEndMin), displayedComponents: .hourAndMinute)
             Toggle("Evening swap nudge (after 18:00)", isOn: $state.eveningSwap)
+            Toggle("Swap-a-pint challenge button (after 18:00)", isOn: Binding(
+                get: { state.extras.swapChallenge },
+                set: { state.objectWillChange.send(); state.extras.swapChallenge = $0 }))
             Toggle("System notifications too", isOn: $state.systemNotifications)
             Button("Preview nudge") { NudgeController.shared.show(text: AppState.reminders.randomElement() ?? "Sip o'clock!", isSwap: false) }
             Toggle("Launch at login", isOn: Binding(
@@ -150,6 +180,33 @@ final class SettingsWindowController {
             window = w
         }
         // Close the menu-bar panel, then bring the (accessory) app forward.
+        NSApp.keyWindow?.orderOut(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        window?.makeKeyAndOrderFront(nil)
+        window?.orderFrontRegardless()
+    }
+}
+
+/// Collection + weekly recap window.
+final class JourneyWindowController {
+    static let shared = JourneyWindowController()
+    private var window: NSWindow?
+
+    func show(state: AppState) {
+        let view = ScrollView {
+            RaynaJourneyView(extras: state.extras, recap: state.recap, streak: state.streak).padding(20)
+        }
+        .frame(width: 420, height: 620)
+        if let w = window {
+            w.contentViewController = NSHostingController(rootView: view)
+        } else {
+            let w = NSWindow(contentViewController: NSHostingController(rootView: view))
+            w.title = "Rayna's journey"
+            w.styleMask = [.titled, .closable]
+            w.isReleasedWhenClosed = false
+            w.center()
+            window = w
+        }
         NSApp.keyWindow?.orderOut(nil)
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)

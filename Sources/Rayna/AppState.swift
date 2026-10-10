@@ -21,6 +21,15 @@ final class AppState: ObservableObject {
     @Published var glassEvent = 0
     @Published var celebrate = false
     @Published var launchAtLogin: Bool = false
+    /// Unlock currently being celebrated in the dropdown.
+    @Published var unlockBanner: RaynaUnlock?
+    @Published var swapThanks: String?
+    /// History, unlocks and swap-a-pint stats (shared logic with iOS).
+    let extras = RaynaExtras(defaults: .standard)
+    var goalDays: [String] { get { d.stringArray(forKey: "goalDays") ?? [] } set { d.set(Array(newValue.suffix(30)), forKey: "goalDays") } }
+    var accessories: Set<RaynaUnlock> { Set(extras.unlocked) }
+    var recap: RaynaRecap { extras.recap(goalDays: goalDays, streak: streak) }
+    var showSwap: Bool { extras.swapChallenge && RaynaExtras.isSwapTime() }
 
     private var dayKey: String { didSet { d.set(dayKey, forKey: "dayKey") } }
     private var lastGoalDay: String { didSet { d.set(lastGoalDay, forKey: "lastGoalDay") } }
@@ -70,6 +79,7 @@ final class AppState: ObservableObject {
         rolloverIfNeeded()
         totalML += glassML
         log.append(Date())
+        extras.recordDay(totalML)
         glassEvent += 1
         checkGoal()
         NotificationManager.shared.resetSchedule()
@@ -80,7 +90,17 @@ final class AppState: ObservableObject {
         guard totalML > 0 else { return }
         totalML = max(0, totalML - glassML)
         if !log.isEmpty { log.removeLast() }
+        extras.recordDay(totalML)
         if progress < 1 { celebrate = false }
+    }
+
+    /// "I swapped a drink for water": a swap + a glass.
+    func logSwap() {
+        extras.logSwap()
+        objectWillChange.send()
+        addGlass()
+        swapThanks = RaynaCopy.swapThanks.randomElement()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { self.swapThanks = nil }
     }
 
     func setLaunchAtLogin(_ on: Bool) {
@@ -98,7 +118,12 @@ final class AppState: ObservableObject {
         if lastGoalDay != today {
             streak = (lastGoalDay == AppState.yesterdayKey) ? streak + 1 : 1
             lastGoalDay = today
+            goalDays = goalDays + [today]
             celebrate = true
+            if let u = extras.noteStreak(streak).last {
+                extras.pendingUnlocks = []
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.unlockBanner = u }
+            }
         }
     }
 

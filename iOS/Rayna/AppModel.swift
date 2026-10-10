@@ -14,6 +14,10 @@ final class AppModel: ObservableObject {
     @Published var celebrate = false
     @Published var glassEvent = 0
     @Published var showSettings = false
+    @Published var showJourney = false
+    /// Unlock currently being celebrated.
+    @Published var unlockBanner: RaynaUnlock?
+    @Published var swapThanks: String?
 
     private init() {
         // Screenshot/demo mode: launch arg `-RaynaDemo <glasses>` or env RAYNA_DEMO=<glasses>
@@ -24,17 +28,21 @@ final class AppModel: ObservableObject {
         if let i = args.firstIndex(of: "-RaynaDemo"), i + 1 < args.count { demo = Int(args[i + 1]) ?? demo }
         if let g = demo {
             demoMode = true
-            store.seedDemo(glasses: g, streak: 5)
+            let streak = env["RAYNA_STREAK"].flatMap(Int.init) ?? 5
+            store.seedDemo(glasses: g, streak: streak)
             if g * store.glassML >= store.effectiveGoal { celebrate = true; flipAt = Date().addingTimeInterval(0.4) }
         } else {
             demoMode = false
         }
         showSettings = args.contains("-RaynaShowSettings") || env["RAYNA_SETTINGS"] == "1"
+        showJourney = env["RAYNA_JOURNEY"] == "1"
+        if let u = env["RAYNA_UNLOCK"].flatMap(RaynaUnlock.init(rawValue:)) { unlockBanner = u }
         store.rolloverIfNeeded()
     }
 
     func refresh(wiggle: Bool = false) {
         store.rolloverIfNeeded()
+        checkUnlocks()
         if wiggle { wiggleAt = Date() }
         objectWillChange.send()
     }
@@ -45,6 +53,28 @@ final class AppModel: ObservableObject {
     var goal: Int { store.effectiveGoal }
     var quip: String { store.quip }
     var streak: Int { store.streak }
+    var extras: RaynaExtras { store.extras }
+    var accessories: Set<RaynaUnlock> { Set(store.extras.unlocked) }
+    var showSwap: Bool { store.extras.swapChallenge && (RaynaExtras.isSwapTime() || ProcessInfo.processInfo.environment["RAYNA_SWAP"] == "1") }
+
+    func checkUnlocks() {
+        if unlockBanner == nil, let u = store.extras.takePendingUnlocks().last {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { self.unlockBanner = u }
+        }
+    }
+
+    /// Evening challenge: "I swapped a drink for water" = a swap + a glass.
+    func logSwap() {
+        objectWillChange.send()
+        let hit = store.logSwap()
+        glassEvent += 1
+        wiggleAt = Date()
+        if hit { celebrate = true; flipAt = Date().addingTimeInterval(0.3) }
+        swapThanks = RaynaCopy.swapThanks.randomElement()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { self.swapThanks = nil }
+        afterChange()
+        checkUnlocks()
+    }
 
     // MARK: Actions
     func addGlass() {
@@ -57,6 +87,7 @@ final class AppModel: ObservableObject {
             flipAt = Date().addingTimeInterval(0.3)
         }
         afterChange()
+        checkUnlocks()
         if !demoMode { requestNotificationsIfNeeded() }
     }
 

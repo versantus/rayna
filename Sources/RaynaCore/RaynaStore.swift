@@ -3,7 +3,7 @@ import Foundation
 /// Hydration state persisted in the shared App Group so the iOS app, its widget and
 /// notification actions all see the same numbers. All data stays on the device.
 public final class RaynaStore {
-    public static let appGroup = "group.co.versantus.rayna"
+    public static let appGroup = "group.co.versantus.raynawater"
     public static let shared = RaynaStore()
 
     public let defaults: UserDefaults
@@ -34,6 +34,9 @@ public final class RaynaStore {
     private var dayKey: String { get { defaults.string(forKey: "dayKey") ?? "" } set { defaults.set(newValue, forKey: "dayKey") } }
     private var lastGoalDay: String { get { defaults.string(forKey: "lastGoalDay") ?? "" } set { defaults.set(newValue, forKey: "lastGoalDay") } }
 
+    /// History, unlocks and swap-a-pint stats (same App Group defaults).
+    public var extras: RaynaExtras { RaynaExtras(defaults: defaults) }
+
     // MARK: Derived
     public var effectiveGoal: Int { goalML + (runDay ? 500 : 0) }
     public var progress: Double { effectiveGoal > 0 ? min(Double(totalML) / Double(effectiveGoal), 1) : 0 }
@@ -50,6 +53,7 @@ public final class RaynaStore {
         rolloverIfNeeded(now: now)
         totalML += glassML
         log = log + [now]
+        extras.recordDay(totalML, now: now)
         return checkGoal(now: now)
     }
 
@@ -58,6 +62,14 @@ public final class RaynaStore {
         guard totalML > 0 else { return }
         totalML = max(0, totalML - glassML)
         var l = log; if !l.isEmpty { l.removeLast() }; log = l
+        extras.recordDay(totalML, now: now)
+    }
+
+    /// "I swapped a drink for water": logs a swap and a glass. Returns true if that glass hit the goal.
+    @discardableResult
+    public func logSwap(now: Date = Date()) -> Bool {
+        extras.logSwap(now: now)
+        return addGlass(now: now)
     }
 
     @discardableResult
@@ -68,6 +80,7 @@ public final class RaynaStore {
         streak = (lastGoalDay == RaynaCopy.yesterdayKey(from: now)) ? streak + 1 : 1
         lastGoalDay = today
         goalDays = goalDays + [today]
+        extras.noteStreak(streak)
         return true
     }
 
@@ -93,6 +106,10 @@ public final class RaynaStore {
         lastGoalDay = RaynaCopy.yesterdayKey(from: now)
         let cal = Calendar.current
         goalDays = (1...max(1, s)).reversed().compactMap { cal.date(byAdding: .day, value: -$0, to: now) }.map(RaynaCopy.dayKey(for:))
+        extras.seedDemo(todayML: totalML, streak: s, now: now)
         checkGoal(now: now)
+        extras.pendingUnlocks = []
     }
+
+    public var recap: RaynaRecap { extras.recap(goalDays: goalDays, streak: streak) }
 }

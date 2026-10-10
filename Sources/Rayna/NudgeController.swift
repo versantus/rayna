@@ -73,7 +73,8 @@ struct NudgeView: View {
                         Button("Drank one 💧") { drank() }.buttonStyle(NudgeButtonStyle(prominent: true))
                         Button("Later") { later() }.buttonStyle(NudgeButtonStyle(prominent: false))
                     } else {
-                        Button("Cheers 🍻") { swimOff([.swimOff]) }.buttonStyle(NudgeButtonStyle(prominent: true))
+                        Button("I swapped one 💧") { state.logSwap(); swimOff([.wiggle, .swimOff]) }.buttonStyle(NudgeButtonStyle(prominent: true))
+                        Button("Not tonight") { swimOff([.swimOff]) }.buttonStyle(NudgeButtonStyle(prominent: false))
                     }
                     Spacer(minLength: 0)
                 }

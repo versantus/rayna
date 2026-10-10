@@ -8,8 +8,8 @@ public enum RaynaCopy {
         (0.35, "Gliding nicely. Your calves send regards. 🦵"),
         (0.55, "Over halfway! Stingrays are happy, and so am I. 😄"),
         (0.75, "Nearly there — tide's coming in! 🌊"),
-        (0.9, "One more glass and I do a backflip…"),
-        (1, "GOAL! Backflip deployed. You're race-ready! 🎉")
+        (0.9, "One more glass and I do a happy spin…"),
+        (1, "GOAL! Happy spin deployed. You're race-ready! 🎉")
     ]
     public static func quip(for progress: Double) -> String {
         quips.last(where: { progress >= $0.0 })?.1 ?? quips[0].1
@@ -29,7 +29,7 @@ public enum RaynaCopy {
         "Fun fact: I'm 100% happier when you're hydrated. 😄"
     ]
     public static var allReminders: [String] { reminders + moreReminders }
-    public static let swapText = "Fancy swapping the next pint for a pint of water? Tomorrow-you says cheers. 🍺➡️💧"
+    public static let swapText = "Evening swap? Trade your next drink for a glass of water. Tomorrow-you says cheers. 🍺➡️💧"
 
     public static func dayKey(for date: Date) -> String {
         let c = Calendar.current.dateComponents([.year, .month, .day], from: date)

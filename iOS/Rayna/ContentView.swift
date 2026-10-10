@@ -19,11 +19,13 @@ struct ContentView: View {
                 Spacer(minLength: 0)
                 GeometryReader { geo in
                     let side = min(geo.size.width * 0.86, geo.size.height / 1.32)
-                    RaynaView(progress: model.progress, wiggleAt: model.wiggleAt, flipAt: model.flipAt, size: side, fullTail: true)
+                    RaynaView(progress: model.progress, wiggleAt: model.wiggleAt, flipAt: model.flipAt, size: side, fullTail: true,
+                              accessories: model.accessories)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 Spacer(minLength: 0)
                 amount
+                if model.showSwap { swapCard }
                 buttons
                 runDayToggle
             }
@@ -33,13 +35,24 @@ struct ContentView: View {
             if model.celebrate {
                 ConfettiView().id(confettiID)
             }
+            if let u = model.unlockBanner {
+                Color.black.opacity(0.25).ignoresSafeArea().onTapGesture { model.unlockBanner = nil }
+                RaynaUnlockBanner(unlock: u) { model.unlockBanner = nil }
+                    .transition(.scale.combined(with: .opacity))
+                ConfettiView()
+            }
         }
+        .animation(.spring(response: 0.4, dampingFraction: 0.75), value: model.unlockBanner)
         .sensoryFeedback(.impact(weight: .medium), trigger: model.glassEvent)
         .sensoryFeedback(.success, trigger: model.celebrate) { _, new in new }
         .onChange(of: model.celebrate) { _, new in if new { confettiID = UUID() } }
         .sheet(isPresented: $model.showSettings) {
             SettingsView().environmentObject(model)
         }
+        .sheet(isPresented: $model.showJourney) {
+            JourneySheet().environmentObject(model)
+        }
+        .onAppear { model.checkUnlocks() }
     }
 
     private var header: some View {
@@ -50,6 +63,11 @@ struct ContentView: View {
                 StreakDots(streak: model.streak, store: model.store)
             }
             Spacer()
+            Button { model.showJourney = true } label: {
+                Image(systemName: "trophy.fill").font(.title2)
+                    .padding(10).background(.ultraThinMaterial, in: Circle())
+            }
+            .accessibilityLabel("Collection and weekly recap")
             Button { model.showSettings = true } label: {
                 Image(systemName: "gearshape.fill").font(.title2)
                     .padding(10).background(.ultraThinMaterial, in: Circle())
@@ -102,6 +120,27 @@ struct ContentView: View {
         }
     }
 
+    private var swapCard: some View {
+        Button { model.logSwap() } label: {
+            HStack(spacing: 10) {
+                Text("🍺➡️💧").font(.title3)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(model.swapThanks ?? "I swapped a drink for water")
+                        .font(.system(.subheadline, design: .rounded, weight: .bold))
+                    let st = model.extras.swapStreak()
+                    Text(st > 0 ? "Swap streak: \(st) evening\(st == 1 ? "" : "s") · \(model.extras.swapsTotal) total"
+                                : "Optional evening challenge. Logs a glass too.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(Color(red: 0.03, green: 0.2, blue: 0.4))
+    }
+
     private var runDayToggle: some View {
         Toggle(isOn: model.binding(\.runDay)) {
             Label("Run day (+500 ml)", systemImage: "figure.run")
@@ -132,5 +171,20 @@ struct StreakDots: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(streak) day streak")
+    }
+}
+
+struct JourneySheet: View {
+    @EnvironmentObject var model: AppModel
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                RaynaJourneyView(extras: model.extras, recap: model.store.recap, streak: model.streak)
+                    .padding()
+            }
+            .navigationTitle("Rayna's journey")
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+        }
     }
 }

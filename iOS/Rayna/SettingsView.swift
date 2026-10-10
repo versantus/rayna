@@ -26,6 +26,9 @@ struct SettingsView: View {
                     DatePicker("Quiet from", selection: timeBinding(\.quietStartMin), displayedComponents: .hourAndMinute)
                     DatePicker("Quiet until", selection: timeBinding(\.quietEndMin), displayedComponents: .hourAndMinute)
                     Toggle("Evening pint-swap nudge 🍺➡️💧", isOn: model.binding(\.eveningSwap))
+                    Toggle("Swap-a-pint challenge (after 18:00)", isOn: Binding(
+                        get: { model.extras.swapChallenge },
+                        set: { model.objectWillChange.send(); model.extras.swapChallenge = $0 }))
                 } header: { Text("Reminders") } footer: {
                     Text("Rayna nudges you during waking hours only. Tap “Drank one 💧” on a notification to log a glass without opening the app.")
                 }

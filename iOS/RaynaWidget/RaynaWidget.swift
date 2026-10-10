@@ -125,7 +125,55 @@ struct RaynaWidget: Widget {
     }
 }
 
+/// Lock Screen (and StandBy) accessories: ring, rectangular summary, inline text.
+struct RaynaLockView: View {
+    @Environment(\.widgetFamily) var family
+    var entry: RaynaEntry
+    var body: some View {
+        switch family {
+        case .accessoryCircular:
+            Gauge(value: entry.progress) {
+                Image(systemName: "drop.fill")
+            } currentValueLabel: {
+                Text("\(Int((entry.progress * 100).rounded()))")
+            }
+            .gaugeStyle(.accessoryCircularCapacity)
+            .containerBackground(for: .widget) { AccessoryWidgetBackground() }
+        case .accessoryRectangular:
+            HStack(spacing: 6) {
+                RaynaStill(progress: entry.progress).frame(width: 40, height: 40)
+                    .widgetAccentable()
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(String(format: "%.2f / %.1f L", Double(entry.totalML) / 1000, Double(entry.goal) / 1000))
+                        .font(.system(.headline, design: .rounded))
+                    ProgressView(value: entry.progress)
+                    Text(entry.progress >= 1 ? "Goal! 🎉" : "Rayna · \(Int((entry.progress * 100).rounded()))%")
+                        .font(.caption2)
+                }
+            }
+            .containerBackground(for: .widget) { Color.clear }
+        default:
+            Text("💧 \(String(format: "%.1f", Double(entry.totalML) / 1000)) of \(String(format: "%.1f", Double(entry.goal) / 1000)) L")
+                .containerBackground(for: .widget) { Color.clear }
+        }
+    }
+}
+
+struct RaynaLockWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: "RaynaLockWidget", provider: Provider()) { entry in
+            RaynaLockView(entry: entry)
+        }
+        .configurationDisplayName("Rayna (Lock Screen)")
+        .description("Today's water at a glance.")
+        .supportedFamilies([.accessoryCircular, .accessoryRectangular, .accessoryInline])
+    }
+}
+
 @main
 struct RaynaWidgetBundle: WidgetBundle {
-    var body: some Widget { RaynaWidget() }
+    var body: some Widget {
+        RaynaWidget()
+        RaynaLockWidget()
+    }
 }

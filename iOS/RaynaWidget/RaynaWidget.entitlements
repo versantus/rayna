@@ -4,7 +4,7 @@
 <dict>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.co.versantus.rayna</string>
+		<string>group.co.versantus.raynawater</string>
 	</array>
 </dict>
 </plist>

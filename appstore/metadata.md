@@ -4,7 +4,7 @@
 |---|---|
 | App name (≤30) | **Rayna – Water Reminder** (22) |
 | Subtitle (≤30) | **Hydrate with a happy stingray** (29) |
-| Bundle ID | `co.versantus.rayna.ios` (widget: `co.versantus.rayna.ios.widget`, App Group `group.co.versantus.rayna`) |
+| Bundle ID | `co.versantus.rayna.ios` (widget: `co.versantus.rayna.ios.widget`, App Group `group.co.versantus.raynawater`) |
 | SKU | `rayna-ios` |
 | Version / build | 1.0 (1) |
 | Primary category | Health & Fitness |
