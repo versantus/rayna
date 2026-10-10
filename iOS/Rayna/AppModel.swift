@@ -20,6 +20,7 @@ final class AppModel: ObservableObject {
     @Published var swapThanks: String?
     /// Share cards currently offered (story + square).
     @Published var share: RaynaShareInfo?
+    @Published var showPod = false
 
     private init() {
         // Screenshot/demo mode: launch arg `-RaynaDemo <glasses>` or env RAYNA_DEMO=<glasses>
@@ -39,6 +40,7 @@ final class AppModel: ObservableObject {
         showSettings = args.contains("-RaynaShowSettings") || env["RAYNA_SETTINGS"] == "1"
         showJourney = env["RAYNA_JOURNEY"] == "1"
         if let u = env["RAYNA_UNLOCK"].flatMap(RaynaUnlock.init(rawValue:)) { unlockBanner = u }
+        if env["RAYNA_POD"] == "1" { DispatchQueue.main.async { PodService.shared.loadDemo(); self.showPod = true } }
         if env["RAYNA_SHARE"] == "goal" { DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.offerShare(.goal) } }
         store.rolloverIfNeeded()
     }
@@ -117,7 +119,16 @@ final class AppModel: ObservableObject {
                 set: { self.objectWillChange.send(); self.store[keyPath: kp] = $0; self.afterChange() })
     }
 
+    func publishToPod() {
+        guard !demoMode else { return }
+        let s = store
+        Task { @MainActor in
+            await PodService.shared.publish(glasses: s.glasses, ml: s.totalML, goal: s.effectiveGoal, streak: s.streak)
+        }
+    }
+
     func afterChange() {
+        publishToPod()
         WidgetCenter.shared.reloadAllTimelines()
         if !demoMode { ReminderScheduler.reschedule() }
     }

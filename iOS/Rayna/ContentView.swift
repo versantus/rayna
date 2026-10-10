@@ -52,6 +52,14 @@ struct ContentView: View {
         .sheet(item: Binding(get: { model.share.map(ShareBox.init) }, set: { model.share = $0?.info })) { box in
             ShareSheet(info: box.info)
         }
+        .sheet(isPresented: $model.showPod) {
+            NavigationStack {
+                ScrollView { PodView().padding() }
+                    .navigationTitle("Pod")
+                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { model.showPod = false } } }
+                    .task { if !model.demoMode { await PodService.shared.refreshStatus() } }
+            }
+        }
         .sheet(isPresented: $model.showJourney) {
             JourneySheet().environmentObject(model)
         }
@@ -66,6 +74,11 @@ struct ContentView: View {
                 StreakDots(streak: model.streak, store: model.store)
             }
             Spacer()
+            Button { model.showPod = true } label: {
+                Image(systemName: "person.3.fill").font(.title3)
+                    .padding(10).background(.ultraThinMaterial, in: Circle())
+            }
+            .accessibilityLabel("Pod")
             Button { model.showJourney = true } label: {
                 Image(systemName: "trophy.fill").font(.title2)
                     .padding(10).background(.ultraThinMaterial, in: Circle())

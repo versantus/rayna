@@ -2,6 +2,7 @@ import SwiftUI
 import UserNotifications
 import WidgetKit
 import RaynaCore
+import CloudKit
 
 final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication,
@@ -9,7 +10,23 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         UNUserNotificationCenter.current().delegate = self
         RaynaFrames.preloadForLaunch(progress: RaynaStore.shared.progress)
         DispatchQueue.global(qos: .utility).async { ReminderScheduler.registerCategories() }
+        application.registerForRemoteNotifications()   // silent CloudKit pushes for pods
         return true
+    }
+
+    func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession,
+                     options: UIScene.ConnectionOptions) -> UISceneConfiguration {
+        let c = UISceneConfiguration(name: nil, sessionRole: connectingSceneSession.role)
+        c.delegateClass = SceneDelegate.self
+        return c
+    }
+
+    func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+                     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        Task { @MainActor in
+            await PodService.shared.handlePush()
+            completionHandler(.newData)
+        }
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
@@ -49,6 +66,17 @@ struct RaynaIOSApp: App {
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active { model.refresh() }
                 }
+        }
+    }
+}
+
+/// Receives accepted pod invites (CloudKit share links).
+final class SceneDelegate: NSObject, UIWindowSceneDelegate {
+    func windowScene(_ windowScene: UIWindowScene, userDidAcceptCloudKitShareWith metadata: CKShare.Metadata) {
+        Task { @MainActor in
+            await PodService.shared.accept(metadata)
+            AppModel.shared.showPod = true
+            AppModel.shared.publishToPod()
         }
     }
 }

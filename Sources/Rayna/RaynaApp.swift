@@ -1,8 +1,16 @@
 import RaynaCore
 import SwiftUI
 import AppKit
+import CloudKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    func application(_ application: NSApplication, userDidAcceptCloudKitShareWith metadata: CKShare.Metadata) {
+        Task { @MainActor in
+            await PodService.shared.accept(metadata)
+            AppState.shared.publishToPod()
+        }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         RaynaFrames.preloadForLaunch(progress: AppState.shared.progress)

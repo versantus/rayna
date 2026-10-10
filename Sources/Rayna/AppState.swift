@@ -29,6 +29,15 @@ final class AppState: ObservableObject {
     var goalDays: [String] { get { d.stringArray(forKey: "goalDays") ?? [] } set { d.set(Array(newValue.suffix(30)), forKey: "goalDays") } }
     var accessories: Set<RaynaUnlock> { Set(extras.unlocked) }
     var recap: RaynaRecap { extras.recap(goalDays: goalDays, streak: streak) }
+    func publishToPod() {
+        guard PodService.isEntitled else { return }
+        let g = glassML > 0 ? totalML / glassML : 0, ml = totalML, goal = effectiveGoal, st = streak
+        Task { @MainActor in
+            if PodService.shared.status == .unknown { await PodService.shared.refreshStatus() }
+            await PodService.shared.publish(glasses: g, ml: ml, goal: goal, streak: st)
+        }
+    }
+
     func shareInfo(_ kind: RaynaShareKind) -> RaynaShareInfo {
         RaynaShareInfo(kind: kind, litres: Double(totalML) / 1000, goalL: Double(effectiveGoal) / 1000,
                        streak: streak, weekL: recap.litres, unlocks: accessories)
@@ -86,6 +95,7 @@ final class AppState: ObservableObject {
         extras.recordDay(totalML)
         glassEvent += 1
         checkGoal()
+        publishToPod()
         NotificationManager.shared.resetSchedule()
     }
 

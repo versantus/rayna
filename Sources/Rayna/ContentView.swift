@@ -199,11 +199,17 @@ final class JourneyWindowController {
 
     func show(state: AppState) {
         let view = ScrollView {
-            RaynaJourneyView(extras: state.extras, recap: state.recap, streak: state.streak) {
-                MacShare.share(state.shareInfo(state.streak >= 3 ? .streak(state.streak) : .recap))
+            VStack(alignment: .leading, spacing: 20) {
+                RaynaJourneyView(extras: state.extras, recap: state.recap, streak: state.streak) {
+                    MacShare.share(state.shareInfo(state.streak >= 3 ? .streak(state.streak) : .recap))
+                }
+                Divider()
+                Text("Pod").font(.system(.title3, design: .rounded, weight: .bold))
+                PodView(onInvite: { url in MacShare.shareURL(url) })
+                    .task { await PodService.shared.refreshStatus() }
             }.padding(20)
         }
-        .frame(width: 420, height: 620)
+        .frame(width: 460, height: 700)
         if let w = window {
             w.contentViewController = NSHostingController(rootView: view)
         } else {
@@ -218,6 +224,17 @@ final class JourneyWindowController {
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
         window?.orderFrontRegardless()
+    }
+}
+
+extension MacShare {
+    @MainActor
+    static func shareURL(_ url: URL) {
+        let picker = NSSharingServicePicker(items: [url])
+        let win = NSApp.keyWindow ?? NSApp.windows.first(where: { $0.isVisible })
+        guard let view = win?.contentView else { return }
+        let p = view.convert(win!.mouseLocationOutsideOfEventStream, from: nil)
+        picker.show(relativeTo: NSRect(x: p.x, y: p.y, width: 1, height: 1), of: view, preferredEdge: .minY)
     }
 }
 
