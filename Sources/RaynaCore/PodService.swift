@@ -351,7 +351,7 @@ public struct PodView: View {
                     if m.id != pod.myID {
                         let left = pod.nudgesLeft(for: m.id)
                         Button { Task { await pod.nudge(m) } } label: { Text(left > 0 ? "Nudge 👋" : "Nudged") .font(.caption2) }
-                            .buttonStyle(.bordered).controlSize(.small).disabled(left == 0 || m.todayProgress >= 1)
+                            .buttonStyle(.bordered).frame(minHeight: 44).disabled(left == 0 || m.todayProgress >= 1)
                     } else {
                         Text(" ").font(.caption2).padding(.vertical, 4)
                     }

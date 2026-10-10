@@ -10,7 +10,7 @@ struct SettingsView: View {
             Form {
                 Section("Daily goal") {
                     Stepper(value: model.binding(\.goalML), in: 1000...5000, step: 250) {
-                        row("Goal", String(format: "%.2f L", Double(model.store.goalML) / 1000))
+                        Text("Goal: \(String(format: "%.2f L", Double(model.store.goalML) / 1000))")
                     }
                     Picker("Glass size", selection: model.binding(\.glassML)) {
                         ForEach([150, 200, 250, 330, 400, 500], id: \.self) { Text("\($0) ml").tag($0) }
@@ -65,7 +65,7 @@ struct SettingsView: View {
     }
 
     private func row(_ k: String, _ v: String) -> some View {
-        HStack { Text(k); Spacer(); Text(v).foregroundStyle(.secondary) }
+        LabeledContent(k, value: v)   // stacks vertically at accessibility text sizes
     }
 
     private func timeBinding(_ kp: ReferenceWritableKeyPath<RaynaStore, Int>) -> Binding<Date> {

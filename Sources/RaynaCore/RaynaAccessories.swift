@@ -140,7 +140,7 @@ public struct RaynaJourneyView: View {
                         RoundedRectangle(cornerRadius: 5)
                             .fill(d.goalMet ? Color(red: 0.18, green: 0.67, blue: 0.7) : Color(red: 0.35, green: 0.6, blue: 0.75).opacity(0.5))
                             .frame(height: max(4, 70 * CGFloat(d.ml) / CGFloat(maxML)))
-                        Text(d.label).font(.system(size: 10, weight: .semibold, design: .rounded)).foregroundStyle(.secondary)
+                        Text(d.label).font(.system(.caption2, design: .rounded, weight: .semibold)).foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity)
                 }

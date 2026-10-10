@@ -54,7 +54,7 @@ targets:
         LSApplicationCategoryType: public.app-category.healthcare-fitness
         ITSAppUsesNonExemptEncryption: false
         UILaunchScreen:
-          UIColorName: AccentColor
+          UIColorName: LaunchBackground
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]

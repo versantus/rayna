@@ -4,33 +4,34 @@ import RaynaCore
 struct ContentView: View {
     @EnvironmentObject var model: AppModel
     @State private var confettiID = UUID()
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @ScaledMetric(relativeTo: .largeTitle) private var amountSize: CGFloat = 46
+
+    /// Text colour on the water scene: deep navy by day, white in Dark Mode.
+    /// Short screens (iPhone SE / mini): tighter spacing.
+    private var compact: Bool { UIScreen.main.bounds.height < 700 }
+    private var ink: Color { scheme == .dark ? .white : Color(red: 0.03, green: 0.2, blue: 0.4) }
+    private var bubbleFill: Color { scheme == .dark ? Color(red: 0.06, green: 0.16, blue: 0.28).opacity(0.9) : .white.opacity(0.85) }
 
     var body: some View {
         ZStack {
-            LinearGradient(colors: [Color(red: 0.88, green: 0.96, blue: 1.0), Color(red: 0.62, green: 0.84, blue: 0.98)],
+            LinearGradient(colors: scheme == .dark
+                                ? [Color(red: 0.02, green: 0.10, blue: 0.20), Color(red: 0.03, green: 0.22, blue: 0.38)]
+                                : [Color(red: 0.88, green: 0.96, blue: 1.0), Color(red: 0.62, green: 0.84, blue: 0.98)],
                            startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea()
             WaterBackground(progress: model.progress)
                 .ignoresSafeArea()
 
-            VStack(spacing: 18) {
-                header
-                quipBubble
-                Spacer(minLength: 0)
-                GeometryReader { geo in
-                    let side = min(geo.size.width * 0.86, geo.size.height / 1.32)
-                    RaynaView(progress: model.progress, wiggleAt: model.wiggleAt, flipAt: model.flipAt, size: side, fullTail: true,
-                              accessories: model.accessories)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-                Spacer(minLength: 0)
-                amount
-                if model.showSwap { swapCard }
-                buttons
-                runDayToggle
+            // Fits on one screen when it can (SE → Pro Max); scrolls at large accessibility text sizes.
+            ViewThatFits(in: .vertical) {
+                mainColumn(raynaMin: 110, scrolling: false)
+                ScrollView { mainColumn(raynaMin: 180, scrolling: true) }
+                    .scrollBounceBehavior(.basedOnSize)
             }
-            .padding(.horizontal, 22)
-            .padding(.bottom, 8)
+            .frame(maxWidth: 600)   // readable width on iPad
+            .frame(maxWidth: .infinity)
 
             if model.celebrate {
                 ConfettiView().id(confettiID)
@@ -66,46 +67,98 @@ struct ContentView: View {
         .onAppear { model.checkUnlocks() }
     }
 
-    private var header: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Rayna").font(.system(.largeTitle, design: .rounded, weight: .heavy))
-                    .foregroundStyle(Color("AccentColor"))
-                StreakDots(streak: model.streak, store: model.store)
+    @ViewBuilder
+    private func mainColumn(raynaMin: CGFloat, scrolling: Bool) -> some View {
+        VStack(spacing: compact ? 10 : 18) {
+            header
+            quipBubble
+            if !scrolling { Spacer(minLength: 0) }
+            GeometryReader { geo in
+                let side = min(geo.size.width * 0.86, geo.size.height / 1.32)
+                RaynaView(progress: model.progress, wiggleAt: model.wiggleAt, flipAt: model.flipAt, size: side, fullTail: true,
+                          accessories: model.accessories)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            Spacer()
+            .frame(minHeight: raynaMin, idealHeight: scrolling ? raynaMin : nil)
+            .frame(height: scrolling ? raynaMin * 1.4 : nil)
+            .layoutPriority(-1)   // Rayna gives way so the controls always fit (iPhone SE)
+            if !scrolling { Spacer(minLength: 0) }
+            amount
+            if model.showSwap { swapCard }
+            buttons
+            runDayToggle
+        }
+        .padding(.horizontal, 22)
+        .padding(.bottom, 8)
+    }
+
+    private var headerButtons: some View {
+        HStack(spacing: 8) { headerButtonRow }
+    }
+
+    private var header: some View {
+        Group {
+            if typeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 8) {
+                    titleBlock
+                    headerButtons
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                HStack(alignment: .center) {
+                    titleBlock
+                    Spacer()
+                    headerButtons
+                }
+            }
+        }
+        .padding(.top, 8)
+    }
+
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Rayna").font(.system(.largeTitle, design: .rounded, weight: .heavy))
+                .foregroundStyle(Color("AccentColor"))
+                .accessibilityAddTraits(.isHeader)
+            StreakDots(streak: model.streak, store: model.store)
+        }
+    }
+
+    @ViewBuilder
+    private var headerButtonRow: some View {
             Button { model.showPod = true } label: {
                 Image(systemName: "person.3.fill").font(.title3)
-                    .padding(10).background(.ultraThinMaterial, in: Circle())
+                    .frame(minWidth: 44, minHeight: 44).background(.ultraThinMaterial, in: Circle())
             }
             .accessibilityLabel("Pod")
             Button { model.showJourney = true } label: {
                 Image(systemName: "trophy.fill").font(.title2)
-                    .padding(10).background(.ultraThinMaterial, in: Circle())
+                    .frame(minWidth: 44, minHeight: 44).background(.ultraThinMaterial, in: Circle())
             }
             .accessibilityLabel("Collection and weekly recap")
             Button { model.showSettings = true } label: {
                 Image(systemName: "gearshape.fill").font(.title2)
-                    .padding(10).background(.ultraThinMaterial, in: Circle())
+                    .frame(minWidth: 44, minHeight: 44).background(.ultraThinMaterial, in: Circle())
             }
             .accessibilityLabel("Settings")
-        }
-        .padding(.top, 8)
     }
 
     private var quipBubble: some View {
         HStack(spacing: 8) {
             Text(model.quip)
             if model.progress >= 1 {
-                Button { model.offerShare(.goal) } label: { Image(systemName: "square.and.arrow.up") }
-                    .accessibilityLabel("Share your goal")
+                Button { model.offerShare(.goal) } label: {
+                    Image(systemName: "square.and.arrow.up").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle())
+                }
+                .accessibilityLabel("Share your goal")
             }
         }
             .font(.system(.title3, design: .rounded, weight: .semibold))
             .multilineTextAlignment(.center)
             .padding(.horizontal, 18).padding(.vertical, 14)
             .frame(maxWidth: .infinity)
-            .background(.white.opacity(0.85), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .foregroundStyle(ink)
+            .background(bubbleFill, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
             .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
             .animation(.snappy, value: model.quip)
             .contentTransition(.opacity)
@@ -114,13 +167,14 @@ struct ContentView: View {
     private var amount: some View {
         VStack(spacing: 2) {
             Text(String(format: "%.2f L", Double(model.totalML) / 1000))
-                .font(.system(size: 46, weight: .heavy, design: .rounded))
+                .font(.system(size: amountSize, weight: .heavy, design: .rounded))
+                .minimumScaleFactor(0.6).lineLimit(1)
                 .contentTransition(.numericText())
                 .animation(.snappy, value: model.totalML)
             Text("of \(String(format: "%.1f", Double(model.goal) / 1000)) L · \(Int((model.progress * 100).rounded()))%")
                 .font(.system(.headline, design: .rounded)).foregroundStyle(.secondary)
         }
-        .foregroundStyle(Color(red: 0.03, green: 0.2, blue: 0.4))
+        .foregroundStyle(ink)
     }
 
     private var buttons: some View {
@@ -128,7 +182,7 @@ struct ContentView: View {
             Button { model.addGlass() } label: {
                 Label("+1 glass", systemImage: "drop.fill")
                     .font(.system(.title2, design: .rounded, weight: .bold))
-                    .frame(maxWidth: .infinity).padding(.vertical, 16)
+                    .frame(maxWidth: .infinity).padding(.vertical, compact ? 12 : 16)
             }
             .buttonStyle(.borderedProminent)
             .buttonBorderShape(.capsule)
@@ -160,7 +214,8 @@ struct ContentView: View {
             .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
         .buttonStyle(.plain)
-        .foregroundStyle(Color(red: 0.03, green: 0.2, blue: 0.4))
+        .foregroundStyle(ink)
+        .accessibilityHint("Logs a swapped drink and a glass of water")
     }
 
     private var runDayToggle: some View {
