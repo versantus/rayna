@@ -38,7 +38,13 @@ public final class RaynaStore {
     public var extras: RaynaExtras { RaynaExtras(defaults: defaults) }
 
     // MARK: Derived
-    public var effectiveGoal: Int { goalML + (runDay ? 500 : 0) }
+    /// Run-day bonus in ml (500 by default; Health can scale it by workout length).
+    public var runBonusML: Int { get { let v = defaults.integer(forKey: "runBonusML"); return v > 0 ? v : 500 } set { defaults.set(newValue, forKey: "runBonusML"); checkGoal() } }
+    /// Day key on which Health auto-applied the run bonus (so a manual "off" isn't overridden again).
+    public var healthRunDay: String { get { defaults.string(forKey: "healthRunDay") ?? "" } set { defaults.set(newValue, forKey: "healthRunDay") } }
+    public var healthAutoRun: Bool { get { defaults.bool(forKey: "healthAutoRun") } set { defaults.set(newValue, forKey: "healthAutoRun") } }
+    public var healthWriteWater: Bool { get { defaults.bool(forKey: "healthWriteWater") } set { defaults.set(newValue, forKey: "healthWriteWater") } }
+    public var effectiveGoal: Int { goalML + (runDay ? runBonusML : 0) }
     public var progress: Double { effectiveGoal > 0 ? min(Double(totalML) / Double(effectiveGoal), 1) : 0 }
     public var glasses: Int { glassML > 0 ? totalML / glassML : 0 }
     public var quip: String { RaynaCopy.quip(for: progress) }
@@ -91,6 +97,7 @@ public final class RaynaStore {
             totalML = 0
             log = []
             defaults.set(false, forKey: "runDay")
+            defaults.set(500, forKey: "runBonusML")
         }
         if lastGoalDay != today && lastGoalDay != RaynaCopy.yesterdayKey(from: now) && streak != 0 {
             streak = 0

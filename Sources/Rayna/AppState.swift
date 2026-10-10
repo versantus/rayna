@@ -29,6 +29,10 @@ final class AppState: ObservableObject {
     var goalDays: [String] { get { d.stringArray(forKey: "goalDays") ?? [] } set { d.set(Array(newValue.suffix(30)), forKey: "goalDays") } }
     var accessories: Set<RaynaUnlock> { Set(extras.unlocked) }
     var recap: RaynaRecap { extras.recap(goalDays: goalDays, streak: streak) }
+    func shareInfo(_ kind: RaynaShareKind) -> RaynaShareInfo {
+        RaynaShareInfo(kind: kind, litres: Double(totalML) / 1000, goalL: Double(effectiveGoal) / 1000,
+                       streak: streak, weekL: recap.litres, unlocks: accessories)
+    }
     var showSwap: Bool { extras.swapChallenge && RaynaExtras.isSwapTime() }
 
     private var dayKey: String { didSet { d.set(dayKey, forKey: "dayKey") } }

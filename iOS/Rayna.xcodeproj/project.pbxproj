@@ -10,6 +10,7 @@
 		1D80D2128B043E1EB42F635A /* RaynaCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4DCC39961F649EA4480E8353 /* RaynaCore */; };
 		2A6BE1DD83027C9A037A8839 /* RaynaIOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6407386D21DDEED7E499BE02 /* RaynaIOSApp.swift */; };
 		2BDFBBD54BDB99541CCFD5CA /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 888BFBD62739D02DA6981504 /* AppModel.swift */; };
+		3C97EA50CE7563A8E08590AB /* HealthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDCACE7D0A62C6F7C1D48B42 /* HealthManager.swift */; };
 		6CBB5F849DABFEB3516EFC1C /* RaynaWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E304D665590360E7CFAFA116 /* RaynaWidget.swift */; };
 		74151B6518F5C85BCC843055 /* AddGlassIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4562E3D0679E16F0A1F3B5CF /* AddGlassIntent.swift */; };
 		74597E8001E71A565A32843C /* RaynaWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 08282B4C050AF02DCF8DB4AA /* RaynaWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -64,6 +65,7 @@
 		8ED3C8C35492A726887EA0D6 /* RaynaWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RaynaWidget.entitlements; sourceTree = "<group>"; };
 		97F2495A7C6D826D1FC9909C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		9B2F27C22DE5E361FF973ECF /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		DDCACE7D0A62C6F7C1D48B42 /* HealthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthManager.swift; sourceTree = "<group>"; };
 		E304D665590360E7CFAFA116 /* RaynaWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaynaWidget.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -144,6 +146,7 @@
 				888BFBD62739D02DA6981504 /* AppModel.swift */,
 				0A482E4E817F70913890C19D /* Assets.xcassets */,
 				9B2F27C22DE5E361FF973ECF /* ContentView.swift */,
+				DDCACE7D0A62C6F7C1D48B42 /* HealthManager.swift */,
 				70E8C4FB448873400DF401A7 /* Info.plist */,
 				89F851B9928143970D811760 /* Rayna.entitlements */,
 				6407386D21DDEED7E499BE02 /* RaynaIOSApp.swift */,
@@ -274,6 +277,7 @@
 				CFAD8179630905514B7EC447 /* AddGlassIntent.swift in Sources */,
 				2BDFBBD54BDB99541CCFD5CA /* AppModel.swift in Sources */,
 				FFB1BAACB08BE3600EF7811C /* ContentView.swift in Sources */,
+				3C97EA50CE7563A8E08590AB /* HealthManager.swift in Sources */,
 				2A6BE1DD83027C9A037A8839 /* RaynaIOSApp.swift in Sources */,
 				A3477AAB197C05E6D317AA3D /* SettingsView.swift in Sources */,
 			);

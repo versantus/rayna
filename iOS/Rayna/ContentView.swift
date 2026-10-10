@@ -37,7 +37,7 @@ struct ContentView: View {
             }
             if let u = model.unlockBanner {
                 Color.black.opacity(0.25).ignoresSafeArea().onTapGesture { model.unlockBanner = nil }
-                RaynaUnlockBanner(unlock: u) { model.unlockBanner = nil }
+                RaynaUnlockBanner(unlock: u, onShare: { model.unlockBanner = nil; model.offerShare(.unlock(u)) }) { model.unlockBanner = nil }
                     .transition(.scale.combined(with: .opacity))
                 ConfettiView()
             }
@@ -48,6 +48,9 @@ struct ContentView: View {
         .onChange(of: model.celebrate) { _, new in if new { confettiID = UUID() } }
         .sheet(isPresented: $model.showSettings) {
             SettingsView().environmentObject(model)
+        }
+        .sheet(item: Binding(get: { model.share.map(ShareBox.init) }, set: { model.share = $0?.info })) { box in
+            ShareSheet(info: box.info)
         }
         .sheet(isPresented: $model.showJourney) {
             JourneySheet().environmentObject(model)
@@ -78,7 +81,13 @@ struct ContentView: View {
     }
 
     private var quipBubble: some View {
-        Text(model.quip)
+        HStack(spacing: 8) {
+            Text(model.quip)
+            if model.progress >= 1 {
+                Button { model.offerShare(.goal) } label: { Image(systemName: "square.and.arrow.up") }
+                    .accessibilityLabel("Share your goal")
+            }
+        }
             .font(.system(.title3, design: .rounded, weight: .semibold))
             .multilineTextAlignment(.center)
             .padding(.horizontal, 18).padding(.vertical, 14)
@@ -143,7 +152,7 @@ struct ContentView: View {
 
     private var runDayToggle: some View {
         Toggle(isOn: model.binding(\.runDay)) {
-            Label("Run day (+500 ml)", systemImage: "figure.run")
+            Label("Run day (+\(model.store.runBonusML) ml)", systemImage: "figure.run")
                 .font(.system(.body, design: .rounded, weight: .semibold))
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
@@ -180,11 +189,54 @@ struct JourneySheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                RaynaJourneyView(extras: model.extras, recap: model.store.recap, streak: model.streak)
+                RaynaJourneyView(extras: model.extras, recap: model.store.recap, streak: model.streak) {
+                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { model.offerShare(model.streak >= 3 ? .streak(model.streak) : .recap) }
+                }
                     .padding()
             }
             .navigationTitle("Rayna's journey")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+        }
+    }
+}
+
+struct ShareBox: Identifiable { let info: RaynaShareInfo; var id: String { info.title } }
+
+/// Preview of the story + square cards with a ShareLink for each.
+struct ShareSheet: View {
+    let info: RaynaShareInfo
+    @Environment(\.dismiss) private var dismiss
+    @State private var story: Image?
+    @State private var square: Image?
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 20) {
+                    if let story {
+                        story.resizable().scaledToFit().frame(maxHeight: 420).clipShape(RoundedRectangle(cornerRadius: 18))
+                        ShareLink(item: story, preview: SharePreview("Rayna", image: story)) {
+                            Label("Share story (1080×1920)", systemImage: "square.and.arrow.up").frame(maxWidth: .infinity)
+                        }.buttonStyle(.borderedProminent)
+                    }
+                    if let square {
+                        square.resizable().scaledToFit().frame(maxHeight: 260).clipShape(RoundedRectangle(cornerRadius: 18))
+                        ShareLink(item: square, preview: SharePreview("Rayna", image: square)) {
+                            Label("Share square (1080×1080)", systemImage: "square.and.arrow.up").frame(maxWidth: .infinity)
+                        }.buttonStyle(.bordered)
+                    }
+                    if story == nil { ProgressView().padding(60) }
+                }
+                .padding()
+            }
+            .navigationTitle("Share")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+        }
+        .task {
+            if let cg = RaynaShareRenderer.image(info, square: false) { story = Image(decorative: cg, scale: 1) }
+            if let cg = RaynaShareRenderer.image(info, square: true) { square = Image(decorative: cg, scale: 1) }
         }
     }
 }

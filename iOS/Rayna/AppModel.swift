@@ -18,6 +18,8 @@ final class AppModel: ObservableObject {
     /// Unlock currently being celebrated.
     @Published var unlockBanner: RaynaUnlock?
     @Published var swapThanks: String?
+    /// Share cards currently offered (story + square).
+    @Published var share: RaynaShareInfo?
 
     private init() {
         // Screenshot/demo mode: launch arg `-RaynaDemo <glasses>` or env RAYNA_DEMO=<glasses>
@@ -37,11 +39,15 @@ final class AppModel: ObservableObject {
         showSettings = args.contains("-RaynaShowSettings") || env["RAYNA_SETTINGS"] == "1"
         showJourney = env["RAYNA_JOURNEY"] == "1"
         if let u = env["RAYNA_UNLOCK"].flatMap(RaynaUnlock.init(rawValue:)) { unlockBanner = u }
+        if env["RAYNA_SHARE"] == "goal" { DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.offerShare(.goal) } }
         store.rolloverIfNeeded()
     }
 
     func refresh(wiggle: Bool = false) {
         store.rolloverIfNeeded()
+        if !demoMode {
+            HealthManager.shared.applyRunDay(store: store) { applied in if applied { self.objectWillChange.send(); self.afterChange() } }
+        }
         checkUnlocks()
         if wiggle { wiggleAt = Date() }
         objectWillChange.send()
@@ -56,6 +62,12 @@ final class AppModel: ObservableObject {
     var extras: RaynaExtras { store.extras }
     var accessories: Set<RaynaUnlock> { Set(store.extras.unlocked) }
     var showSwap: Bool { store.extras.swapChallenge && (RaynaExtras.isSwapTime() || ProcessInfo.processInfo.environment["RAYNA_SWAP"] == "1") }
+
+    func shareInfo(_ kind: RaynaShareKind) -> RaynaShareInfo {
+        RaynaShareInfo(kind: kind, litres: Double(store.totalML) / 1000, goalL: Double(store.effectiveGoal) / 1000,
+                       streak: store.streak, weekL: store.recap.litres, unlocks: accessories)
+    }
+    func offerShare(_ kind: RaynaShareKind) { share = shareInfo(kind) }
 
     func checkUnlocks() {
         if unlockBanner == nil, let u = store.extras.takePendingUnlocks().last {
@@ -80,6 +92,7 @@ final class AppModel: ObservableObject {
     func addGlass() {
         objectWillChange.send()
         let hit = store.addGlass()
+        if !demoMode { HealthManager.shared.logGlass(ml: store.glassML, store: store) }
         glassEvent += 1
         wiggleAt = Date()
         if hit {
@@ -94,6 +107,7 @@ final class AppModel: ObservableObject {
     func undo() {
         objectWillChange.send()
         store.undo()
+        if !demoMode { HealthManager.shared.undoGlass() }
         if store.progress < 1 { celebrate = false }
         afterChange()
     }

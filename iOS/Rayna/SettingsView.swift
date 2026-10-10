@@ -15,7 +15,7 @@ struct SettingsView: View {
                     Picker("Glass size", selection: model.binding(\.glassML)) {
                         ForEach([150, 200, 250, 330, 400, 500], id: \.self) { Text("\($0) ml").tag($0) }
                     }
-                    Text("Run days add 500 ml automatically.").font(.footnote).foregroundStyle(.secondary)
+                    Text("Run days add 500 ml (or more for long runs via Apple Health).").font(.footnote).foregroundStyle(.secondary)
                 }
                 Section {
                     Toggle("Reminders", isOn: model.binding(\.remindersOn))
@@ -33,15 +33,32 @@ struct SettingsView: View {
                     Text("Rayna nudges you during waking hours only. Tap “Drank one 💧” on a notification to log a glass without opening the app.")
                 }
                 Section {
+                    Toggle("Auto run day from workouts", isOn: healthBinding(\.healthAutoRun, read: true))
+                    Toggle("Save water to Health", isOn: healthBinding(\.healthWriteWater, read: false))
+                } header: { Text("Apple Health") } footer: {
+                    Text("Rayna reads today's runs to add your run-day bonus (+500 ml, more for runs over an hour) and can log each glass as Dietary Water. Garmin, Strava and other apps that sync to Apple Health work too; there's no direct Garmin connection.")
+                }
+                Section {
                     Link("Privacy policy", destination: URL(string: "https://rayna-water.netlify.app/privacy.html")!)
                     Link("Rayna for Mac", destination: URL(string: "https://rayna-water.netlify.app")!)
                 } footer: {
-                    Text("Everything stays on your iPhone. No accounts, no tracking.")
+                    Text("Everything stays on your iPhone (and Apple Health / iCloud if you turn them on). No accounts, no tracking.")
                 }
             }
             .navigationTitle("Settings")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
+    }
+
+    private func healthBinding(_ kp: ReferenceWritableKeyPath<RaynaStore, Bool>, read: Bool) -> Binding<Bool> {
+        Binding(get: { model.store[keyPath: kp] }, set: { on in
+            model.objectWillChange.send()
+            model.store[keyPath: kp] = on
+            guard on else { return }
+            HealthManager.shared.requestAccess(readWorkouts: read, writeWater: !read) { _ in
+                if read { HealthManager.shared.applyRunDay(store: model.store) { _ in model.objectWillChange.send() } }
+            }
+        })
     }
 
     private func row(_ k: String, _ v: String) -> some View {

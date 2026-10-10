@@ -33,9 +33,13 @@ targets:
       path: Rayna/Rayna.entitlements
       properties:
         com.apple.security.application-groups: [group.co.versantus.raynawater]
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access: []
     info:
       path: Rayna/Info.plist
       properties:
+        NSHealthShareUsageDescription: Rayna reads today's running workouts to add your run-day water bonus automatically.
+        NSHealthUpdateUsageDescription: Rayna can save each glass you log as Dietary Water in Apple Health.
         CFBundleDisplayName: Rayna
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)

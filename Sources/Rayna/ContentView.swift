@@ -43,6 +43,11 @@ struct ContentView: View {
                     .controlSize(.large)
                     Button("Undo") { state.undo() }
                         .controlSize(.large)
+                    if state.progress >= 1 {
+                        Button { MacShare.share(state.shareInfo(.goal)) } label: { Image(systemName: "square.and.arrow.up") }
+                            .controlSize(.large)
+                            .help("Share a Rayna goal card")
+                    }
                 }
 
                 if state.showSwap {
@@ -103,7 +108,7 @@ struct ContentView: View {
                 ConfettiView().id(confettiID)
             }
             if let u = state.unlockBanner {
-                RaynaUnlockBanner(unlock: u) { state.unlockBanner = nil }
+                RaynaUnlockBanner(unlock: u, onShare: { state.unlockBanner = nil; MacShare.share(state.shareInfo(.unlock(u))) }) { state.unlockBanner = nil }
                     .scaleEffect(0.9)
             }
         }
@@ -194,7 +199,9 @@ final class JourneyWindowController {
 
     func show(state: AppState) {
         let view = ScrollView {
-            RaynaJourneyView(extras: state.extras, recap: state.recap, streak: state.streak).padding(20)
+            RaynaJourneyView(extras: state.extras, recap: state.recap, streak: state.streak) {
+                MacShare.share(state.shareInfo(state.streak >= 3 ? .streak(state.streak) : .recap))
+            }.padding(20)
         }
         .frame(width: 420, height: 620)
         if let w = window {
@@ -211,5 +218,22 @@ final class JourneyWindowController {
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
         window?.orderFrontRegardless()
+    }
+}
+
+/// Renders the share cards to PNGs and shows the system share picker (AirDrop, Messages, Mail, Photos…).
+enum MacShare {
+    @MainActor
+    static func share(_ info: RaynaShareInfo) {
+        let urls = RaynaShareRenderer.pngFiles(info)
+        guard !urls.isEmpty else { return }
+        let picker = NSSharingServicePicker(items: urls)
+        // Anchor at the mouse in whichever window is frontmost (menu-bar panel or Journey window).
+        let win = NSApp.keyWindow ?? NSApp.windows.first(where: { $0.isVisible })
+        guard let view = win?.contentView else {
+            NSWorkspace.shared.activateFileViewerSelecting(urls); return
+        }
+        let p = view.convert(win!.mouseLocationOutsideOfEventStream, from: nil)
+        picker.show(relativeTo: NSRect(x: p.x, y: p.y, width: 1, height: 1), of: view, preferredEdge: .minY)
     }
 }

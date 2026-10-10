@@ -4,6 +4,10 @@ All notable changes to Rayna (macOS menu-bar app + iOS app). macOS versions are 
 
 ## Unreleased: 2.2.0
 
+### Phase B
+- **Share cards:** 1080×1920 story and 1080×1080 square cards (Rayna celebrating, stats, rayna-water.netlify.app), rendered with ImageRenderer. Offered on goal, from unlock celebrations and from the weekly recap (streak card). iOS uses ShareLink; macOS uses NSSharingServicePicker. Video share skipped.
+- **Apple Health (iOS):** optional auto run day from today's running workouts (+500 ml, +250 ml per extra 30 min past an hour, max +1,000 ml), and optional Dietary Water logging (Undo removes it). Only the permissions for enabled options are requested. Garmin isn't connected directly; it syncs through Apple Health.
+
 ### Phase A
 - **Rayna evolves:** streak unlocks drawn in code over the animated Rayna: 3 days bubble trail 🫧, 7 days run-day headband 🎽, 14 days race medal 🏅, 30 days baby ray buddy 🐣. Unlock celebration card with confetti, plus a collection screen ("Rayna's journey").
 - **Swap-a-pint:** optional evening challenge after 18:00. "I swapped a drink for water" logs a swap and a glass, with its own streak and stats and gentle copy. Toggle in Settings. The macOS evening nudge now has "I swapped one 💧" / "Not tonight".
