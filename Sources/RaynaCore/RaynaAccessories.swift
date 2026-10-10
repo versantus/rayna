@@ -138,7 +138,7 @@ public struct RaynaJourneyView: View {
                     .background(RoundedRectangle(cornerRadius: 16).fill(Color.primary.opacity(got ? 0.06 : 0.03)))
                 }
             }
-            if extras.rayFactsOn { RayFactsCollection(unlocked: extras.factsUnlocked) }
+            if extras.rayFactsOn { RayFactsCollection(unlocked: extras.factsUnlocked).id("rayFacts") }
         }
     }
 

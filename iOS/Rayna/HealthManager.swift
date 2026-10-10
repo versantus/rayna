@@ -31,7 +31,7 @@ final class HealthManager {
 
     /// Looks for today's runs and, if found, turns on run day with a duration-scaled bonus.
     func applyRunDay(store: RaynaStore = .shared, completion: @escaping (Bool) -> Void = { _ in }) {
-        guard isAvailable, store.healthAutoRun else { completion(false); return }
+        guard isAvailable, store.healthAutoRun, !store.extras.kidMode else { completion(false); return }
         let today = RaynaCopy.dayKey(for: Date())
         guard store.healthRunDay != today else { completion(false); return }
         let start = Calendar.current.startOfDay(for: Date())

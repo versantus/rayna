@@ -85,7 +85,18 @@ public struct RaynaExtras {
     }
     // MARK: Ray Facts (1.1)
     public var rayFactsOn: Bool { get { d.bool(forKey: "rayFactsOn") } nonmutating set { d.set(newValue, forKey: "rayFactsOn") } }
-    /// How many facts are unlocked (facts unlock in order, one per glass).
+    /// Milestone facts: Rayna shares a fact when today's progress first crosses 25 / 50 / 75 / 100 %.
+    /// Returns the fact to show (a newly unlocked one, or a favourite once all are collected).
+    public func factForMilestone(progress: Double, now: Date = Date()) -> RayFact? {
+        guard rayFactsOn else { return nil }
+        let day = RaynaCopy.dayKey(for: now)
+        let m = min(4, Int((progress + 0.0001) * 4))
+        let done = d.string(forKey: "factMilestoneDay") == day ? d.integer(forKey: "factMilestone") : 0
+        guard m > done else { return nil }
+        d.set(day, forKey: "factMilestoneDay"); d.set(m, forKey: "factMilestone")
+        return unlockNextFact() ?? RayFacts.all.randomElement()
+    }
+    /// How many facts are unlocked (facts unlock in order, one per milestone).
     public var factsUnlocked: Int { get { d.integer(forKey: "factsUnlocked") } nonmutating set { d.set(min(newValue, RayFacts.all.count), forKey: "factsUnlocked") } }
     /// Unlocks the next fact (if Ray Facts is on and any remain) and returns it.
     @discardableResult
@@ -97,7 +108,8 @@ public struct RaynaExtras {
     }
 
     // MARK: Kid mode (1.1)
-    public var kidMode: Bool { get { d.bool(forKey: "kidMode") } nonmutating set { d.set(newValue, forKey: "kidMode") } }
+    /// Kid mode is behind `RaynaFeatures.kidMode` (off for now): when off, kid mode reads as false everywhere.
+    public var kidMode: Bool { get { RaynaFeatures.kidMode && d.bool(forKey: "kidMode") } nonmutating set { d.set(newValue, forKey: "kidMode") } }
     /// Adult goal/glass saved while kid mode is on, restored when it's turned off.
     public var adultGoalML: Int { get { d.integer(forKey: "adultGoalML") } nonmutating set { d.set(newValue, forKey: "adultGoalML") } }
     public var adultGlassML: Int { get { d.integer(forKey: "adultGlassML") } nonmutating set { d.set(newValue, forKey: "adultGlassML") } }
@@ -219,4 +231,9 @@ public struct RayVisitorsLayer: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(visitors.isEmpty ? "" : "Visiting: " + visitors.map(\.name).joined(separator: ", "))
     }
+}
+
+/// Feature flags. Kid mode (and family-pod kid marking) is built but hidden until Nik turns it on.
+public enum RaynaFeatures {
+    public static let kidMode = false
 }

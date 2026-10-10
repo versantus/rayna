@@ -22,7 +22,10 @@ final class AppModel: ObservableObject {
     @Published var share: RaynaShareInfo?
     @Published var showPod = false
     /// Newly unlocked ray fact (shown as a small card for a few seconds).
-    @Published var newFact: RayFact?
+    /// Fact Rayna is currently saying in her bubble (milestones only); tap opens the fact page.
+    @Published var bubbleFact: RayFact?
+    @Published var factPage: RayFact?
+    var journeyToFacts = false
 
     private init() {
         // Screenshot/demo mode: launch arg `-RaynaDemo <glasses>` or env RAYNA_DEMO=<glasses>
@@ -40,13 +43,15 @@ final class AppModel: ObservableObject {
             demoMode = false
         }
         showSettings = args.contains("-RaynaShowSettings") || env["RAYNA_SETTINGS"] == "1"
-        showJourney = env["RAYNA_JOURNEY"] == "1"
+        showJourney = env["RAYNA_JOURNEY"] == "1" || env["RAYNA_JOURNEY"] == "facts"
+        journeyToFacts = env["RAYNA_JOURNEY"] == "facts"
         if let u = env["RAYNA_UNLOCK"].flatMap(RaynaUnlock.init(rawValue:)) { unlockBanner = u }
         if env["RAYNA_POD"] == "1" { DispatchQueue.main.async { PodService.shared.loadDemo(); self.showPod = true } }
         if env["RAYNA_KID"] == "1" { setKidMode(true); store.seedDemo(glasses: Int(env["RAYNA_DEMO"] ?? "4") ?? 4, streak: Int(env["RAYNA_STREAK"] ?? "8") ?? 8) }
         if env["RAYNA_KID"] == "0" { setKidMode(false); if let g = demo { store.seedDemo(glasses: g, streak: Int(env["RAYNA_STREAK"] ?? "5") ?? 5) } }
         if let n = env["RAYNA_FACTS"].flatMap(Int.init) { store.extras.factsUnlocked = n }
-        if let n = env["RAYNA_FACT"].flatMap(Int.init), n < RayFacts.all.count { newFact = RayFacts.all[n] }
+        if let n = env["RAYNA_FACT"].flatMap(Int.init), n < RayFacts.all.count { bubbleFact = RayFacts.all[n] }
+        if let n = env["RAYNA_FACTPAGE"].flatMap(Int.init), n < RayFacts.all.count { factPage = RayFacts.all[n] }
         if env["RAYNA_POD"] == "card" { DispatchQueue.main.async { PodService.shared.loadDemo() } }
         if env["RAYNA_SHARE"] == "goal" { DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.offerShare(.goal) } }
         store.rolloverIfNeeded()
@@ -73,7 +78,7 @@ final class AppModel: ObservableObject {
     func setKidMode(_ on: Bool) {
         objectWillChange.send()
         let x = store.extras
-        guard on != x.kidMode else { return }
+        guard RaynaFeatures.kidMode, on != x.kidMode else { return }
         if on {
             x.adultGoalML = store.goalML; x.adultGlassML = store.glassML
             store.glassML = 200; store.goalML = 1500
@@ -85,10 +90,9 @@ final class AppModel: ObservableObject {
         afterChange()
     }
 
+    /// Milestones only (25/50/75/100 %): Rayna says a fact in her bubble until the next glass.
     private func revealFact() {
-        guard let f = store.extras.unlockNextFact() else { return }
-        newFact = f
-        DispatchQueue.main.asyncAfter(deadline: .now() + 9) { if self.newFact == f { self.newFact = nil } }
+        bubbleFact = store.extras.factForMilestone(progress: progress)
     }
     var streak: Int { store.streak }
     var extras: RaynaExtras { store.extras }

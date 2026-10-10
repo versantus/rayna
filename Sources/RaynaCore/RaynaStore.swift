@@ -44,7 +44,7 @@ public final class RaynaStore {
     public var healthRunDay: String { get { defaults.string(forKey: "healthRunDay") ?? "" } set { defaults.set(newValue, forKey: "healthRunDay") } }
     public var healthAutoRun: Bool { get { defaults.bool(forKey: "healthAutoRun") } set { defaults.set(newValue, forKey: "healthAutoRun") } }
     public var healthWriteWater: Bool { get { defaults.bool(forKey: "healthWriteWater") } set { defaults.set(newValue, forKey: "healthWriteWater") } }
-    public var effectiveGoal: Int { goalML + (runDay ? runBonusML : 0) }
+    public var effectiveGoal: Int { goalML + (runDay && !extras.kidMode ? runBonusML : 0) }   // no run day in kid mode
     public var progress: Double { effectiveGoal > 0 ? min(Double(totalML) / Double(effectiveGoal), 1) : 0 }
     public var glasses: Int { glassML > 0 ? totalML / glassML : 0 }
     public var quip: String { RaynaCopy.quip(for: progress) }

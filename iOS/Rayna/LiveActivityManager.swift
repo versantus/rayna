@@ -13,7 +13,7 @@ enum LiveActivityManager {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
         let state = RaynaActivityAttributes.ContentState(ml: store.totalML, goal: store.effectiveGoal)
         let current = Activity<RaynaActivityAttributes>.activities
-        let want = enabled && store.runDay
+        let want = enabled && store.runDay && !store.extras.kidMode
         Task {
             if !want {
                 for a in current { await a.end(nil, dismissalPolicy: .immediate) }

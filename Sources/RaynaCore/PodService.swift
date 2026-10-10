@@ -270,7 +270,7 @@ public final class PodService: ObservableObject {
     private var meIsKid = false
 
     public func publish(glasses: Int, ml: Int, goal: Int, streak: Int, isKid: Bool = false) async {
-        meIsKid = isKid
+        meIsKid = isKid && RaynaFeatures.kidMode
         guard status == .inPod, zoneID != nil, !myID.isEmpty else { return }
         do {
             try await withZoneRecovery {
@@ -467,9 +467,9 @@ public struct PodView: View {
                     }
                     .frame(height: 190)
                     .clipShape(RoundedRectangle(cornerRadius: 18))
-                    Text((m.isKid ? "🧒 " : "") + (m.id == pod.myID ? "\(m.name) (you)" : m.name))
+                    Text((m.isKid && RaynaFeatures.kidMode ? "🧒 " : "") + (m.id == pod.myID ? "\(m.name) (you)" : m.name))
                         .font(.system(.body, design: .rounded, weight: .bold)).lineLimit(2).multilineTextAlignment(.center)
-                    Text(m.isKid ? "\(m.glasses) cups · \(Int(m.todayProgress * 100))%" : "\(m.glasses) 🥛 · \(Int(m.todayProgress * 100))%").font(.subheadline).foregroundStyle(.secondary)
+                    Text(m.isKid && RaynaFeatures.kidMode ? "\(m.glasses) cups · \(Int(m.todayProgress * 100))%" : "\(m.glasses) 🥛 · \(Int(m.todayProgress * 100))%").font(.subheadline).foregroundStyle(.secondary)
                     if m.id != pod.myID {
                         let left = pod.nudgesLeft(for: m.id)
                         Button { Task { await pod.nudge(m) } } label: {

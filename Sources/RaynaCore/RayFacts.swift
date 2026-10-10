@@ -196,7 +196,7 @@ public struct RayFactsCollection: View {
                 Text("\(min(unlocked, RayFacts.all.count)) of \(RayFacts.all.count)").font(.footnote).foregroundStyle(.secondary)
             }
             if unlocked == 0 {
-                Text("Log a glass to unlock your first ray fact.").font(.callout).foregroundStyle(.secondary)
+                Text("Reach 25% of your goal to hear your first ray fact.").font(.callout).foregroundStyle(.secondary)
             }
             ForEach(RayFacts.all.prefix(unlocked)) { f in
                 HStack(alignment: .top, spacing: 10) {
@@ -210,9 +210,85 @@ public struct RayFactsCollection: View {
                 .background(RoundedRectangle(cornerRadius: 14).fill(Color.primary.opacity(0.05)))
             }
             if unlocked < RayFacts.all.count {
-                Label("\(RayFacts.all.count - unlocked) more to discover, one per glass", systemImage: "lock.fill")
+                Label("\(RayFacts.all.count - unlocked) more to discover: Rayna shares one at 25, 50, 75 and 100% of your goal", systemImage: "lock.fill")
                     .font(.footnote).foregroundStyle(.secondary)
             }
+        }
+    }
+}
+
+public extension RayFact {
+    /// Human-readable source for the fact page (keys are listed in docs/RAY-FACTS-SOURCES.md).
+    var sourceName: String {
+        let prefix = source.split(separator: "-").first.map(String.init) ?? source
+        switch prefix {
+        case "NOAA": return "NOAA Fisheries"
+        case "FLMNH": return "Florida Museum of Natural History"
+        case "Smithsonian": return "Smithsonian Ocean"
+        case "SharkTrust": return "The Shark Trust"
+        case "MantaTrust": return "The Manta Trust"
+        case "NatGeo": return "National Geographic"
+        case "AustMuseum": return "Australian Museum"
+        case "Aquarium": return "Aquarium of the Pacific"
+        default: return source
+        }
+    }
+}
+
+/// The little "🔍 Ray fact" tag shown inside Rayna's speech bubble.
+public struct RayFactTag: View {
+    public init() {}
+    public var body: some View {
+        Text("🔍 Ray fact")
+            .font(.system(.footnote, design: .rounded, weight: .bold))
+            .padding(.horizontal, 8).padding(.vertical, 3)
+            .background(Capsule().fill(Color.accentColor.opacity(0.15)))
+            .foregroundStyle(Color.accentColor)
+    }
+}
+
+/// Clean full-screen page for one fact: big readable text, simple illustration, source, "More facts".
+public struct RayFactPage: View {
+    public var fact: RayFact
+    public var onMore: () -> Void
+    public var onDone: () -> Void
+    public init(fact: RayFact, onMore: @escaping () -> Void, onDone: @escaping () -> Void) {
+        self.fact = fact; self.onMore = onMore; self.onDone = onDone
+    }
+    public var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                RayGlyph(kind: fact.kind)
+                    .frame(maxWidth: 220)
+                    .padding(28)
+                    .background(Circle().fill(Color(red: 0.80, green: 0.92, blue: 1.0)))
+                    .padding(.top, 8)
+                VStack(spacing: 8) {
+                    Text("Ray fact #\(fact.id + 1)").font(.system(.subheadline, design: .rounded, weight: .bold)).foregroundStyle(.secondary)
+                    Text(fact.kind.name).font(.system(.largeTitle, design: .rounded, weight: .bold)).multilineTextAlignment(.center)
+                }
+                Text(fact.text)
+                    .font(.system(.title2, design: .rounded))
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: 560)
+                Text("Source: \(fact.sourceName)").font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                Button(action: onMore) {
+                    Label("More facts", systemImage: "books.vertical.fill")
+                        .font(.system(.body, design: .rounded, weight: .semibold))
+                        .frame(maxWidth: 360, minHeight: 50)
+                }
+                .buttonStyle(.borderedProminent)
+                .padding(.top, 4)
+            }
+            .padding(24)
+            .frame(maxWidth: .infinity)
+        }
+        .overlay(alignment: .topTrailing) {
+            Button("Done", action: onDone)
+                .font(.body.weight(.semibold))
+                .frame(minWidth: 44, minHeight: 44)
+                .padding(.horizontal, 12).padding(.top, 8)
         }
     }
 }

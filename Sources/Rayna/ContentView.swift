@@ -26,12 +26,27 @@ struct ContentView: View {
                             Text(String(format: "/ %.1f L", Double(state.effectiveGoal) / 1000))
                                 .font(.system(size: 13)).foregroundColor(.secondary)
                         }
+                        if let f = state.bubbleFact {
+                            Button { state.factPage = f } label: {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    RayFactTag()
+                                    Text(f.text).font(.system(size: 13)).fixedSize(horizontal: false, vertical: true)
+                                    Text("Click to read more").font(.system(size: 11)).foregroundColor(.secondary)
+                                }
+                                .padding(10)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.75)))
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        } else {
                         Text(state.quip)
                             .font(.system(size: 13))
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(10)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .background(RoundedRectangle(cornerRadius: 12).fill(Color.accentColor.opacity(0.1)))
+                        }
                     }
                 }
 
@@ -107,17 +122,16 @@ struct ContentView: View {
             if showConfetti {
                 ConfettiView().id(confettiID)
             }
-            if let f = state.newFact, state.unlockBanner == nil {
-                VStack { Spacer(); RayFactCard(fact: f) { state.newFact = nil }.padding(10) }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
             if let u = state.unlockBanner {
                 RaynaUnlockBanner(unlock: u, onShare: { state.unlockBanner = nil; MacShare.share(state.shareInfo(.unlock(u))) }) { state.unlockBanner = nil }
                     .scaleEffect(0.9)
             }
         }
         .frame(width: 340)
-        .animation(.spring(response: 0.45, dampingFraction: 0.8), value: state.newFact)
+        .sheet(item: $state.factPage) { f in
+            RayFactPage(fact: f, onMore: { state.factPage = nil; DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { JourneyWindowController.shared.show(state: state) } }, onDone: { state.factPage = nil })
+                .frame(width: 420, height: 560)
+        }
         .onChange(of: state.celebrate) { newValue in
             if newValue { party() }
         }

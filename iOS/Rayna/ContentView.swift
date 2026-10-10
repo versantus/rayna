@@ -47,18 +47,6 @@ struct ContentView: View {
             }
             .animation(.smooth, value: hSize)
 
-            if let f = model.newFact {
-                // Phone: drops in under the header. Wide/two-column: a bottom toast so it never covers the amount.
-                let wide = hSize == .regular
-                VStack {
-                    if wide { Spacer() }
-                    RayFactCard(fact: f) { model.newFact = nil }
-                        .frame(maxWidth: wide ? 480 : 560)
-                        .padding(.horizontal, 16).padding(.top, wide ? 0 : 76).padding(.bottom, wide ? 28 : 0)
-                    if !wide { Spacer() }
-                }
-                .transition(.move(edge: wide ? .bottom : .top).combined(with: .opacity))
-            }
 
             if model.celebrate {
                 ConfettiView().id(confettiID)
@@ -72,7 +60,13 @@ struct ContentView: View {
             }
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.75), value: model.unlockBanner)
-        .animation(.spring(response: 0.45, dampingFraction: 0.8), value: model.newFact)
+        .fullScreenCover(item: $model.factPage) { f in
+            RayFactPage(fact: f, onMore: {
+                model.factPage = nil
+                model.journeyToFacts = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { model.showJourney = true }
+            }, onDone: { model.factPage = nil })
+        }
         .sensoryFeedback(.impact(weight: .medium), trigger: model.glassEvent)
         .sensoryFeedback(.success, trigger: model.celebrate) { _, new in new }
         .onChange(of: model.celebrate) { _, new in if new { confettiID = UUID() } }
@@ -126,7 +120,7 @@ struct ContentView: View {
         VStack(spacing: 16) {
             amount.padding(.top, 8)
             buttons
-            runDayToggle
+            if !model.kidMode { runDayToggle }
             if pod.status == .inPod && !pod.members.isEmpty { podCard }
             if model.showSwap { swapCard }
             journeyCard
@@ -178,7 +172,7 @@ struct ContentView: View {
             if pod.status == .inPod && !pod.members.isEmpty { podCard }
             if model.showSwap { swapCard }
             buttons
-            runDayToggle
+            if !model.kidMode { runDayToggle }
         }
         .padding(.horizontal, 22)
         .padding(.bottom, 8)
@@ -230,7 +224,33 @@ struct ContentView: View {
             .accessibilityLabel("Settings")
     }
 
-    private var quipBubble: some View {
+    @ViewBuilder private var quipBubble: some View {
+        if let f = model.bubbleFact {
+            Button { model.factPage = f } label: {
+                VStack(spacing: 6) {
+                    RayFactTag()
+                    Text(f.text)
+                        .font(.system(.body, design: .rounded, weight: .semibold))
+                        .lineLimit(4)
+                        .multilineTextAlignment(.center)
+                    Text("Tap to read more").font(.footnote).foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 18).padding(.vertical, 12)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .foregroundStyle(ink)
+                .background(bubbleFill, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Ray fact: \(f.text)")
+            .accessibilityHint("Opens the full fact")
+            .transition(.opacity.combined(with: .scale(scale: 0.96)))
+        } else {
+            plainQuipBubble
+        }
+    }
+
+    private var plainQuipBubble: some View {
         HStack(spacing: 8) {
             Text(model.quip)
             if model.progress >= 1 {
@@ -377,12 +397,19 @@ struct JourneySheet: View {
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         NavigationStack {
-            ScrollView {
-                RaynaJourneyView(extras: model.extras, recap: model.store.recap, streak: model.streak) {
-                    dismiss()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { model.offerShare(model.streak >= 3 ? .streak(model.streak) : .recap) }
+            ScrollViewReader { proxy in
+                ScrollView {
+                    RaynaJourneyView(extras: model.extras, recap: model.store.recap, streak: model.streak) {
+                        dismiss()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { model.offerShare(model.streak >= 3 ? .streak(model.streak) : .recap) }
+                    }
+                        .padding()
                 }
-                    .padding()
+                .onAppear {
+                    guard model.journeyToFacts else { return }
+                    model.journeyToFacts = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { withAnimation { proxy.scrollTo("rayFacts", anchor: .top) } }
+                }
             }
             .navigationTitle("Rayna's journey")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
