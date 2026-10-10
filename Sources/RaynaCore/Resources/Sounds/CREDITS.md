@@ -9,4 +9,4 @@ All sounds are CC0 1.0 (public domain dedication, https://creativecommons.org/pu
 | splash3.m4a | splash_08.ogg, same pack | rubberduck | CC0 |
 | splash4.m4a | splash_13.ogg, same pack | rubberduck | CC0 |
 | bubbles.m4a | bubble_01.ogg, same pack | rubberduck | CC0 |
-| chime.m4a | confirmation_002.ogg from "Interface Sounds", https://kenney.nl/assets/interface-sounds (Kenney, www.kenney.nl), mixed with splash_12.ogg from the rubberduck pack | Kenney; rubberduck | CC0 |
+| chime.m4a | "Good answer harp glissando.wav", https://freesound.org/people/oggraphics/sounds/610703/ (Freesound HQ preview; sped up to 2.3 s, pitch kept) | oggraphics | CC0 |

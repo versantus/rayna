@@ -50,4 +50,4 @@ The iOS app lives in `iOS/` and shares Rayna's drawing, water, confetti, quips a
 
 ## Sound credits
 
-Rayna's sounds are CC0 (public domain): water/splash/bubble sounds from rubberduck's "40 CC0 water / splash / slime SFX" (https://opengameart.org/content/40-cc0-water-splash-slime-sfx) and the goal chime from Kenney's "Interface Sounds" (https://kenney.nl/assets/interface-sounds). Details: `Sources/RaynaCore/Resources/Sounds/CREDITS.md`.
+Rayna's sounds are CC0 (public domain): water/splash/bubble sounds from rubberduck's "40 CC0 water / splash / slime SFX" (https://opengameart.org/content/40-cc0-water-splash-slime-sfx) and the goal harp glissando "Good answer harp glissando" by oggraphics (https://freesound.org/people/oggraphics/sounds/610703/). Details: `Sources/RaynaCore/Resources/Sounds/CREDITS.md`.
