@@ -1,7 +1,7 @@
 import Foundation
 import AVFoundation
 
-/// Gentle ocean sounds (self-synthesised, ~20 KB total). Optional: Settings → Sounds (default on).
+/// Gentle ocean sounds: real recorded CC0 audio (see Resources/Sounds/CREDITS.md), ~50 KB total. Optional: Settings → Sounds (default on).
 /// On iOS the session is `.ambient`, so sounds mix with other audio and stay silent when the
 /// Ring/Silent switch is on silent.
 public enum RaynaSound: String, CaseIterable {
@@ -10,7 +10,8 @@ public enum RaynaSound: String, CaseIterable {
 
 public final class RaynaSounds {
     public static let shared = RaynaSounds()
-    private var players: [RaynaSound: AVAudioPlayer] = [:]
+    private var players: [String: AVAudioPlayer] = [:]
+    private var lastSplash = -1
     private let defaults = UserDefaults(suiteName: "group.co.versantus.raynawater") ?? .standard
     private var sessionReady = false
 
@@ -29,7 +30,13 @@ public final class RaynaSounds {
             return
         }
         prepareSession()
-        guard let p = player(s) else { return }
+        var name = s.rawValue
+        if s == .splash {   // 4 variants, random, never the same twice in a row
+            var i = Int.random(in: 1...4)
+            if i == lastSplash { i = i % 4 + 1 }
+            lastSplash = i; name = "splash\(i)"
+        }
+        guard let p = player(name, volume: s == .chime ? 0.6 : 0.55) else { return }
         p.currentTime = 0
         p.play()
     }
@@ -43,13 +50,13 @@ public final class RaynaSounds {
         #endif
     }
 
-    private func player(_ s: RaynaSound) -> AVAudioPlayer? {
-        if let p = players[s] { return p }
-        guard let url = Bundle.module.url(forResource: s.rawValue, withExtension: "m4a", subdirectory: "Sounds"),
+    private func player(_ name: String, volume: Float) -> AVAudioPlayer? {
+        if let p = players[name] { return p }
+        guard let url = Bundle.module.url(forResource: name, withExtension: "m4a", subdirectory: "Sounds"),
               let p = try? AVAudioPlayer(contentsOf: url) else { return nil }
-        p.volume = s == .chime ? 0.6 : 0.5
+        p.volume = volume
         p.prepareToPlay()
-        players[s] = p
+        players[name] = p
         return p
     }
 }
