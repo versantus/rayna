@@ -5,8 +5,8 @@ import AppKit
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
-        NotificationManager.shared.setUp()
-        RaynaFrames.preload()
+        RaynaFrames.preloadForLaunch(progress: AppState.shared.progress)
+        DispatchQueue.main.async { NotificationManager.shared.setUp() }
         if CommandLine.arguments.contains("--preview-nudge") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 NudgeController.shared.show(text: AppState.reminders[0], isSwap: false)

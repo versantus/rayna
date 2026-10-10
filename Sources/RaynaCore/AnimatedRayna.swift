@@ -9,12 +9,23 @@ import UIKit
 /// One animation clip shipped in `RaynaFrames/<name>/NNN.png`.
 public enum RaynaClip: String, CaseIterable {
     case idleHappy = "idle-happy", idleThirsty = "idle-thirsty"
-    case wiggle, roll, swimIn = "swim-in", swimOff = "swim-off", poutSwimOff = "pout-swim-off"
+    case wiggle, swimIn = "swim-in", swimOff = "swim-off", poutSwimOff = "pout-swim-off"
 
     /// Playback rate. Source art is 24 fps; we ship every other frame.
-    public var fps: Double { self == .roll ? 18 : 12 }
+    public var fps: Double { 12 }
     public var loops: Bool { self == .idleHappy || self == .idleThirsty }
-    public var duration: Double { Double(RaynaFrames.frames(self).count) / fps }
+    /// Frames shipped per clip (fixed so durations are known before frames are decoded).
+    public var frameCount: Int {
+        switch self {
+        case .idleHappy: return 48
+        case .idleThirsty: return 60
+        case .wiggle: return 15
+        case .swimIn: return 49
+        case .swimOff: return 37
+        case .poutSwimOff: return 49
+        }
+    }
+    public var duration: Double { Double(frameCount) / fps }
 }
 
 /// The five widget / Reduce Motion stills, by progress band.
@@ -36,50 +47,81 @@ public enum RaynaFrames {
     private final class Token {}
     private static let lock = NSLock()
     private static var cache: [String: [CGImage]] = [:]
+    private static var loading: Set<String> = []
+    /// Frames decode here, one clip at a time, never on the main thread.
+    private static let queue = DispatchQueue(label: "co.versantus.rayna.frames", qos: .userInitiated)
 
     /// Finds `Rayna_RaynaCore.bundle` wherever the host put it (Xcode app/appex, SwiftPM .app, swift run).
+    /// Cheap locations first; only scans loaded bundles as a last resort.
     static let root: URL? = {
         let name = "Rayna_RaynaCore.bundle"
-        var c: [URL?] = [Bundle.main.resourceURL, Bundle.main.bundleURL,
-                         Bundle(for: Token.self).resourceURL, Bundle(for: Token.self).bundleURL,
-                         Bundle.main.executableURL?.deletingLastPathComponent()]
-        c += Bundle.allBundles.map { $0.resourceURL } + Bundle.allFrameworks.map { $0.resourceURL }
-        for base in c.compactMap({ $0 }) {
+        func probe(_ base: URL?) -> URL? {
+            guard let base else { return nil }
             for u in [base.appendingPathComponent(name).appendingPathComponent("RaynaFrames"),
                       base.appendingPathComponent(name).appendingPathComponent("Contents/Resources/RaynaFrames"),
                       base.appendingPathComponent("RaynaFrames")]
             where FileManager.default.fileExists(atPath: u.path) { return u }
+            return nil
+        }
+        let quick: [URL?] = [Bundle.main.resourceURL, Bundle.main.bundleURL,
+                             Bundle(for: Token.self).resourceURL, Bundle(for: Token.self).bundleURL,
+                             Bundle.main.executableURL?.deletingLastPathComponent()]
+        for b in quick { if let u = probe(b) { return u } }
+        for b in Bundle.allBundles.map({ $0.resourceURL }) + Bundle.allFrameworks.map({ $0.resourceURL }) {
+            if let u = probe(b) { return u }
         }
         return nil
     }()
 
-    private static func load(_ dir: String) -> [CGImage] {
-        lock.lock(); defer { lock.unlock() }
-        if let c = cache[dir] { return c }
-        guard let root else { return [] }
-        let d = root.appendingPathComponent(dir)
-        let files = ((try? FileManager.default.contentsOfDirectory(atPath: d.path)) ?? [])
-            .filter { $0.hasSuffix(".png") }.sorted()
-        let imgs = files.compactMap { f -> CGImage? in
-            guard let src = CGImageSourceCreateWithURL(d.appendingPathComponent(f) as CFURL, nil) else { return nil }
-            return CGImageSourceCreateImageAtIndex(src, 0, [kCGImageSourceShouldCacheImmediately: true] as CFDictionary)
-        }
-        cache[dir] = imgs
-        return imgs
+    private static func decode(_ url: URL) -> CGImage? {
+        guard let src = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+        return CGImageSourceCreateImageAtIndex(src, 0, [kCGImageSourceShouldCacheImmediately: true] as CFDictionary)
     }
 
-    public static func frames(_ clip: RaynaClip) -> [CGImage] { load(clip.rawValue) }
+    private static func cached(_ key: String) -> [CGImage]? {
+        lock.lock(); defer { lock.unlock() }
+        return cache[key]
+    }
+
+    /// Decode a clip in the background (no-op if cached or already loading).
+    private static func loadAsync(_ dir: String) {
+        lock.lock()
+        if cache[dir] != nil || loading.contains(dir) { lock.unlock(); return }
+        loading.insert(dir); lock.unlock()
+        queue.async {
+            var imgs: [CGImage] = []
+            if let root {
+                let d = root.appendingPathComponent(dir)
+                let files = ((try? FileManager.default.contentsOfDirectory(atPath: d.path)) ?? [])
+                    .filter { $0.hasSuffix(".png") }.sorted()
+                imgs = files.compactMap { decode(d.appendingPathComponent($0)) }
+            }
+            lock.lock(); cache[dir] = imgs; loading.remove(dir); lock.unlock()
+        }
+    }
+
+    /// Frames for a clip if they're decoded; otherwise starts decoding and returns [] (callers show a still).
+    public static func frames(_ clip: RaynaClip) -> [CGImage] {
+        if let c = cached(clip.rawValue) { return c }
+        loadAsync(clip.rawValue)
+        return []
+    }
+    public static func isReady(_ clip: RaynaClip) -> Bool { cached(clip.rawValue).map { !$0.isEmpty } ?? false }
+
+    /// One 512 px still: small enough to decode synchronously, so something shows on the very first frame.
     public static func still(_ band: RaynaBand) -> CGImage? {
-        lock.lock(); let c = cache["stills/" + band.file]; lock.unlock()
-        if let c { return c.first }
-        guard let root, let src = CGImageSourceCreateWithURL(root.appendingPathComponent("stills/\(band.file).png") as CFURL, nil),
-              let img = CGImageSourceCreateImageAtIndex(src, 0, nil) else { return nil }
-        lock.lock(); cache["stills/" + band.file] = [img]; lock.unlock()
+        let key = "stills/" + band.file
+        if let c = cached(key) { return c.first }
+        guard let root, let img = decode(root.appendingPathComponent("stills/\(band.file).png")) else { return nil }
+        lock.lock(); cache[key] = [img]; lock.unlock()
         return img
     }
-    /// Warm the cache off the main thread.
-    public static func preload(_ clips: [RaynaClip] = RaynaClip.allCases) {
-        DispatchQueue.global(qos: .utility).async { clips.forEach { _ = frames($0) } }
+    /// Warm clips in the background, in the order given (put the visible idle loop first).
+    public static func preload(_ clips: [RaynaClip]) { clips.forEach { loadAsync($0.rawValue) } }
+    /// The idle loop for `progress` first, then the rest after a short delay.
+    public static func preloadForLaunch(progress: Double) {
+        preload([progress >= 0.45 ? .idleHappy : .idleThirsty, .wiggle])
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 2) { preload(RaynaClip.allCases) }
     }
 }
 
@@ -109,7 +151,7 @@ public struct RaynaScript: Equatable {
 }
 
 /// Animated Rayna: picks a clip by state and plays its frames with TimelineView.
-/// idle-happy (progress ≥ 45%) / idle-thirsty loops, wiggle on +1 glass, roll at goal,
+/// idle-happy (progress ≥ 45%) / idle-thirsty loops, wiggle on +1 glass, a code-driven spin at goal,
 /// or an explicit `script` (nudge panel). Reduce Motion shows the band still.
 public struct RaynaView: View {
     public var progress: Double
@@ -132,17 +174,37 @@ public struct RaynaView: View {
             if reduceMotion {
                 RaynaStill(progress: progress)
             } else {
-                TimelineView(.animation(minimumInterval: 1.0 / 24)) { tl in
+                TimelineView(.animation(minimumInterval: 1.0 / 30)) { tl in
                     if let img = frame(at: tl.date) {
+                        let _ = LaunchTiming.mark("firstAnimatedFrame")
+                        let sp = spin(at: tl.date)
                         Image(decorative: img, scale: 1).resizable().interpolation(.high).aspectRatio(contentMode: .fit)
+                            .rotationEffect(.degrees(sp.angle))
+                            .scaleEffect(sp.scale)
+                            .offset(y: sp.lift * size)
+                    } else if script != nil {
+                        Color.clear                      // nudge: don't flash a static Rayna before swim-in
                     } else {
-                        RaynaStill(progress: progress)
+                        let _ = LaunchTiming.mark("firstStill")
+                        RaynaStill(progress: progress)   // shown while the clip decodes
                     }
                 }
             }
         }
         .frame(width: size, height: fullTail ? size * 1.32 : size)
         .accessibilityLabel("Rayna the stingray, \(Int(progress * 100)) percent hydrated")
+    }
+
+    /// Goal celebration: a joyful in-plane 360° spin with a little scale-up and bob (code-driven;
+    /// replaces the generated barrel roll, which twisted her body unnaturally).
+    public static let spinDuration = 1.6
+    func spin(at date: Date) -> (angle: Double, scale: Double, lift: Double) {
+        guard script == nil, let f = flipAt else { return (0, 1, 0) }
+        let t = date.timeIntervalSince(f) / Self.spinDuration
+        guard t >= 0, t < 1 else { return (0, 1, 0) }
+        let e = t < 0.5 ? 4 * t * t * t : 1 - pow(-2 * t + 2, 3) / 2   // easeInOutCubic
+        let hump = sin(.pi * t)
+        return (360 * e, 1 + 0.14 * hump, -0.06 * hump)
     }
 
     private var idle: RaynaClip { progress >= 0.45 ? .idleHappy : .idleThirsty }
@@ -165,8 +227,8 @@ public struct RaynaView: View {
             if let t = s.then { return pick(t, age) }
             return s.clips.last.flatMap { RaynaFrames.frames($0).last }
         }
-        if let f = flipAt, date.timeIntervalSince(f) >= 0, date.timeIntervalSince(f) < RaynaClip.roll.duration {
-            return pick(.roll, date.timeIntervalSince(f))
+        if let f = flipAt, date.timeIntervalSince(f) >= 0, date.timeIntervalSince(f) < Self.spinDuration {
+            return pick(.idleHappy, date.timeIntervalSince(f))   // wings keep flapping while she spins
         }
         if let w = wiggleAt, date.timeIntervalSince(w) >= 0, date.timeIntervalSince(w) < RaynaClip.wiggle.duration {
             return pick(.wiggle, date.timeIntervalSince(w))

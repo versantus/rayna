@@ -8,6 +8,8 @@ for pair in "$@"; do
   mkdir -p ../appstore/screenshots/$S
   xcrun simctl status_bar $D override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3
   xcrun simctl install $D $APP
+  # warm-up launch so the first capture has the full status bar / Dynamic Island
+  xcrun simctl launch $D co.versantus.rayna.ios >/dev/null; sleep 4
   n=1
   for spec in 6:0 2:0 10:0 4:1; do
     xcrun simctl terminate $D co.versantus.rayna.ios >/dev/null 2>&1; sleep 3

@@ -57,7 +57,7 @@ struct NudgeView: View {
 
     @State private var opacity: Double = 1
     @State private var bubble = false
-    /// The Higgsfield clips carry all of Rayna's motion (swim in from the right, roll, pout, exit right).
+    /// The Higgsfield clips carry all of Rayna's motion (swim in from the right, wiggle, pout, exit right).
     @State private var script = RaynaScript([.swimIn], then: .idleHappy)
     @State private var leaving = false
 
@@ -98,7 +98,7 @@ struct NudgeView: View {
     }
 
     private func enter() {
-        RaynaFrames.preload([.swimIn, .idleHappy, .roll, .swimOff, .poutSwimOff])
+        RaynaFrames.preload([.swimIn, .idleHappy, .wiggle, .swimOff, .poutSwimOff])
         script = RaynaScript([.swimIn], then: .idleHappy)
         if reduceMotion {
             opacity = 0
@@ -115,7 +115,7 @@ struct NudgeView: View {
     private func drank() {
         guard !leaving else { return }
         state.addGlass()
-        swimOff([.roll, .swimOff])          // flip-off = roll + swim-off chained
+        swimOff([.wiggle, .swimOff])        // happy wiggle, then off she goes
     }
 
     private func later() {

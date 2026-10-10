@@ -7,8 +7,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         UNUserNotificationCenter.current().delegate = self
-        ReminderScheduler.registerCategories()
-        RaynaFrames.preload()
+        RaynaFrames.preloadForLaunch(progress: RaynaStore.shared.progress)
+        DispatchQueue.global(qos: .utility).async { ReminderScheduler.registerCategories() }
         return true
     }
 
