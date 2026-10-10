@@ -32,7 +32,7 @@ public struct PodMember: Identifiable, Equatable {
 @MainActor
 public final class PodService: ObservableObject {
     public static let shared = PodService()
-    nonisolated public static let containerID = "iCloud.co.versantus.rayna"
+    nonisolated public static let containerID = "iCloud.co.versantus.raynawater"
     static let zoneName = "RaynaPod"
     public static let nudgeLimitPerDay = 3
 

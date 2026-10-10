@@ -23,6 +23,6 @@
 	<key>WKApplication</key>
 	<true/>
 	<key>WKCompanionAppBundleIdentifier</key>
-	<string>co.versantus.rayna.ios</string>
+	<string>co.versantus.raynawater.ios</string>
 </dict>
 </plist>

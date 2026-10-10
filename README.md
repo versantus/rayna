@@ -42,7 +42,7 @@ MIT © 2026 Nik Roberts / Versantus. See [LICENSE](LICENSE).
 The iOS app lives in `iOS/` and shares Rayna's drawing, water, confetti, quips and data store with the Mac app via the `RaynaCore` Swift package target (`Sources/RaynaCore`).
 
 - `iOS/project.yml` is the XcodeGen spec. Regenerate with `cd iOS && xcodegen generate`; the generated `Rayna.xcodeproj` is committed too.
-- Targets: **Rayna** (`co.versantus.rayna.ios`) and **RaynaWidgetExtension** (`co.versantus.rayna.ios.widget`, small + medium widgets with an interactive “+1 glass” button). They share App Group `group.co.versantus.raynawater`.
+- Targets: **Rayna** (`co.versantus.raynawater.ios`) and **RaynaWidgetExtension** (`co.versantus.raynawater.ios.widget`, small + medium widgets with an interactive “+1 glass” button). They share App Group `group.co.versantus.raynawater`.
 - Reminders are local notifications scheduled ~48 h ahead, with quiet hours respected. The “Drank one 💧” and “Later” (15 min snooze) actions are handled in the background.
 - Icon: `iOS/scripts/make-icon.sh` renders the 1024 px icon from the shared stingray painter.
 - App Store screenshots: `iOS/scripts/screenshots.sh` (demo mode via `RAYNA_DEMO=<glasses>` env / `-RaynaDemo <n>`). Metadata is in `appstore/metadata.md`.

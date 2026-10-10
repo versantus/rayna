@@ -9,7 +9,7 @@ All notable changes to Rayna (macOS menu-bar app + iOS app). macOS versions are 
 - **Run-day Live Activity (optional toggle):** Lock Screen + Dynamic Island progress with a +1 button. Starts when run day is on, ends at goal or when run day is turned off.
 
 ### Phase C
-- **Pods (CloudKit sharing, container iCloud.co.versantus.rayna):** "Start a pod" creates a zone + root record + CKShare (anyone with the link can join). Members publish daily glasses/ml/goal/streak. The shared tank shows everyone's Rayna at their own water level, with "Nudge 👋" (max 3 per person per day; delivered as a local notification after a silent CKDatabaseSubscription push) and a pod streak when everyone hits their goal. Works on iOS and macOS; on macOS it needs an iCloud-entitled signed build (the ad-hoc DMG shows a notice instead).
+- **Pods (CloudKit sharing, container iCloud.co.versantus.raynawater):** "Start a pod" creates a zone + root record + CKShare (anyone with the link can join). Members publish daily glasses/ml/goal/streak. The shared tank shows everyone's Rayna at their own water level, with "Nudge 👋" (max 3 per person per day; delivered as a local notification after a silent CKDatabaseSubscription push) and a pod streak when everyone hits their goal. Works on iOS and macOS; on macOS it needs an iCloud-entitled signed build (the ad-hoc DMG shows a notice instead).
 
 ### Phase B
 - **Share cards:** 1080×1920 story and 1080×1080 square cards (Rayna celebrating, stats, rayna-water.netlify.app), rendered with ImageRenderer. Offered on goal, from unlock celebrations and from the weekly recap (streak card). iOS uses ShareLink; macOS uses NSSharingServicePicker. Video share skipped.
