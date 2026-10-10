@@ -47,3 +47,7 @@ The iOS app lives in `iOS/` and shares Rayna's drawing, water, confetti, quips a
 - Icon: `iOS/scripts/make-icon.sh` renders the 1024 px icon from the shared stingray painter.
 - App Store screenshots: `iOS/scripts/screenshots.sh` (demo mode via `RAYNA_DEMO=<glasses>` env / `-RaynaDemo <n>`). Metadata is in `appstore/metadata.md`.
 - Archive: `cd iOS && xcodebuild -project Rayna.xcodeproj -scheme Rayna -configuration Release -destination 'generic/platform=iOS' -archivePath build/Rayna.xcarchive -allowProvisioningUpdates archive`, then `xcodebuild -exportArchive -archivePath build/Rayna.xcarchive -exportPath build/export -exportOptionsPlist ExportOptions.plist -allowProvisioningUpdates`.
+
+## Sound credits
+
+Rayna's sounds are CC0 (public domain): water/splash/bubble sounds from rubberduck's "40 CC0 water / splash / slime SFX" (https://opengameart.org/content/40-cc0-water-splash-slime-sfx) and the goal chime from Kenney's "Interface Sounds" (https://kenney.nl/assets/interface-sounds). Details: `Sources/RaynaCore/Resources/Sounds/CREDITS.md`.
