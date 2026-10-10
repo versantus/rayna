@@ -1,0 +1,562 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1D80D2128B043E1EB42F635A /* RaynaCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4DCC39961F649EA4480E8353 /* RaynaCore */; };
+		2A6BE1DD83027C9A037A8839 /* RaynaIOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6407386D21DDEED7E499BE02 /* RaynaIOSApp.swift */; };
+		2BDFBBD54BDB99541CCFD5CA /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 888BFBD62739D02DA6981504 /* AppModel.swift */; };
+		6CBB5F849DABFEB3516EFC1C /* RaynaWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E304D665590360E7CFAFA116 /* RaynaWidget.swift */; };
+		74151B6518F5C85BCC843055 /* AddGlassIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4562E3D0679E16F0A1F3B5CF /* AddGlassIntent.swift */; };
+		74597E8001E71A565A32843C /* RaynaWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 08282B4C050AF02DCF8DB4AA /* RaynaWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		82C4B421BFDEE5EE03D0C808 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0A482E4E817F70913890C19D /* Assets.xcassets */; };
+		95282A47CCEA100E107EEF07 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 863099C9410707E2FB35E357 /* SwiftUI.framework */; };
+		A3477AAB197C05E6D317AA3D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97F2495A7C6D826D1FC9909C /* SettingsView.swift */; };
+		AE227437B4CED4C815E5FA24 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 82B73698DB551000298D25BE /* WidgetKit.framework */; };
+		CFAD8179630905514B7EC447 /* AddGlassIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4562E3D0679E16F0A1F3B5CF /* AddGlassIntent.swift */; };
+		E8497F78E796940FF2915DAC /* RaynaCore in Frameworks */ = {isa = PBXBuildFile; productRef = 51A48CC2333F1FC5084C219B /* RaynaCore */; };
+		EB6487007CD2A329906AA51D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 204F0E633C7D31C79BFC8BE2 /* Assets.xcassets */; };
+		FFB1BAACB08BE3600EF7811C /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B2F27C22DE5E361FF973ECF /* ContentView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		EA882C3DEDEAB54D07B5F5BB /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2440F779778E289D8CC4F817 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D8994BE3A4B73B689A01614D;
+			remoteInfo = RaynaWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		C6D00269392270054937DE6E /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				74597E8001E71A565A32843C /* RaynaWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		08282B4C050AF02DCF8DB4AA /* RaynaWidgetExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = RaynaWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		08D171E1B8CDA3ABB3FFB4E1 /* Rayna.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Rayna.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0A482E4E817F70913890C19D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		204F0E633C7D31C79BFC8BE2 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		35EA530E8AB7DEAC1CCCF6B9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		4562E3D0679E16F0A1F3B5CF /* AddGlassIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddGlassIntent.swift; sourceTree = "<group>"; };
+		6407386D21DDEED7E499BE02 /* RaynaIOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaynaIOSApp.swift; sourceTree = "<group>"; };
+		6CB3D2550E002CE819ADD2F8 /* Rayna */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Rayna; path = ..; sourceTree = SOURCE_ROOT; };
+		70E8C4FB448873400DF401A7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		82B73698DB551000298D25BE /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		863099C9410707E2FB35E357 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		888BFBD62739D02DA6981504 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		89F851B9928143970D811760 /* Rayna.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Rayna.entitlements; sourceTree = "<group>"; };
+		8ED3C8C35492A726887EA0D6 /* RaynaWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RaynaWidget.entitlements; sourceTree = "<group>"; };
+		97F2495A7C6D826D1FC9909C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		9B2F27C22DE5E361FF973ECF /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		E304D665590360E7CFAFA116 /* RaynaWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaynaWidget.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		0488665B9D9C3F96C394238E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1D80D2128B043E1EB42F635A /* RaynaCore in Frameworks */,
+				AE227437B4CED4C815E5FA24 /* WidgetKit.framework in Frameworks */,
+				95282A47CCEA100E107EEF07 /* SwiftUI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F5CB4FDEE207D593A297F336 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E8497F78E796940FF2915DAC /* RaynaCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		02907DD1994B3B5EE448FA2E = {
+			isa = PBXGroup;
+			children = (
+				5A3960947DA2163C67AAA178 /* Packages */,
+				A86034162C2CFA39DAF50ED4 /* Rayna */,
+				227E2AEE402C55C70624EE79 /* RaynaWidget */,
+				E472F8681932296B1DED2F1B /* Shared */,
+				8B1FC377D193FDEDA140E983 /* Frameworks */,
+				2B9EFB0B92DA1EC2A6D6E134 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		227E2AEE402C55C70624EE79 /* RaynaWidget */ = {
+			isa = PBXGroup;
+			children = (
+				204F0E633C7D31C79BFC8BE2 /* Assets.xcassets */,
+				35EA530E8AB7DEAC1CCCF6B9 /* Info.plist */,
+				8ED3C8C35492A726887EA0D6 /* RaynaWidget.entitlements */,
+				E304D665590360E7CFAFA116 /* RaynaWidget.swift */,
+			);
+			path = RaynaWidget;
+			sourceTree = "<group>";
+		};
+		2B9EFB0B92DA1EC2A6D6E134 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				08D171E1B8CDA3ABB3FFB4E1 /* Rayna.app */,
+				08282B4C050AF02DCF8DB4AA /* RaynaWidgetExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		5A3960947DA2163C67AAA178 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				6CB3D2550E002CE819ADD2F8 /* Rayna */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		8B1FC377D193FDEDA140E983 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				863099C9410707E2FB35E357 /* SwiftUI.framework */,
+				82B73698DB551000298D25BE /* WidgetKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		A86034162C2CFA39DAF50ED4 /* Rayna */ = {
+			isa = PBXGroup;
+			children = (
+				888BFBD62739D02DA6981504 /* AppModel.swift */,
+				0A482E4E817F70913890C19D /* Assets.xcassets */,
+				9B2F27C22DE5E361FF973ECF /* ContentView.swift */,
+				70E8C4FB448873400DF401A7 /* Info.plist */,
+				89F851B9928143970D811760 /* Rayna.entitlements */,
+				6407386D21DDEED7E499BE02 /* RaynaIOSApp.swift */,
+				97F2495A7C6D826D1FC9909C /* SettingsView.swift */,
+			);
+			path = Rayna;
+			sourceTree = "<group>";
+		};
+		E472F8681932296B1DED2F1B /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				4562E3D0679E16F0A1F3B5CF /* AddGlassIntent.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		C87FC9754AA1CCB3619A0596 /* Rayna */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2C0CDACD36BB05074A78695E /* Build configuration list for PBXNativeTarget "Rayna" */;
+			buildPhases = (
+				08D6A78FAF3CBAFD272BCAA4 /* Sources */,
+				9984DA2D1EE13B4E9A474F9C /* Resources */,
+				F5CB4FDEE207D593A297F336 /* Frameworks */,
+				C6D00269392270054937DE6E /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E78DCCA0094DC5C95FB764A0 /* PBXTargetDependency */,
+			);
+			name = Rayna;
+			packageProductDependencies = (
+				51A48CC2333F1FC5084C219B /* RaynaCore */,
+			);
+			productName = Rayna;
+			productReference = 08D171E1B8CDA3ABB3FFB4E1 /* Rayna.app */;
+			productType = "com.apple.product-type.application";
+		};
+		D8994BE3A4B73B689A01614D /* RaynaWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F29F704347EA9A37AC196345 /* Build configuration list for PBXNativeTarget "RaynaWidgetExtension" */;
+			buildPhases = (
+				21A5AF1BF84A885AEB83F43A /* Sources */,
+				2ABBF36EFF0BCABCAD95DE04 /* Resources */,
+				0488665B9D9C3F96C394238E /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RaynaWidgetExtension;
+			packageProductDependencies = (
+				4DCC39961F649EA4480E8353 /* RaynaCore */,
+			);
+			productName = RaynaWidgetExtension;
+			productReference = 08282B4C050AF02DCF8DB4AA /* RaynaWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		2440F779778E289D8CC4F817 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					C87FC9754AA1CCB3619A0596 = {
+						DevelopmentTeam = N5SR9X6F96;
+						ProvisioningStyle = Automatic;
+					};
+					D8994BE3A4B73B689A01614D = {
+						DevelopmentTeam = N5SR9X6F96;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 1C9CE7569FB3307CD13E94A9 /* Build configuration list for PBXProject "Rayna" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 02907DD1994B3B5EE448FA2E;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D485E73AD3C6D976E9DD3005 /* XCLocalSwiftPackageReference ".." */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 2B9EFB0B92DA1EC2A6D6E134 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C87FC9754AA1CCB3619A0596 /* Rayna */,
+				D8994BE3A4B73B689A01614D /* RaynaWidgetExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		2ABBF36EFF0BCABCAD95DE04 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EB6487007CD2A329906AA51D /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9984DA2D1EE13B4E9A474F9C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				82C4B421BFDEE5EE03D0C808 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		08D6A78FAF3CBAFD272BCAA4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CFAD8179630905514B7EC447 /* AddGlassIntent.swift in Sources */,
+				2BDFBBD54BDB99541CCFD5CA /* AppModel.swift in Sources */,
+				FFB1BAACB08BE3600EF7811C /* ContentView.swift in Sources */,
+				2A6BE1DD83027C9A037A8839 /* RaynaIOSApp.swift in Sources */,
+				A3477AAB197C05E6D317AA3D /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		21A5AF1BF84A885AEB83F43A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				74151B6518F5C85BCC843055 /* AddGlassIntent.swift in Sources */,
+				6CBB5F849DABFEB3516EFC1C /* RaynaWidget.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		E78DCCA0094DC5C95FB764A0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D8994BE3A4B73B689A01614D /* RaynaWidgetExtension */;
+			targetProxy = EA882C3DEDEAB54D07B5F5BB /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0F17B6E779852B39294A7EE5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Rayna/Rayna.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Rayna/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = co.versantus.rayna.ios;
+				PRODUCT_NAME = Rayna;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		52B932AFCC3600BAFFCA97FB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = RaynaWidget/RaynaWidget.entitlements;
+				INFOPLIST_FILE = RaynaWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = co.versantus.rayna.ios.widget;
+				PRODUCT_NAME = RaynaWidgetExtension;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		761649220B9E5516AE406835 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Rayna/Rayna.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = Rayna/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = co.versantus.rayna.ios;
+				PRODUCT_NAME = Rayna;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		C70BEBA2617003DF5DF4EA2C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = N5SR9X6F96;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D602A8EC734D52D34E8B1AB7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = N5SR9X6F96;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		DA8C37F7EF80FBEDB58F7CAB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = RaynaWidget/RaynaWidget.entitlements;
+				INFOPLIST_FILE = RaynaWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = co.versantus.rayna.ios.widget;
+				PRODUCT_NAME = RaynaWidgetExtension;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1C9CE7569FB3307CD13E94A9 /* Build configuration list for PBXProject "Rayna" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C70BEBA2617003DF5DF4EA2C /* Debug */,
+				D602A8EC734D52D34E8B1AB7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		2C0CDACD36BB05074A78695E /* Build configuration list for PBXNativeTarget "Rayna" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0F17B6E779852B39294A7EE5 /* Debug */,
+				761649220B9E5516AE406835 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F29F704347EA9A37AC196345 /* Build configuration list for PBXNativeTarget "RaynaWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DA8C37F7EF80FBEDB58F7CAB /* Debug */,
+				52B932AFCC3600BAFFCA97FB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		D485E73AD3C6D976E9DD3005 /* XCLocalSwiftPackageReference ".." */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ..;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		4DCC39961F649EA4480E8353 /* RaynaCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RaynaCore;
+		};
+		51A48CC2333F1FC5084C219B /* RaynaCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RaynaCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 2440F779778E289D8CC4F817 /* Project object */;
+}

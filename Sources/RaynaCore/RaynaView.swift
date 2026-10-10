@@ -3,12 +3,15 @@ import SwiftUI
 // MARK: - Rayna drawing
 
 /// Animation inputs for Rayna. All times are absolute (Date.timeIntervalSinceReferenceDate).
-struct RaynaPose {
-    var progress: Double
-    var wiggleAt: Double = -100
-    var flipAt: Double = -100
-    var pout = false
-    var reduceMotion = false
+public struct RaynaPose {
+    public var progress: Double
+    public var wiggleAt: Double = -100
+    public var flipAt: Double = -100
+    public var pout = false
+    public var reduceMotion = false
+    public init(progress: Double, wiggleAt: Double = -100, flipAt: Double = -100, pout: Bool = false, reduceMotion: Bool = false) {
+        self.progress = progress; self.wiggleAt = wiggleAt; self.flipAt = flipAt; self.pout = pout; self.reduceMotion = reduceMotion
+    }
 }
 
 private struct Speck { let x: Double; let y: Double; let r: Double; let a: Double }
@@ -20,10 +23,10 @@ private let specks: [Speck] = {
     }
 }()
 
-struct SeededRNG: RandomNumberGenerator {
-    var state: UInt64
-    init(seed: UInt64) { state = seed &+ 0x9E3779B97F4A7C15 }
-    mutating func next() -> UInt64 {
+public struct SeededRNG: RandomNumberGenerator {
+    public var state: UInt64
+    public init(seed: UInt64) { state = seed &+ 0x9E3779B97F4A7C15 }
+    public mutating func next() -> UInt64 {
         state &+= 0x9E3779B97F4A7C15
         var z = state
         z = (z ^ (z >> 30)) &* 0xBF58476D1CE4E5B9
@@ -32,9 +35,9 @@ struct SeededRNG: RandomNumberGenerator {
     }
 }
 
-enum RaynaPainter {
+public enum RaynaPainter {
     /// Draws Rayna centred in `size`, in a 100x100 design space (head pointing up).
-    static func draw(_ ctx: inout GraphicsContext, size: CGSize, t rawT: Double, pose: RaynaPose) {
+    public static func draw(_ ctx: inout GraphicsContext, size: CGSize, t rawT: Double, pose: RaynaPose) {
         let p = max(0, min(1, pose.progress))
         let rm = pose.reduceMotion
         let speed = 0.55 + 0.6 * p             // droopy & slow when low
@@ -221,14 +224,22 @@ enum RaynaPainter {
 }
 
 /// Animated Rayna view (TimelineView + Canvas).
-struct RaynaView: View {
-    var progress: Double
-    var wiggleAt: Date? = nil
-    var flipAt: Date? = nil
-    var pout = false
+public struct RaynaView: View {
+    public var progress: Double
+    public var wiggleAt: Date? = nil
+    public var flipAt: Date? = nil
+    public var pout = false
+    public var size: CGFloat = 100
+    /// When true the view is taller than wide so the whole tail fits (the square frame crops it).
+    public var fullTail = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    var body: some View {
+    public init(progress: Double, wiggleAt: Date? = nil, flipAt: Date? = nil, pout: Bool = false, size: CGFloat = 100, fullTail: Bool = false) {
+        self.progress = progress; self.wiggleAt = wiggleAt; self.flipAt = flipAt; self.pout = pout; self.size = size
+        self.fullTail = fullTail
+    }
+
+    public var body: some View {
         TimelineView(.animation(minimumInterval: reduceMotion ? 0.25 : 1.0 / 60)) { tl in
             Canvas { ctx, size in
                 var ctx = ctx
@@ -236,21 +247,24 @@ struct RaynaView: View {
                                      wiggleAt: wiggleAt?.timeIntervalSinceReferenceDate ?? -100,
                                      flipAt: flipAt?.timeIntervalSinceReferenceDate ?? -100,
                                      pout: pout, reduceMotion: reduceMotion)
-                RaynaPainter.draw(&ctx, size: size, t: tl.date.timeIntervalSinceReferenceDate, pose: pose)
+                let square = CGSize(width: size.width, height: size.width)
+                RaynaPainter.draw(&ctx, size: fullTail ? square : size, t: tl.date.timeIntervalSinceReferenceDate, pose: pose)
             }
         }
-        .frame(width: 100, height: 100)
+        .frame(width: size, height: fullTail ? size * 1.32 : size)
         .accessibilityLabel("Rayna the stingray, \(Int(progress * 100)) percent hydrated")
     }
 }
 
 // MARK: - Water background with wave surface + bubbles
 
-struct WaterBackground: View {
-    var progress: Double
+public struct WaterBackground: View {
+    public var progress: Double
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    var body: some View {
+    public init(progress: Double) { self.progress = progress }
+
+    public var body: some View {
         TimelineView(.animation(minimumInterval: reduceMotion ? 1 : 1.0 / 30)) { tl in
             Canvas { ctx, size in
                 let t = reduceMotion ? 0 : tl.date.timeIntervalSinceReferenceDate
@@ -292,9 +306,10 @@ struct WaterBackground: View {
     }
 }
 
-struct ProgressRing: View {
-    var progress: Double
-    var body: some View {
+public struct ProgressRing: View {
+    public var progress: Double
+    public init(progress: Double) { self.progress = progress }
+    public var body: some View {
         ZStack {
             Circle().stroke(Color.accentColor.opacity(0.15), lineWidth: 8)
             Circle().trim(from: 0, to: progress)
@@ -305,7 +320,8 @@ struct ProgressRing: View {
     }
 }
 
-struct ConfettiView: View {
+public struct ConfettiView: View {
+    public init() {}
     @State private var burst = false
     private let colors: [Color] = [Color(red: 0.35, green: 0.78, blue: 0.98), Color(red: 1, green: 0.56, blue: 0.69),
                                    .yellow, .green, .purple]
@@ -316,7 +332,7 @@ struct ConfettiView: View {
         (CGFloat.random(in: -120...120), CGFloat.random(in: -200 ... -40), CGFloat.random(in: 4...12))
     }
 
-    var body: some View {
+    public var body: some View {
         ZStack {
             ForEach(0..<bubbles.count, id: \.self) { i in
                 Circle().stroke(Color.white.opacity(0.8), lineWidth: 1.2)

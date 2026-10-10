@@ -1,0 +1,98 @@
+import Foundation
+
+/// Hydration state persisted in the shared App Group so the iOS app, its widget and
+/// notification actions all see the same numbers. All data stays on the device.
+public final class RaynaStore {
+    public static let appGroup = "group.co.versantus.rayna"
+    public static let shared = RaynaStore()
+
+    public let defaults: UserDefaults
+
+    public init(defaults: UserDefaults? = nil) {
+        self.defaults = defaults ?? UserDefaults(suiteName: RaynaStore.appGroup) ?? .standard
+        self.defaults.register(defaults: [
+            "goalML": 2500, "glassML": 250, "intervalMin": 60,
+            "quietStartMin": 22 * 60, "quietEndMin": 7 * 60 + 30,
+            "eveningSwap": true, "remindersOn": true
+        ])
+    }
+
+    // MARK: Stored values
+    public var totalML: Int { get { defaults.integer(forKey: "totalML") } set { defaults.set(newValue, forKey: "totalML") } }
+    public var log: [Date] { get { (defaults.array(forKey: "log") as? [Date]) ?? [] } set { defaults.set(newValue, forKey: "log") } }
+    public var runDay: Bool { get { defaults.bool(forKey: "runDay") } set { defaults.set(newValue, forKey: "runDay"); checkGoal() } }
+    public var goalML: Int { get { defaults.integer(forKey: "goalML") } set { defaults.set(newValue, forKey: "goalML"); checkGoal() } }
+    public var glassML: Int { get { defaults.integer(forKey: "glassML") } set { defaults.set(newValue, forKey: "glassML") } }
+    public var intervalMin: Int { get { defaults.integer(forKey: "intervalMin") } set { defaults.set(newValue, forKey: "intervalMin") } }
+    public var quietStartMin: Int { get { defaults.integer(forKey: "quietStartMin") } set { defaults.set(newValue, forKey: "quietStartMin") } }
+    public var quietEndMin: Int { get { defaults.integer(forKey: "quietEndMin") } set { defaults.set(newValue, forKey: "quietEndMin") } }
+    public var eveningSwap: Bool { get { defaults.bool(forKey: "eveningSwap") } set { defaults.set(newValue, forKey: "eveningSwap") } }
+    public var remindersOn: Bool { get { defaults.bool(forKey: "remindersOn") } set { defaults.set(newValue, forKey: "remindersOn") } }
+    public private(set) var streak: Int { get { defaults.integer(forKey: "streak") } set { defaults.set(newValue, forKey: "streak") } }
+    /// Day keys (yyyy-MM-dd) on which the goal was reached, newest last (kept to ~30).
+    public private(set) var goalDays: [String] { get { defaults.stringArray(forKey: "goalDays") ?? [] } set { defaults.set(Array(newValue.suffix(30)), forKey: "goalDays") } }
+    private var dayKey: String { get { defaults.string(forKey: "dayKey") ?? "" } set { defaults.set(newValue, forKey: "dayKey") } }
+    private var lastGoalDay: String { get { defaults.string(forKey: "lastGoalDay") ?? "" } set { defaults.set(newValue, forKey: "lastGoalDay") } }
+
+    // MARK: Derived
+    public var effectiveGoal: Int { goalML + (runDay ? 500 : 0) }
+    public var progress: Double { effectiveGoal > 0 ? min(Double(totalML) / Double(effectiveGoal), 1) : 0 }
+    public var glasses: Int { glassML > 0 ? totalML / glassML : 0 }
+    public var quip: String { RaynaCopy.quip(for: progress) }
+    public var lastLogged: Date? { log.last }
+    public func isQuiet(at date: Date) -> Bool { RaynaCopy.isQuiet(date, start: quietStartMin, end: quietEndMin) }
+    public func goalMet(on date: Date) -> Bool { goalDays.contains(RaynaCopy.dayKey(for: date)) }
+
+    // MARK: Actions
+    /// Adds a glass. Returns true if this glass just completed today's goal.
+    @discardableResult
+    public func addGlass(now: Date = Date()) -> Bool {
+        rolloverIfNeeded(now: now)
+        totalML += glassML
+        log = log + [now]
+        return checkGoal(now: now)
+    }
+
+    public func undo(now: Date = Date()) {
+        rolloverIfNeeded(now: now)
+        guard totalML > 0 else { return }
+        totalML = max(0, totalML - glassML)
+        var l = log; if !l.isEmpty { l.removeLast() }; log = l
+    }
+
+    @discardableResult
+    private func checkGoal(now: Date = Date()) -> Bool {
+        guard progress >= 1 else { return false }
+        let today = RaynaCopy.dayKey(for: now)
+        guard lastGoalDay != today else { return false }
+        streak = (lastGoalDay == RaynaCopy.yesterdayKey(from: now)) ? streak + 1 : 1
+        lastGoalDay = today
+        goalDays = goalDays + [today]
+        return true
+    }
+
+    public func rolloverIfNeeded(now: Date = Date()) {
+        let today = RaynaCopy.dayKey(for: now)
+        if dayKey != today {
+            dayKey = today
+            totalML = 0
+            log = []
+            defaults.set(false, forKey: "runDay")
+        }
+        if lastGoalDay != today && lastGoalDay != RaynaCopy.yesterdayKey(from: now) && streak != 0 {
+            streak = 0
+        }
+    }
+
+    /// Seeds a pleasant demo day (used for App Store screenshots via the `-RaynaDemo <glasses>` launch argument).
+    public func seedDemo(glasses: Int, streak s: Int, now: Date = Date()) {
+        rolloverIfNeeded(now: now)
+        totalML = glasses * glassML
+        log = (0..<glasses).map { now.addingTimeInterval(Double($0 - glasses) * 2400) }
+        streak = s
+        lastGoalDay = RaynaCopy.yesterdayKey(from: now)
+        let cal = Calendar.current
+        goalDays = (1...max(1, s)).reversed().compactMap { cal.date(byAdding: .day, value: -$0, to: now) }.map(RaynaCopy.dayKey(for:))
+        checkGoal(now: now)
+    }
+}

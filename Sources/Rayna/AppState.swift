@@ -1,3 +1,4 @@
+import RaynaCore
 import Foundation
 import SwiftUI
 import ServiceManagement
@@ -61,13 +62,8 @@ final class AppState: ObservableObject {
     var progress: Double { effectiveGoal > 0 ? min(Double(totalML) / Double(effectiveGoal), 1) : 0 }
     var lastLogged: Date? { log.last }
 
-    static func key(for date: Date) -> String {
-        let c = Calendar.current.dateComponents([.year, .month, .day], from: date)
-        return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
-    }
-    static var yesterdayKey: String {
-        key(for: Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date())
-    }
+    static func key(for date: Date) -> String { RaynaCopy.dayKey(for: date) }
+    static var yesterdayKey: String { RaynaCopy.yesterdayKey() }
 
     // MARK: Actions
     func addGlass() {
@@ -122,29 +118,12 @@ final class AppState: ObservableObject {
 
     // MARK: Quiet hours
     func isQuiet(at date: Date = Date()) -> Bool {
-        let c = Calendar.current.dateComponents([.hour, .minute], from: date)
-        let m = (c.hour ?? 0) * 60 + (c.minute ?? 0)
-        if quietStartMin == quietEndMin { return false }
-        if quietStartMin < quietEndMin { return m >= quietStartMin && m < quietEndMin }
-        return m >= quietStartMin || m < quietEndMin
+        RaynaCopy.isQuiet(date, start: quietStartMin, end: quietEndMin)
     }
 
-    // MARK: Quips (from prototype)
-    static let quips: [(Double, String)] = [
-        (0, "Morning! I'm a bit… flat. Splash me? 🫠"),
-        (0.15, "Ooh, a ripple. Keep it flowing!"),
-        (0.35, "Gliding nicely. Your calves send regards. 🦵"),
-        (0.55, "Over halfway! Stingrays are happy, and so am I. 😄"),
-        (0.75, "Nearly there — tide's coming in! 🌊"),
-        (0.9, "One more glass and I do a backflip…"),
-        (1, "GOAL! Backflip deployed. You're race-ready! 🎉")
-    ]
-    var quip: String { AppState.quips.last(where: { progress >= $0.0 })?.1 ?? AppState.quips[0].1 }
-
-    static let reminders = [
-        "Sip o'clock! Half-marathon legs run on water, not wishes. 💧",
-        "Psst. Your stingray is drying out. One glass?",
-        "Hydration check! 250 ml and I'll stop flapping. 🌊"
-    ]
-    static let swapText = "Fancy swapping the next pint for a pint of water? Tomorrow-you says cheers. 🍺➡️💧"
+    // MARK: Quips (shared with iOS via RaynaCore)
+    static let quips = RaynaCopy.quips
+    var quip: String { RaynaCopy.quip(for: progress) }
+    static let reminders = RaynaCopy.reminders
+    static let swapText = RaynaCopy.swapText
 }
