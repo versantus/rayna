@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         NotificationManager.shared.setUp()
+        RaynaFrames.preload()
         if CommandLine.arguments.contains("--preview-nudge") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 NudgeController.shared.show(text: AppState.reminders[0], isSwap: false)
@@ -25,10 +26,24 @@ struct RaynaApp: App {
                 .environmentObject(state)
         } label: {
             HStack(spacing: 3) {
-                Image(systemName: state.progress >= 1 ? "drop.fill" : "drop")
+                if let glyph = MenuGlyph.image {
+                    Image(nsImage: glyph)
+                } else {
+                    Image(systemName: state.progress >= 1 ? "drop.fill" : "drop")
+                }
                 Text("\(Int((state.progress * 100).rounded()))%")
             }
         }
         .menuBarExtraStyle(.window)
     }
+}
+
+/// Rayna's silhouette as a template image (MenuGlyph.png / @2x in Contents/Resources).
+enum MenuGlyph {
+    static let image: NSImage? = {
+        guard let img = NSImage(named: "MenuGlyph") else { return nil }
+        img.isTemplate = true
+        img.size = NSSize(width: 18, height: 18)
+        return img
+    }()
 }

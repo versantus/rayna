@@ -55,13 +55,10 @@ struct NudgeView: View {
     @EnvironmentObject var state: AppState
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    @State private var x: CGFloat = 320
-    @State private var heading: Double = -90
     @State private var opacity: Double = 1
     @State private var bubble = false
-    @State private var wiggleAt: Date? = nil
-    @State private var flipAt: Date? = nil
-    @State private var pout = false
+    /// The Higgsfield clips carry all of Rayna's motion (swim in from the right, roll, pout, exit right).
+    @State private var script = RaynaScript([.swimIn], then: .idleHappy)
     @State private var leaving = false
 
     var body: some View {
@@ -76,7 +73,7 @@ struct NudgeView: View {
                         Button("Drank one 💧") { drank() }.buttonStyle(NudgeButtonStyle(prominent: true))
                         Button("Later") { later() }.buttonStyle(NudgeButtonStyle(prominent: false))
                     } else {
-                        Button("Cheers 🍻") { swimOff(after: 0) }.buttonStyle(NudgeButtonStyle(prominent: true))
+                        Button("Cheers 🍻") { swimOff([.swimOff]) }.buttonStyle(NudgeButtonStyle(prominent: true))
                     }
                     Spacer(minLength: 0)
                 }
@@ -91,11 +88,8 @@ struct NudgeView: View {
             .scaleEffect(bubble ? 1 : 0.6, anchor: .trailing)
             .opacity(bubble ? 1 : 0)
             .allowsHitTesting(bubble)
-            RaynaView(progress: max(state.progress, 0.5), wiggleAt: wiggleAt, flipAt: flipAt, pout: pout)
-                .scaleEffect(1.3)
-                .frame(width: 140, height: 140)
-                .rotationEffect(.degrees(heading))
-                .offset(x: x)
+            RaynaView(progress: max(state.progress, 0.5), size: 150, script: script)
+                .frame(width: 150, height: 150)
         }
         .padding(8)
         .frame(width: 400, height: 200, alignment: .trailing)
@@ -104,48 +98,47 @@ struct NudgeView: View {
     }
 
     private func enter() {
+        RaynaFrames.preload([.swimIn, .idleHappy, .roll, .swimOff, .poutSwimOff])
+        script = RaynaScript([.swimIn], then: .idleHappy)
         if reduceMotion {
-            x = 0; heading = 0; opacity = 0
+            opacity = 0
             withAnimation(.easeIn(duration: 0.3)) { opacity = 1; bubble = true }
         } else {
-            withAnimation(.easeOut(duration: 1.1)) { x = 0 }
-            withAnimation(.easeInOut(duration: 0.8).delay(0.7)) { heading = 0 }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) {
-                wiggleAt = Date()   // little flap
+            // Bubble pops once she has arrived (last ~third of swim-in).
+            DispatchQueue.main.asyncAfter(deadline: .now() + RaynaClip.swimIn.duration * 0.7) {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) { bubble = true }
             }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 20) { swimOff(after: 0) }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 20) { swimOff([.swimOff]) }
     }
 
     private func drank() {
         guard !leaving else { return }
         state.addGlass()
-        flipAt = Date()
-        swimOff(after: 1.3)
+        swimOff([.roll, .swimOff])          // flip-off = roll + swim-off chained
     }
 
     private func later() {
         guard !leaving else { return }
         NotificationManager.shared.snooze()
-        pout = true
-        swimOff(after: 0.9)
+        swimOff([.poutSwimOff])
     }
 
-    private func swimOff(after delay: Double) {
+    private func swimOff(_ clips: [RaynaClip]) {
         guard !leaving else { return }
         leaving = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            withAnimation(.easeOut(duration: 0.25)) { bubble = false }
-            if reduceMotion {
-                withAnimation(.easeOut(duration: 0.4)) { opacity = 0 }
-            } else {
-                withAnimation(.easeInOut(duration: 0.5)) { heading = 90 }
-                withAnimation(.easeIn(duration: 1.1).delay(0.3)) { x = 340 }
-                withAnimation(.easeIn(duration: 0.4).delay(1.0)) { opacity = 0 }
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { onDone() }
+        withAnimation(.easeOut(duration: 0.25)) { bubble = false }
+        if reduceMotion {
+            withAnimation(.easeOut(duration: 0.4)) { opacity = 0 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { onDone() }
+            return
         }
+        let s = RaynaScript(clips)
+        script = s
+        DispatchQueue.main.asyncAfter(deadline: .now() + s.duration) {
+            withAnimation(.easeIn(duration: 0.2)) { opacity = 0 }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + s.duration + 0.3) { onDone() }
     }
 }
 

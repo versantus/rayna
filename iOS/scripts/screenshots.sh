@@ -10,9 +10,10 @@ for pair in "$@"; do
   xcrun simctl install $D $APP
   n=1
   for spec in 6:0 2:0 10:0 4:1; do
-    xcrun simctl terminate $D co.versantus.rayna.ios >/dev/null 2>&1; sleep 1.5
+    xcrun simctl terminate $D co.versantus.rayna.ios >/dev/null 2>&1; sleep 3
     SIMCTL_CHILD_RAYNA_DEMO=${spec%%:*} SIMCTL_CHILD_RAYNA_SETTINGS=${spec##*:} xcrun simctl launch $D co.versantus.rayna.ios >/dev/null
-    if [ "$n" = 3 ]; then sleep 1.3; else sleep 4; fi
+    # shot 3 = goal: catch the roll + confetti mid-celebration
+    if [ "$n" = 3 ]; then sleep 3; else sleep 7; fi
     xcrun simctl io $D screenshot ../appstore/screenshots/$S/0$n.png >/dev/null 2>&1
     n=$((n+1))
   done

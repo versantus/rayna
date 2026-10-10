@@ -31,15 +31,10 @@ struct Provider: TimelineProvider {
     }
 }
 
-/// A still Rayna (widgets can't animate), drawn with the shared painter.
+/// A still Rayna (widgets can't animate): one of five Higgsfield band stills, chosen by progress.
 struct StillRayna: View {
     var progress: Double
-    var body: some View {
-        Canvas { ctx, size in
-            var ctx = ctx
-            RaynaPainter.draw(&ctx, size: size, t: 0.9, pose: RaynaPose(progress: progress, reduceMotion: false))
-        }
-    }
+    var body: some View { RaynaStill(progress: progress) }
 }
 
 struct WaterFill: View {

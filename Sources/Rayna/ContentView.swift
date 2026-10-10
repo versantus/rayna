@@ -4,7 +4,6 @@ import AppKit
 
 struct ContentView: View {
     @EnvironmentObject var state: AppState
-    @State private var spin = 0.0
     @State private var confettiID = 0
     @State private var showConfetti = false
     @State private var wiggleAt: Date? = nil
@@ -19,7 +18,6 @@ struct ContentView: View {
                         ProgressRing(progress: state.progress).frame(width: 110, height: 110)
                         RaynaView(progress: state.progress, wiggleAt: wiggleAt, flipAt: flipAt)
                             .scaleEffect(0.95)
-                            .rotationEffect(.degrees(reduceMotion ? 0 : spin))
                     }
                     VStack(alignment: .leading, spacing: 8) {
                         HStack(alignment: .firstTextBaseline, spacing: 2) {
@@ -94,7 +92,6 @@ struct ContentView: View {
         confettiID += 1
         showConfetti = true
         flipAt = Date()
-        if !reduceMotion { withAnimation(.easeInOut(duration: 1.3)) { spin += 360 } }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
             showConfetti = false
             state.celebrate = false
