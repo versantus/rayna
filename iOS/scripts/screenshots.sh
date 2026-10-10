@@ -19,8 +19,8 @@ for pair in "$@"; do
     xcrun simctl io $D screenshot ../appstore/screenshots/$S/0$n.png >/dev/null 2>&1
     n=$((n+1))
   done
-  # Phase A–C features: unlocks + journey, pod tank
-  scripts/shot.sh $D ../appstore/screenshots/$S/05.png 7 RAYNA_DEMO=6 RAYNA_STREAK=30 RAYNA_SWAP=1
+  # 05 unlocks + fizzy-drink swap + pod card, 06 journey, 07 pod screen
+  scripts/shot.sh $D ../appstore/screenshots/$S/05.png 7 RAYNA_DEMO=6 RAYNA_STREAK=30 RAYNA_SWAP=1 RAYNA_POD=card
   scripts/shot.sh $D ../appstore/screenshots/$S/06.png 6 RAYNA_DEMO=6 RAYNA_STREAK=16 RAYNA_JOURNEY=1
   scripts/shot.sh $D ../appstore/screenshots/$S/07.png 6 RAYNA_DEMO=6 RAYNA_STREAK=14 RAYNA_POD=1
 done

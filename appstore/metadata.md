@@ -79,14 +79,14 @@ Answer **None** to every content question (no violence, no mature themes, no gam
 `ITSAppUsesNonExemptEncryption = NO` is set in Info.plist, so there's no encryption question at upload.
 
 ## Screenshots
-`appstore/screenshots/6.9/` (1320×2868, iPhone 17 Pro Max) and `appstore/screenshots/6.7/` (1290×2796, iPhone 15 Plus):
+`appstore/screenshots/6.9/` (1320×2868, iPhone 17 Pro Max) and `appstore/screenshots/6.3/` (1206×2622, iPhone 17 Pro). Upload-ready flattened JPEGs: `appstore/upload-6.9/`, `appstore/upload-6.3/`:
 1. Over halfway, happy Rayna (60 %)
 2. Early in the day, droopy Rayna (20 %)
 3. Goal reached, 100 %
-4. Settings (goal, glass size, run-day Live Activity, reminders, swap-a-fizzy-drink, Apple Health)
-5. Rayna with unlocks (headband, medal, bubbles, baby ray) and the swap-a-fizzy-drink card
+4. Settings (Friends → Pods, goal, glass size, run-day Live Activity, reminders, fizzy-drink swap)
+5. Rayna with unlocks (headband, medal, bubbles, baby ray), the "Your pod" card and the fizzy-drink swap card
 6. Rayna's journey: weekly recap and the unlock collection
 7. Pod: shared tank with friends, nudges and pod streak
 
-Regenerate: `cd iOS && scripts/screenshots.sh <sim-udid>:6.9 <sim-udid>:6.7` (after a simulator build).
+Regenerate: `cd iOS && scripts/screenshots.sh <sim-udid>:6.9 <sim-udid>:6.3` (after a simulator build).
 iPad screenshots (13") are only needed if iPad stays enabled (`TARGETED_DEVICE_FAMILY = 1,2`). Otherwise set it to `1` for iPhone-only.
