@@ -21,6 +21,8 @@ final class AppModel: ObservableObject {
     /// Share cards currently offered (story + square).
     @Published var share: RaynaShareInfo?
     @Published var showPod = false
+    /// Newly unlocked ray fact (shown as a small card for a few seconds).
+    @Published var newFact: RayFact?
 
     private init() {
         // Screenshot/demo mode: launch arg `-RaynaDemo <glasses>` or env RAYNA_DEMO=<glasses>
@@ -41,6 +43,10 @@ final class AppModel: ObservableObject {
         showJourney = env["RAYNA_JOURNEY"] == "1"
         if let u = env["RAYNA_UNLOCK"].flatMap(RaynaUnlock.init(rawValue:)) { unlockBanner = u }
         if env["RAYNA_POD"] == "1" { DispatchQueue.main.async { PodService.shared.loadDemo(); self.showPod = true } }
+        if env["RAYNA_KID"] == "1" { setKidMode(true); store.seedDemo(glasses: Int(env["RAYNA_DEMO"] ?? "4") ?? 4, streak: Int(env["RAYNA_STREAK"] ?? "8") ?? 8) }
+        if env["RAYNA_KID"] == "0" { setKidMode(false); if let g = demo { store.seedDemo(glasses: g, streak: Int(env["RAYNA_STREAK"] ?? "5") ?? 5) } }
+        if let n = env["RAYNA_FACTS"].flatMap(Int.init) { store.extras.factsUnlocked = n }
+        if let n = env["RAYNA_FACT"].flatMap(Int.init), n < RayFacts.all.count { newFact = RayFacts.all[n] }
         if env["RAYNA_POD"] == "card" { DispatchQueue.main.async { PodService.shared.loadDemo() } }
         if env["RAYNA_SHARE"] == "goal" { DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.offerShare(.goal) } }
         store.rolloverIfNeeded()
@@ -60,7 +66,30 @@ final class AppModel: ObservableObject {
     var progress: Double { store.progress }
     var totalML: Int { store.totalML }
     var goal: Int { store.effectiveGoal }
-    var quip: String { store.quip }
+    var quip: String { kidMode ? RaynaCopy.kidQuip(for: progress) : store.quip }
+    var kidMode: Bool { store.extras.kidMode }
+
+    /// Kid mode: cups, a smaller goal (1.5 L in 200 ml cups) and simpler words. Restores the grown-up goal when off.
+    func setKidMode(_ on: Bool) {
+        objectWillChange.send()
+        let x = store.extras
+        guard on != x.kidMode else { return }
+        if on {
+            x.adultGoalML = store.goalML; x.adultGlassML = store.glassML
+            store.glassML = 200; store.goalML = 1500
+        } else {
+            if x.adultGoalML > 0 { store.goalML = x.adultGoalML }
+            if x.adultGlassML > 0 { store.glassML = x.adultGlassML }
+        }
+        x.kidMode = on
+        afterChange()
+    }
+
+    private func revealFact() {
+        guard let f = store.extras.unlockNextFact() else { return }
+        newFact = f
+        DispatchQueue.main.asyncAfter(deadline: .now() + 9) { if self.newFact == f { self.newFact = nil } }
+    }
     var streak: Int { store.streak }
     var extras: RaynaExtras { store.extras }
     var accessories: Set<RaynaUnlock> { Set(store.extras.unlocked) }
@@ -85,6 +114,7 @@ final class AppModel: ObservableObject {
         glassEvent += 1
         wiggleAt = Date()
         playGlassSounds(hit: hit)
+        revealFact()
         if hit { celebrate = true; flipAt = Date().addingTimeInterval(0.3) }
         swapThanks = RaynaCopy.swapThanks.randomElement()
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) { self.swapThanks = nil }
@@ -107,6 +137,7 @@ final class AppModel: ObservableObject {
         glassEvent += 1
         wiggleAt = Date()
         playGlassSounds(hit: hit)
+        revealFact()
         if hit {
             celebrate = true
             flipAt = Date().addingTimeInterval(0.3)
@@ -133,7 +164,7 @@ final class AppModel: ObservableObject {
         guard !demoMode else { return }
         let s = store
         Task { @MainActor in
-            await PodService.shared.publish(glasses: s.glasses, ml: s.totalML, goal: s.effectiveGoal, streak: s.streak)
+            await PodService.shared.publish(glasses: s.glasses, ml: s.totalML, goal: s.effectiveGoal, streak: s.streak, isKid: s.extras.kidMode)
         }
     }
 

@@ -104,6 +104,21 @@ public struct RaynaJourneyView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             recapCard
+            if extras.kidMode {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Ray friends").font(.system(.title3, design: .rounded, weight: .bold))
+                    ForEach(RayVisitor.allCases) { v in
+                        let here = max(streak, extras.bestStreak) >= v.days
+                        HStack(spacing: 10) {
+                            RayGlyph(kind: v.kind).frame(width: 40, height: 40).opacity(here ? 1 : 0.3).saturation(here ? 1 : 0)
+                            VStack(alignment: .leading) {
+                                Text(v.name).font(.subheadline.weight(.semibold))
+                                Text(here ? "Comes to visit Rayna!" : "Visits after a \(v.days)-day streak").font(.caption).foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+            }
             Text("Rayna's collection").font(.system(.title3, design: .rounded, weight: .bold))
             let have = Set(extras.unlocked)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
@@ -123,6 +138,7 @@ public struct RaynaJourneyView: View {
                     .background(RoundedRectangle(cornerRadius: 16).fill(Color.primary.opacity(got ? 0.06 : 0.03)))
                 }
             }
+            if extras.rayFactsOn { RayFactsCollection(unlocked: extras.factsUnlocked) }
         }
     }
 

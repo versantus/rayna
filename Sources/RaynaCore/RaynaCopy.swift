@@ -11,6 +11,17 @@ public enum RaynaCopy {
         (0.9, "One more glass and I do a happy spin…"),
         (1, "GOAL! Happy spin deployed. You're race-ready! 🎉")
     ]
+    /// Simpler words for kid mode.
+    public static let kidQuips: [(Double, String)] = [
+        (0, "Hi! I'm thirsty. Can we drink some water? 💧"),
+        (0.25, "Yum! More water please! 🐟"),
+        (0.5, "Halfway! You're doing great! ⭐️"),
+        (0.75, "Nearly there! Just a few more cups! 🌊"),
+        (1, "You did it! Water champion! 🏆🎉")
+    ]
+    public static func kidQuip(for progress: Double) -> String {
+        kidQuips.last(where: { progress >= $0.0 })?.1 ?? kidQuips[0].1
+    }
     public static func quip(for progress: Double) -> String {
         quips.last(where: { progress >= $0.0 })?.1 ?? quips[0].1
     }

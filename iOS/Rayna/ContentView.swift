@@ -7,6 +7,7 @@ struct ContentView: View {
     @ObservedObject private var pod = PodService.shared
     @Environment(\.colorScheme) private var scheme
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.horizontalSizeClass) private var hSize
     @ScaledMetric(relativeTo: .largeTitle) private var amountSize: CGFloat = 46
 
     /// Text colour on the water scene: deep navy by day, white in Dark Mode.
@@ -25,17 +26,40 @@ struct ContentView: View {
             WaterBackground(progress: model.progress)
                 .ignoresSafeArea()
 
-            // Fits on one screen when it can (SE → Pro Max); scrolls at large accessibility text sizes.
-            ViewThatFits(in: .vertical) {
-                mainColumn(raynaMin: compact ? 70 : 110, scrolling: false)
-                ScrollView { mainColumn(raynaMin: 180, scrolling: true) }
-                    .scrollBounceBehavior(.basedOnSize)
+            if model.kidMode { RayVisitorsLayer(visitors: RayVisitor.visiting(streak: model.streak)).ignoresSafeArea() }
+
+            // Adaptive: wide + regular width (iPad, unfolded foldables, large windows) = two columns;
+            // otherwise the phone column. All state lives in the model, so fold/unfold or rotation
+            // just re-lays out the same state.
+            GeometryReader { geo in
+                if hSize == .regular && geo.size.width >= 700 && !typeSize.isAccessibilitySize {
+                    twoColumn(width: geo.size.width)
+                } else {
+                    // Fits on one screen when it can (SE → Pro Max); scrolls at large accessibility text sizes.
+                    ViewThatFits(in: .vertical) {
+                        mainColumn(raynaMin: compact ? 70 : 110, scrolling: false)
+                        ScrollView { mainColumn(raynaMin: 180, scrolling: true) }
+                            .scrollBounceBehavior(.basedOnSize)
+                    }
+                    .frame(maxWidth: 600)   // readable width when a regular-width window is still narrow
+                    .frame(maxWidth: .infinity)
+                }
             }
-            .frame(maxWidth: 600)   // readable width on iPad
-            .frame(maxWidth: .infinity)
+            .animation(.smooth, value: hSize)
+
+            if let f = model.newFact {
+                VStack {
+                    RayFactCard(fact: f) { model.newFact = nil }
+                        .frame(maxWidth: 560)
+                        .padding(.horizontal, 16).padding(.top, 76)
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
 
             if model.celebrate {
                 ConfettiView().id(confettiID)
+                if model.kidMode { ConfettiView().id(confettiID.uuidString + "k").scaleEffect(1.6) }   // bigger party for kids
             }
             if let u = model.unlockBanner {
                 Color.black.opacity(0.25).ignoresSafeArea().onTapGesture { model.unlockBanner = nil }
@@ -45,6 +69,7 @@ struct ContentView: View {
             }
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.75), value: model.unlockBanner)
+        .animation(.spring(response: 0.45, dampingFraction: 0.8), value: model.newFact)
         .sensoryFeedback(.impact(weight: .medium), trigger: model.glassEvent)
         .sensoryFeedback(.success, trigger: model.celebrate) { _, new in new }
         .onChange(of: model.celebrate) { _, new in if new { confettiID = UUID() } }
@@ -64,6 +89,66 @@ struct ContentView: View {
             JourneySheet().environmentObject(model)
         }
         .onAppear { model.checkUnlocks() }
+    }
+
+    /// Two-column layout: Rayna + water on the left, progress / pod / journey on the right.
+    private func twoColumn(width: CGFloat) -> some View {
+        VStack(spacing: 16) {
+            header
+            HStack(alignment: .top, spacing: 28) {
+                VStack(spacing: 16) {
+                    quipBubble
+                    GeometryReader { g in
+                        let side = min(g.size.width * 0.8, g.size.height / 1.4, 480)
+                        RaynaView(progress: model.progress, wiggleAt: model.wiggleAt, flipAt: model.flipAt, size: side, fullTail: true,
+                                  accessories: model.accessories)
+                            .frame(width: side, height: side * 1.32)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                            .padding(.top, 24)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                ScrollView {
+                    VStack(spacing: 16) {
+                        amount.padding(.top, 8)
+                        buttons
+                        runDayToggle
+                        if pod.status == .inPod && !pod.members.isEmpty { podCard }
+                        if model.showSwap { swapCard }
+                        journeyCard
+                    }
+                    .padding(.bottom, 12)
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                .frame(width: min(440, width * 0.42))
+            }
+        }
+        .padding(.horizontal, 28)
+        .padding(.bottom, 8)
+    }
+
+    /// Compact weekly / facts summary for the right column.
+    private var journeyCard: some View {
+        Button { model.showJourney = true } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "trophy.fill").font(.title3).foregroundStyle(Color("AccentColor"))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Rayna's journey").font(.system(.subheadline, design: .rounded, weight: .bold))
+                    Text(String(format: "%.1f L this week", model.store.recap.litres)
+                         + (model.extras.rayFactsOn ? " · \(model.extras.factsUnlocked) ray facts" : ""))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .frame(minHeight: 44)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(ink)
+        .accessibilityHint("Opens your weekly recap, collection and ray facts")
     }
 
     @ViewBuilder
@@ -161,12 +246,14 @@ struct ContentView: View {
 
     private var amount: some View {
         VStack(spacing: 2) {
-            Text(String(format: "%.2f L", Double(model.totalML) / 1000))
+            Text(model.kidMode ? "\(model.store.glasses) cups" : String(format: "%.2f L", Double(model.totalML) / 1000))
                 .font(.system(size: amountSize, weight: .heavy, design: .rounded))
                 .minimumScaleFactor(0.6).lineLimit(1)
                 .contentTransition(.numericText())
                 .animation(.snappy, value: model.totalML)
-            Text("of \(String(format: "%.1f", Double(model.goal) / 1000)) L · \(Int((model.progress * 100).rounded()))%")
+            Text(model.kidMode
+                 ? "of \(Int((Double(model.goal) / Double(max(model.store.glassML, 1))).rounded(.up))) cups · \(Int((model.progress * 100).rounded()))%"
+                 : "of \(String(format: "%.1f", Double(model.goal) / 1000)) L · \(Int((model.progress * 100).rounded()))%")
                 .font(.system(.headline, design: .rounded)).foregroundStyle(.secondary)
         }
         .foregroundStyle(ink)
@@ -175,7 +262,7 @@ struct ContentView: View {
     private var buttons: some View {
         HStack(spacing: 12) {
             Button { model.addGlass() } label: {
-                Label("+1 glass", systemImage: "drop.fill")
+                Label(model.kidMode ? "+1 cup" : "+1 glass", systemImage: "drop.fill")
                     .font(.system(.title2, design: .rounded, weight: .bold))
                     .frame(maxWidth: .infinity).padding(.vertical, compact ? 12 : 16)
             }

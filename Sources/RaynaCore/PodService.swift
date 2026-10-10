@@ -17,6 +17,8 @@ public struct PodMember: Identifiable, Equatable {
     public var goal: Int
     public var streak: Int
     public var updated: Date
+    /// Family pods: members using kid mode are shown as kids (with cups) so grown-ups can follow along.
+    public var isKid: Bool = false
     public var progress: Double { goal > 0 ? min(Double(ml) / Double(goal), 1) : 0 }
     public var isToday: Bool { Calendar.current.isDateInToday(updated) }
     /// Today's progress, or 0 if they haven't synced today.
@@ -151,7 +153,7 @@ public final class PodService: ObservableObject {
     // MARK: Sync
 
     /// Publishes this person's day to the pod.
-    public func publish(glasses: Int, ml: Int, goal: Int, streak: Int) async {
+    public func publish(glasses: Int, ml: Int, goal: Int, streak: Int, isKid: Bool = false) async {
         guard status == .inPod, let z = zoneID, let pid = podRecordID, !myID.isEmpty else { return }
         let r = CKRecord(recordType: "Member", recordID: CKRecord.ID(recordName: "member-\(myID)", zoneID: z))
         r.setParent(pid)
@@ -162,6 +164,7 @@ public final class PodService: ObservableObject {
         r["goal"] = goal as CKRecordValue
         r["streak"] = streak as CKRecordValue
         r["updated"] = Date() as CKRecordValue
+        r["isKid"] = (isKid ? 1 : 0) as CKRecordValue
         do {
             _ = try await db.modifyRecords(saving: [r], deleting: [], savePolicy: .allKeys)
             await fetch()
@@ -182,7 +185,8 @@ public final class PodService: ObservableObject {
             members = results.compactMap { try? $0.1.get() }.map { r in
                 PodMember(id: r["userID"] as? String ?? r.recordID.recordName, name: r["name"] as? String ?? "?",
                           glasses: r["glasses"] as? Int ?? 0, ml: r["ml"] as? Int ?? 0, goal: r["goal"] as? Int ?? 2500,
-                          streak: r["streak"] as? Int ?? 0, updated: r["updated"] as? Date ?? .distantPast)
+                          streak: r["streak"] as? Int ?? 0, updated: r["updated"] as? Date ?? .distantPast,
+                          isKid: (r["isKid"] as? Int ?? 0) == 1)
             }.sorted { $0.id == myID ? true : ($1.id == myID ? false : $0.name < $1.name) }
             await updatePodStreak()
             await checkNudges()
@@ -269,7 +273,7 @@ public final class PodService: ObservableObject {
         members = [
             PodMember(id: "me", name: "Nik", glasses: 6, ml: 1500, goal: 2500, streak: 14, updated: now),
             PodMember(id: "a", name: "Sam", glasses: 9, ml: 2250, goal: 2500, streak: 6, updated: now),
-            PodMember(id: "b", name: "Priya", glasses: 3, ml: 750, goal: 2000, streak: 2, updated: now),
+            PodMember(id: "b", name: "Priya", glasses: 3, ml: 600, goal: 1500, streak: 2, updated: now, isKid: true),
             PodMember(id: "c", name: "Tom", glasses: 11, ml: 2750, goal: 2500, streak: 21, updated: now)
         ]
     }
@@ -346,8 +350,8 @@ public struct PodView: View {
                     }
                     .frame(height: 170)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
-                    Text(m.id == pod.myID ? "\(m.name) (you)" : m.name).font(.system(.caption, design: .rounded, weight: .bold)).lineLimit(1)
-                    Text("\(m.glasses) 🥛 · \(Int(m.todayProgress * 100))%").font(.caption2).foregroundStyle(.secondary)
+                    Text((m.isKid ? "🧒 " : "") + (m.id == pod.myID ? "\(m.name) (you)" : m.name)).font(.system(.caption, design: .rounded, weight: .bold)).lineLimit(1)
+                    Text(m.isKid ? "\(m.glasses) cups · \(Int(m.todayProgress * 100))%" : "\(m.glasses) 🥛 · \(Int(m.todayProgress * 100))%").font(.caption2).foregroundStyle(.secondary)
                     if m.id != pod.myID {
                         let left = pod.nudgesLeft(for: m.id)
                         Button { Task { await pod.nudge(m) } } label: { Text(left > 0 ? "Nudge 👋" : "Nudged") .font(.caption2) }

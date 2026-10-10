@@ -24,6 +24,17 @@ struct SettingsView: View {
                 } header: { Text("Friends") } footer: {
                     Text("Start or join a pod, invite friends, nudge each other and build a pod streak.")
                 }
+                Section {
+                    Toggle(isOn: Binding(get: { model.store.extras.rayFactsOn },
+                                         set: { model.objectWillChange.send(); model.store.extras.rayFactsOn = $0 })) {
+                        Label("Ray Facts", systemImage: "book.closed.fill")
+                    }
+                    Toggle(isOn: Binding(get: { model.kidMode }, set: { model.setKidMode($0) })) {
+                        Label("Kid mode", systemImage: "figure.and.child.holdinghands")
+                    }
+                } header: { Text("Ray Facts & kids") } footer: {
+                    Text("Ray Facts: a real ray fact unlocks with each glass (collect them in Rayna's journey). Kid mode: cups instead of litres, a 1.5 L goal, simpler words, bigger celebrations and ray friends who visit as the streak grows. In a pod, kids are marked so grown-ups can follow along.")
+                }
                 Section("Daily goal") {
                     Stepper(value: model.binding(\.goalML), in: 1000...5000, step: 250) {
                         Text("Goal: \(String(format: "%.2f L", Double(model.store.goalML) / 1000))")

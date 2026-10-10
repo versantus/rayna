@@ -1,3 +1,4 @@
+import SwiftUI
 import Foundation
 
 // MARK: - Unlocks ("Rayna evolves")
@@ -61,7 +62,7 @@ public struct RaynaExtras {
     public let d: UserDefaults
     public init(defaults: UserDefaults) {
         d = defaults
-        d.register(defaults: ["swapChallenge": true])
+        d.register(defaults: ["swapChallenge": true, "rayFactsOn": true])
     }
 
     /// Day key -> millilitres drunk (last ~60 days).
@@ -82,6 +83,25 @@ public struct RaynaExtras {
         get { (d.stringArray(forKey: "pendingUnlocks") ?? []).compactMap(RaynaUnlock.init(rawValue:)) }
         nonmutating set { d.set(newValue.map(\.rawValue), forKey: "pendingUnlocks") }
     }
+    // MARK: Ray Facts (1.1)
+    public var rayFactsOn: Bool { get { d.bool(forKey: "rayFactsOn") } nonmutating set { d.set(newValue, forKey: "rayFactsOn") } }
+    /// How many facts are unlocked (facts unlock in order, one per glass).
+    public var factsUnlocked: Int { get { d.integer(forKey: "factsUnlocked") } nonmutating set { d.set(min(newValue, RayFacts.all.count), forKey: "factsUnlocked") } }
+    /// Unlocks the next fact (if Ray Facts is on and any remain) and returns it.
+    @discardableResult
+    public func unlockNextFact() -> RayFact? {
+        guard rayFactsOn, factsUnlocked < RayFacts.all.count else { return nil }
+        let f = RayFacts.all[factsUnlocked]
+        factsUnlocked += 1
+        return f
+    }
+
+    // MARK: Kid mode (1.1)
+    public var kidMode: Bool { get { d.bool(forKey: "kidMode") } nonmutating set { d.set(newValue, forKey: "kidMode") } }
+    /// Adult goal/glass saved while kid mode is on, restored when it's turned off.
+    public var adultGoalML: Int { get { d.integer(forKey: "adultGoalML") } nonmutating set { d.set(newValue, forKey: "adultGoalML") } }
+    public var adultGlassML: Int { get { d.integer(forKey: "adultGlassML") } nonmutating set { d.set(newValue, forKey: "adultGlassML") } }
+
     /// Evening swap-a-fizzy-drink challenge on/off.
     public var swapChallenge: Bool { get { d.bool(forKey: "swapChallenge") } nonmutating set { d.set(newValue, forKey: "swapChallenge") } }
     /// Day key -> number of drinks swapped for water.
@@ -162,4 +182,41 @@ public extension RaynaCopy {
         "Fizz-free and fabulous! Rayna approves. 🌊",
         "Nice one. Every swap counts, and so do you. 😊"
     ]
+}
+
+
+/// Ray friends who visit Rayna in kid mode as the streak grows.
+public enum RayVisitor: String, CaseIterable, Identifiable {
+    case manta, eagle, electric
+    public var id: String { rawValue }
+    public var days: Int { switch self { case .manta: return 3; case .eagle: return 7; case .electric: return 14 } }
+    public var kind: RayKind { switch self { case .manta: return .manta; case .eagle: return .eagle; case .electric: return .electric } }
+    public var name: String { switch self { case .manta: return "Milo the manta"; case .eagle: return "Ellie the eagle ray"; case .electric: return "Zap the electric ray" } }
+    public static func visiting(streak: Int) -> [RayVisitor] { allCases.filter { streak >= $0.days } }
+}
+
+/// Visitors gently swimming across the water (kid mode).
+public struct RayVisitorsLayer: View {
+    public var visitors: [RayVisitor]
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    public init(visitors: [RayVisitor]) { self.visitors = visitors }
+    public var body: some View {
+        GeometryReader { geo in
+            TimelineView(.animation(minimumInterval: 1.0 / 20, paused: reduceMotion)) { tl in
+                let t = reduceMotion ? 0 : tl.date.timeIntervalSinceReferenceDate
+                ForEach(Array(visitors.enumerated()), id: \.element) { i, v in
+                    let speed = 0.03 + Double(i) * 0.012
+                    let phase = (t * speed + Double(i) * 0.37).truncatingRemainder(dividingBy: 1)
+                    let x = geo.size.width * (1.15 - 1.3 * phase)
+                    let y = geo.size.height * (0.55 + 0.12 * Double(i)) + sin(t * 1.3 + Double(i)) * 8
+                    RayGlyph(kind: v.kind).frame(width: 46, height: 46).opacity(0.85)
+                        .rotationEffect(.degrees(-90))
+                        .position(x: x, y: y)
+                }
+            }
+        }
+        .allowsHitTesting(false)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(visitors.isEmpty ? "" : "Visiting: " + visitors.map(\.name).joined(separator: ", "))
+    }
 }
