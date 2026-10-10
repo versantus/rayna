@@ -3,7 +3,7 @@
 All notable changes to Rayna (macOS menu-bar app + iOS app). macOS versions are listed; the iOS app ships as 1.0 (unreleased).
 
 ## Unreleased (iOS 1.0 build 3)
-- Optional ocean sounds (Settings → Sounds, on by default): splash on +1 glass, bubbles on wiggle, chime + whoosh on the goal spin. Self-synthesised (~21 KB). iOS uses the `.ambient` audio session, so sounds mix with other audio and obey the silent switch. Also on macOS.
+- Optional ocean sounds (Settings → Sounds, on by default): splash on +1 glass, bubbles on wiggle, chime + whoosh on the goal spin. Real recorded CC0 audio since build 5 (4 random splash variants, bubbles, Kenney chime + splash; ~50 KB, credits in Sources/RaynaCore/Resources/Sounds/CREDITS.md). iOS uses the `.ambient` audio session, so sounds mix with other audio and obey the silent switch. Also on macOS.
 
 ## iOS 1.0 build 2
 - Pods moved off the main screen into Settings → Friends → Pods. The main screen shows a compact "Your pod" card only when you're in a pod.
