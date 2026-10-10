@@ -10,7 +10,8 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         UNUserNotificationCenter.current().delegate = self
         RaynaFrames.preloadForLaunch(progress: RaynaStore.shared.progress)
         DispatchQueue.global(qos: .utility).async { ReminderScheduler.registerCategories() }
-        application.registerForRemoteNotifications()   // silent CloudKit pushes for pods
+        application.registerForRemoteNotifications()
+        WatchSync.shared.start()   // silent CloudKit pushes for pods
         return true
     }
 

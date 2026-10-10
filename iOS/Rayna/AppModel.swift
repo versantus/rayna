@@ -129,6 +129,8 @@ final class AppModel: ObservableObject {
 
     func afterChange() {
         publishToPod()
+        WatchSync.shared.push()
+        LiveActivityManager.sync(store: store)
         WidgetCenter.shared.reloadAllTimelines()
         if !demoMode { ReminderScheduler.reschedule() }
     }

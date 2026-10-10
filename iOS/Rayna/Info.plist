@@ -30,6 +30,8 @@
 	<string>Rayna reads today's running workouts to add your run-day water bonus automatically.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Rayna can save each glass you log as Dietary Water in Apple Health.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

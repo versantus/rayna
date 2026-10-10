@@ -15,7 +15,10 @@ struct SettingsView: View {
                     Picker("Glass size", selection: model.binding(\.glassML)) {
                         ForEach([150, 200, 250, 330, 400, 500], id: \.self) { Text("\($0) ml").tag($0) }
                     }
-                    Text("Run days add 500 ml (or more for long runs via Apple Health).").font(.footnote).foregroundStyle(.secondary)
+                    Toggle("Live Activity on run days", isOn: Binding(
+                        get: { LiveActivityManager.enabled },
+                        set: { model.objectWillChange.send(); LiveActivityManager.enabled = $0; LiveActivityManager.sync(store: model.store) }))
+                    Text("Run days add 500 ml (or more for long runs via Apple Health). The Live Activity shows progress on your Lock Screen and Dynamic Island.").font(.footnote).foregroundStyle(.secondary)
                 }
                 Section {
                     Toggle("Reminders", isOn: model.binding(\.remindersOn))

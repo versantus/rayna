@@ -170,10 +170,45 @@ struct RaynaLockWidget: Widget {
     }
 }
 
+struct RaynaLiveActivity: Widget {
+    var body: some WidgetConfiguration {
+        ActivityConfiguration(for: RaynaActivityAttributes.self) { ctx in
+            HStack(spacing: 12) {
+                RaynaStill(progress: ctx.state.progress).frame(width: 64, height: 64)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(ctx.attributes.title).font(.system(.headline, design: .rounded))
+                    Text(String(format: "%.2f of %.1f L", Double(ctx.state.ml) / 1000, Double(ctx.state.goal) / 1000))
+                        .font(.system(.subheadline, design: .rounded))
+                    ProgressView(value: ctx.state.progress).tint(Color(red: 0.2, green: 0.7, blue: 0.85))
+                }
+                Button(intent: AddGlassIntent()) { Image(systemName: "plus.circle.fill").font(.title) }
+                    .buttonStyle(.plain)
+            }
+            .padding()
+            .activityBackgroundTint(Color(red: 0.03, green: 0.2, blue: 0.35))
+            .foregroundStyle(.white)
+        } dynamicIsland: { ctx in
+            DynamicIsland {
+                DynamicIslandExpandedRegion(.leading) { RaynaStill(progress: ctx.state.progress).frame(width: 44, height: 44) }
+                DynamicIslandExpandedRegion(.trailing) { Text("\(Int(ctx.state.progress * 100))%").font(.title2.bold()) }
+                DynamicIslandExpandedRegion(.bottom) {
+                    VStack {
+                        ProgressView(value: ctx.state.progress)
+                        Text(String(format: "%.2f / %.1f L · run day", Double(ctx.state.ml) / 1000, Double(ctx.state.goal) / 1000)).font(.caption)
+                    }
+                }
+            } compactLeading: { Image(systemName: "drop.fill").foregroundStyle(.cyan) }
+              compactTrailing: { Text("\(Int(ctx.state.progress * 100))%") }
+              minimal: { Image(systemName: "drop.fill").foregroundStyle(.cyan) }
+        }
+    }
+}
+
 @main
 struct RaynaWidgetBundle: WidgetBundle {
     var body: some Widget {
         RaynaWidget()
         RaynaLockWidget()
+        RaynaLiveActivity()
     }
 }

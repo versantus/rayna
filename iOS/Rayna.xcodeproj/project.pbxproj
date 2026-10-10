@@ -7,24 +7,53 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0CFB281847C30153784F0D21 /* RaynaActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = E194E1E0606D36D7D4B4B3E7 /* RaynaActivity.swift */; };
 		1D80D2128B043E1EB42F635A /* RaynaCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4DCC39961F649EA4480E8353 /* RaynaCore */; };
+		297778288ABBB7F1F71C2A05 /* WatchShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = D901844C361FC73AB5ACBC69 /* WatchShared.swift */; };
 		2A6BE1DD83027C9A037A8839 /* RaynaIOSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6407386D21DDEED7E499BE02 /* RaynaIOSApp.swift */; };
 		2BDFBBD54BDB99541CCFD5CA /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 888BFBD62739D02DA6981504 /* AppModel.swift */; };
+		2CD8C1296DFA3D9A7E455CC4 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 82B73698DB551000298D25BE /* WidgetKit.framework */; };
+		3447499A2A18DB84AC40B6EA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EA56E768A9B470A7DC7832DA /* Assets.xcassets */; };
 		3C97EA50CE7563A8E08590AB /* HealthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDCACE7D0A62C6F7C1D48B42 /* HealthManager.swift */; };
+		3D13A350C97F4995262D57A1 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 863099C9410707E2FB35E357 /* SwiftUI.framework */; };
+		61A3BC3D1E2B007A4A3F4346 /* RaynaWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FC589A540816FB874EA853A /* RaynaWatchApp.swift */; };
+		648F9B1A4CD93ECC8559FBCA /* RaynaWatchWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7DEC39A55DE4AF1E9778A0BF /* RaynaWatchWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		66A03C9C8FEA08D86DBC35EF /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39E035FE300B9678173D4065 /* LiveActivityManager.swift */; };
+		6B22C8CBEB1EF8C8590AD5DB /* RaynaActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = E194E1E0606D36D7D4B4B3E7 /* RaynaActivity.swift */; };
 		6CBB5F849DABFEB3516EFC1C /* RaynaWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E304D665590360E7CFAFA116 /* RaynaWidget.swift */; };
 		74151B6518F5C85BCC843055 /* AddGlassIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4562E3D0679E16F0A1F3B5CF /* AddGlassIntent.swift */; };
 		74597E8001E71A565A32843C /* RaynaWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 08282B4C050AF02DCF8DB4AA /* RaynaWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		7FD6ECA48FFD747CA15A8E13 /* WatchSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6F0347DB03BE7020908CAEF /* WatchSync.swift */; };
 		82C4B421BFDEE5EE03D0C808 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0A482E4E817F70913890C19D /* Assets.xcassets */; };
 		95282A47CCEA100E107EEF07 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 863099C9410707E2FB35E357 /* SwiftUI.framework */; };
+		9D17C91DC4965775C5245112 /* RaynaWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 2BA0B7DA59D31447E3612BF1 /* RaynaWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A3477AAB197C05E6D317AA3D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97F2495A7C6D826D1FC9909C /* SettingsView.swift */; };
 		AE227437B4CED4C815E5FA24 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 82B73698DB551000298D25BE /* WidgetKit.framework */; };
+		B749AC9B30305583EC443673 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6206752303AB1904950CB09D /* Assets.xcassets */; };
+		CC6D08889460F753827FDE02 /* WatchShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = D901844C361FC73AB5ACBC69 /* WatchShared.swift */; };
 		CFAD8179630905514B7EC447 /* AddGlassIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4562E3D0679E16F0A1F3B5CF /* AddGlassIntent.swift */; };
+		E1DF8D3066D1BFB00C0613CC /* RaynaWatchWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CA82BDC19144266634E645F /* RaynaWatchWidget.swift */; };
+		E395EF1701A6C87A46A172FF /* WatchShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = D901844C361FC73AB5ACBC69 /* WatchShared.swift */; };
 		E8497F78E796940FF2915DAC /* RaynaCore in Frameworks */ = {isa = PBXBuildFile; productRef = 51A48CC2333F1FC5084C219B /* RaynaCore */; };
 		EB6487007CD2A329906AA51D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 204F0E633C7D31C79BFC8BE2 /* Assets.xcassets */; };
 		FFB1BAACB08BE3600EF7811C /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B2F27C22DE5E361FF973ECF /* ContentView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		0E86280073CBA389FA1656E3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2440F779778E289D8CC4F817 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 4E4064B08134C9C59BC49F27;
+			remoteInfo = RaynaWatchWidget;
+		};
+		2FBEB04921C042484C96D9DA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2440F779778E289D8CC4F817 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3AF9F61FD58EBA3DF229F5E6;
+			remoteInfo = RaynaWatch;
+		};
 		EA882C3DEDEAB54D07B5F5BB /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 2440F779778E289D8CC4F817 /* Project object */;
@@ -35,6 +64,28 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		391E493697687FEDCF8ADC8A /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				9D17C91DC4965775C5245112 /* RaynaWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		69C0330C1B3E44EA2157389F /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				648F9B1A4CD93ECC8559FBCA /* RaynaWatchWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		C6D00269392270054937DE6E /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -52,12 +103,21 @@
 		08282B4C050AF02DCF8DB4AA /* RaynaWidgetExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = RaynaWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		08D171E1B8CDA3ABB3FFB4E1 /* Rayna.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Rayna.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0A482E4E817F70913890C19D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1CA82BDC19144266634E645F /* RaynaWatchWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaynaWatchWidget.swift; sourceTree = "<group>"; };
+		1E8DD73A3F1523E84F7E7914 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		204F0E633C7D31C79BFC8BE2 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		2BA0B7DA59D31447E3612BF1 /* RaynaWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RaynaWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		35EA530E8AB7DEAC1CCCF6B9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		39E035FE300B9678173D4065 /* LiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityManager.swift; sourceTree = "<group>"; };
+		4093B516FE99081A70F112A2 /* RaynaWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RaynaWatch.entitlements; sourceTree = "<group>"; };
 		4562E3D0679E16F0A1F3B5CF /* AddGlassIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddGlassIntent.swift; sourceTree = "<group>"; };
+		5A959B414D7E4F8558E5BA55 /* RaynaWatchWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RaynaWatchWidget.entitlements; sourceTree = "<group>"; };
+		6206752303AB1904950CB09D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6407386D21DDEED7E499BE02 /* RaynaIOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaynaIOSApp.swift; sourceTree = "<group>"; };
 		6CB3D2550E002CE819ADD2F8 /* Rayna */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Rayna; path = ..; sourceTree = SOURCE_ROOT; };
 		70E8C4FB448873400DF401A7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		7DEC39A55DE4AF1E9778A0BF /* RaynaWatchWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RaynaWatchWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		7FC589A540816FB874EA853A /* RaynaWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaynaWatchApp.swift; sourceTree = "<group>"; };
 		82B73698DB551000298D25BE /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		863099C9410707E2FB35E357 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		888BFBD62739D02DA6981504 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
@@ -65,8 +125,13 @@
 		8ED3C8C35492A726887EA0D6 /* RaynaWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RaynaWidget.entitlements; sourceTree = "<group>"; };
 		97F2495A7C6D826D1FC9909C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		9B2F27C22DE5E361FF973ECF /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		D6F0347DB03BE7020908CAEF /* WatchSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSync.swift; sourceTree = "<group>"; };
+		D901844C361FC73AB5ACBC69 /* WatchShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchShared.swift; sourceTree = "<group>"; };
+		DA7C995498CBBBA4FAF32E2B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		DDCACE7D0A62C6F7C1D48B42 /* HealthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthManager.swift; sourceTree = "<group>"; };
+		E194E1E0606D36D7D4B4B3E7 /* RaynaActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaynaActivity.swift; sourceTree = "<group>"; };
 		E304D665590360E7CFAFA116 /* RaynaWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaynaWidget.swift; sourceTree = "<group>"; };
+		EA56E768A9B470A7DC7832DA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -77,6 +142,15 @@
 				1D80D2128B043E1EB42F635A /* RaynaCore in Frameworks */,
 				AE227437B4CED4C815E5FA24 /* WidgetKit.framework in Frameworks */,
 				95282A47CCEA100E107EEF07 /* SwiftUI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ACD57337A905A9FA41FA6C28 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2CD8C1296DFA3D9A7E455CC4 /* WidgetKit.framework in Frameworks */,
+				3D13A350C97F4995262D57A1 /* SwiftUI.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -96,8 +170,11 @@
 			children = (
 				5A3960947DA2163C67AAA178 /* Packages */,
 				A86034162C2CFA39DAF50ED4 /* Rayna */,
+				856A3011018D1300DB01472B /* RaynaWatch */,
+				8D995C081B9131041AEBE47F /* RaynaWatchWidget */,
 				227E2AEE402C55C70624EE79 /* RaynaWidget */,
 				E472F8681932296B1DED2F1B /* Shared */,
+				E97E43324DBFAEC68C29A1DB /* WatchShared */,
 				8B1FC377D193FDEDA140E983 /* Frameworks */,
 				2B9EFB0B92DA1EC2A6D6E134 /* Products */,
 			);
@@ -118,6 +195,8 @@
 			isa = PBXGroup;
 			children = (
 				08D171E1B8CDA3ABB3FFB4E1 /* Rayna.app */,
+				2BA0B7DA59D31447E3612BF1 /* RaynaWatch.app */,
+				7DEC39A55DE4AF1E9778A0BF /* RaynaWatchWidget.appex */,
 				08282B4C050AF02DCF8DB4AA /* RaynaWidgetExtension.appex */,
 			);
 			name = Products;
@@ -131,6 +210,17 @@
 			name = Packages;
 			sourceTree = "<group>";
 		};
+		856A3011018D1300DB01472B /* RaynaWatch */ = {
+			isa = PBXGroup;
+			children = (
+				EA56E768A9B470A7DC7832DA /* Assets.xcassets */,
+				1E8DD73A3F1523E84F7E7914 /* Info.plist */,
+				4093B516FE99081A70F112A2 /* RaynaWatch.entitlements */,
+				7FC589A540816FB874EA853A /* RaynaWatchApp.swift */,
+			);
+			path = RaynaWatch;
+			sourceTree = "<group>";
+		};
 		8B1FC377D193FDEDA140E983 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -138,6 +228,17 @@
 				82B73698DB551000298D25BE /* WidgetKit.framework */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		8D995C081B9131041AEBE47F /* RaynaWatchWidget */ = {
+			isa = PBXGroup;
+			children = (
+				6206752303AB1904950CB09D /* Assets.xcassets */,
+				DA7C995498CBBBA4FAF32E2B /* Info.plist */,
+				5A959B414D7E4F8558E5BA55 /* RaynaWatchWidget.entitlements */,
+				1CA82BDC19144266634E645F /* RaynaWatchWidget.swift */,
+			);
+			path = RaynaWatchWidget;
 			sourceTree = "<group>";
 		};
 		A86034162C2CFA39DAF50ED4 /* Rayna */ = {
@@ -148,9 +249,11 @@
 				9B2F27C22DE5E361FF973ECF /* ContentView.swift */,
 				DDCACE7D0A62C6F7C1D48B42 /* HealthManager.swift */,
 				70E8C4FB448873400DF401A7 /* Info.plist */,
+				39E035FE300B9678173D4065 /* LiveActivityManager.swift */,
 				89F851B9928143970D811760 /* Rayna.entitlements */,
 				6407386D21DDEED7E499BE02 /* RaynaIOSApp.swift */,
 				97F2495A7C6D826D1FC9909C /* SettingsView.swift */,
+				D6F0347DB03BE7020908CAEF /* WatchSync.swift */,
 			);
 			path = Rayna;
 			sourceTree = "<group>";
@@ -159,13 +262,61 @@
 			isa = PBXGroup;
 			children = (
 				4562E3D0679E16F0A1F3B5CF /* AddGlassIntent.swift */,
+				E194E1E0606D36D7D4B4B3E7 /* RaynaActivity.swift */,
 			);
 			path = Shared;
+			sourceTree = "<group>";
+		};
+		E97E43324DBFAEC68C29A1DB /* WatchShared */ = {
+			isa = PBXGroup;
+			children = (
+				D901844C361FC73AB5ACBC69 /* WatchShared.swift */,
+			);
+			path = WatchShared;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		3AF9F61FD58EBA3DF229F5E6 /* RaynaWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6C490D4BE91F2B6A2FF60B61 /* Build configuration list for PBXNativeTarget "RaynaWatch" */;
+			buildPhases = (
+				11A02B0CBA269744D8A7C75B /* Sources */,
+				9A3883095F642ACD994A5819 /* Resources */,
+				69C0330C1B3E44EA2157389F /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				60644E91FCEFBF7C137026CD /* PBXTargetDependency */,
+			);
+			name = RaynaWatch;
+			packageProductDependencies = (
+			);
+			productName = RaynaWatch;
+			productReference = 2BA0B7DA59D31447E3612BF1 /* RaynaWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
+		4E4064B08134C9C59BC49F27 /* RaynaWatchWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 58E55ED07548493D552A42C3 /* Build configuration list for PBXNativeTarget "RaynaWatchWidget" */;
+			buildPhases = (
+				90ECF5ACD46B98BA49FD970B /* Sources */,
+				A94965C50BBE89BF09CF1950 /* Resources */,
+				ACD57337A905A9FA41FA6C28 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RaynaWatchWidget;
+			packageProductDependencies = (
+			);
+			productName = RaynaWatchWidget;
+			productReference = 7DEC39A55DE4AF1E9778A0BF /* RaynaWatchWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		C87FC9754AA1CCB3619A0596 /* Rayna */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 2C0CDACD36BB05074A78695E /* Build configuration list for PBXNativeTarget "Rayna" */;
@@ -174,11 +325,13 @@
 				9984DA2D1EE13B4E9A474F9C /* Resources */,
 				F5CB4FDEE207D593A297F336 /* Frameworks */,
 				C6D00269392270054937DE6E /* Embed Foundation Extensions */,
+				391E493697687FEDCF8ADC8A /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				E78DCCA0094DC5C95FB764A0 /* PBXTargetDependency */,
+				FF1D3BD89651D307B1293BC8 /* PBXTargetDependency */,
 			);
 			name = Rayna;
 			packageProductDependencies = (
@@ -217,6 +370,14 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					3AF9F61FD58EBA3DF229F5E6 = {
+						DevelopmentTeam = F9MJXEKGAR;
+						ProvisioningStyle = Automatic;
+					};
+					4E4064B08134C9C59BC49F27 = {
+						DevelopmentTeam = F9MJXEKGAR;
+						ProvisioningStyle = Automatic;
+					};
 					C87FC9754AA1CCB3619A0596 = {
 						DevelopmentTeam = F9MJXEKGAR;
 						ProvisioningStyle = Automatic;
@@ -245,6 +406,8 @@
 			projectRoot = "";
 			targets = (
 				C87FC9754AA1CCB3619A0596 /* Rayna */,
+				3AF9F61FD58EBA3DF229F5E6 /* RaynaWatch */,
+				4E4064B08134C9C59BC49F27 /* RaynaWatchWidget */,
 				D8994BE3A4B73B689A01614D /* RaynaWidgetExtension */,
 			);
 		};
@@ -267,6 +430,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9A3883095F642ACD994A5819 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3447499A2A18DB84AC40B6EA /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A94965C50BBE89BF09CF1950 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B749AC9B30305583EC443673 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -278,8 +457,21 @@
 				2BDFBBD54BDB99541CCFD5CA /* AppModel.swift in Sources */,
 				FFB1BAACB08BE3600EF7811C /* ContentView.swift in Sources */,
 				3C97EA50CE7563A8E08590AB /* HealthManager.swift in Sources */,
+				66A03C9C8FEA08D86DBC35EF /* LiveActivityManager.swift in Sources */,
+				0CFB281847C30153784F0D21 /* RaynaActivity.swift in Sources */,
 				2A6BE1DD83027C9A037A8839 /* RaynaIOSApp.swift in Sources */,
 				A3477AAB197C05E6D317AA3D /* SettingsView.swift in Sources */,
+				E395EF1701A6C87A46A172FF /* WatchShared.swift in Sources */,
+				7FD6ECA48FFD747CA15A8E13 /* WatchSync.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		11A02B0CBA269744D8A7C75B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				61A3BC3D1E2B007A4A3F4346 /* RaynaWatchApp.swift in Sources */,
+				297778288ABBB7F1F71C2A05 /* WatchShared.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -288,21 +480,55 @@
 			buildActionMask = 2147483647;
 			files = (
 				74151B6518F5C85BCC843055 /* AddGlassIntent.swift in Sources */,
+				6B22C8CBEB1EF8C8590AD5DB /* RaynaActivity.swift in Sources */,
 				6CBB5F849DABFEB3516EFC1C /* RaynaWidget.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		90ECF5ACD46B98BA49FD970B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E1DF8D3066D1BFB00C0613CC /* RaynaWatchWidget.swift in Sources */,
+				CC6D08889460F753827FDE02 /* WatchShared.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		60644E91FCEFBF7C137026CD /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 4E4064B08134C9C59BC49F27 /* RaynaWatchWidget */;
+			targetProxy = 0E86280073CBA389FA1656E3 /* PBXContainerItemProxy */;
+		};
 		E78DCCA0094DC5C95FB764A0 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = D8994BE3A4B73B689A01614D /* RaynaWidgetExtension */;
 			targetProxy = EA882C3DEDEAB54D07B5F5BB /* PBXContainerItemProxy */;
 		};
+		FF1D3BD89651D307B1293BC8 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3AF9F61FD58EBA3DF229F5E6 /* RaynaWatch */;
+			targetProxy = 2FBEB04921C042484C96D9DA /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		0CAB9BFDB5FF11217C9D69C2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = RaynaWatch/RaynaWatch.entitlements;
+				INFOPLIST_FILE = RaynaWatch/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = co.versantus.rayna.ios.watchkitapp;
+				PRODUCT_NAME = RaynaWatch;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+			};
+			name = Release;
+		};
 		0F17B6E779852B39294A7EE5 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -340,6 +566,38 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
+		};
+		5CD85055880A66DE422FB101 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = RaynaWatch/RaynaWatch.entitlements;
+				INFOPLIST_FILE = RaynaWatch/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = co.versantus.rayna.ios.watchkitapp;
+				PRODUCT_NAME = RaynaWatch;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+			};
+			name = Debug;
+		};
+		6422E837E86841E16C5E54B0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = RaynaWatchWidget/RaynaWatchWidget.entitlements;
+				INFOPLIST_FILE = RaynaWatchWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = co.versantus.rayna.ios.watchkitapp.widget;
+				PRODUCT_NAME = RaynaWatchWidget;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+			};
+			name = Debug;
 		};
 		761649220B9E5516AE406835 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -422,7 +680,6 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -485,7 +742,6 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -512,6 +768,24 @@
 			};
 			name = Debug;
 		};
+		E579C746557E85A86CE81161 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = RaynaWatchWidget/RaynaWatchWidget.entitlements;
+				INFOPLIST_FILE = RaynaWatchWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = co.versantus.rayna.ios.watchkitapp.widget;
+				PRODUCT_NAME = RaynaWatchWidget;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -529,6 +803,24 @@
 			buildConfigurations = (
 				0F17B6E779852B39294A7EE5 /* Debug */,
 				761649220B9E5516AE406835 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		58E55ED07548493D552A42C3 /* Build configuration list for PBXNativeTarget "RaynaWatchWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6422E837E86841E16C5E54B0 /* Debug */,
+				E579C746557E85A86CE81161 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		6C490D4BE91F2B6A2FF60B61 /* Build configuration list for PBXNativeTarget "RaynaWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5CD85055880A66DE422FB101 /* Debug */,
+				0CAB9BFDB5FF11217C9D69C2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

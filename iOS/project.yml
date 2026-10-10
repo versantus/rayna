@@ -25,10 +25,12 @@ targets:
     sources:
       - Rayna
       - Shared
+      - WatchShared
     dependencies:
       - package: RaynaCore
         product: RaynaCore
       - target: RaynaWidgetExtension
+      - target: RaynaWatch
     entitlements:
       path: Rayna/Rayna.entitlements
       properties:
@@ -44,6 +46,7 @@ targets:
         NSHealthShareUsageDescription: Rayna reads today's running workouts to add your run-day water bonus automatically.
         NSHealthUpdateUsageDescription: Rayna can save each glass you log as Dietary Water in Apple Health.
         CKSharingSupported: true
+        NSSupportsLiveActivities: true
         UIBackgroundModes: [remote-notification]
         CFBundleDisplayName: Rayna
         CFBundleShortVersionString: $(MARKETING_VERSION)
@@ -92,6 +95,58 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: co.versantus.rayna.ios.widget
         PRODUCT_NAME: RaynaWidgetExtension
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        SKIP_INSTALL: YES
+  RaynaWatch:
+    type: application
+    platform: watchOS
+    sources:
+      - RaynaWatch
+      - WatchShared
+    dependencies:
+      - target: RaynaWatchWidget
+    entitlements:
+      path: RaynaWatch/RaynaWatch.entitlements
+      properties:
+        com.apple.security.application-groups: [group.co.versantus.raynawater]
+    info:
+      path: RaynaWatch/Info.plist
+      properties:
+        CFBundleDisplayName: Rayna
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        WKApplication: true
+        WKCompanionAppBundleIdentifier: co.versantus.rayna.ios
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: co.versantus.rayna.ios.watchkitapp
+        PRODUCT_NAME: RaynaWatch
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        SKIP_INSTALL: YES
+  RaynaWatchWidget:
+    type: app-extension
+    platform: watchOS
+    sources:
+      - RaynaWatchWidget
+      - WatchShared
+    dependencies:
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework
+    entitlements:
+      path: RaynaWatchWidget/RaynaWatchWidget.entitlements
+      properties:
+        com.apple.security.application-groups: [group.co.versantus.raynawater]
+    info:
+      path: RaynaWatchWidget/Info.plist
+      properties:
+        CFBundleDisplayName: Rayna
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: co.versantus.rayna.ios.watchkitapp.widget
+        PRODUCT_NAME: RaynaWatchWidget
         SKIP_INSTALL: YES
 schemes:
   Rayna:
