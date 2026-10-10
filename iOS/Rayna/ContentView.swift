@@ -320,7 +320,7 @@ struct ContentView: View {
                     let st = model.extras.swapStreak()
                     Text(st > 0 ? "Swap streak: \(st) evening\(st == 1 ? "" : "s") · \(model.extras.swapsTotal) total"
                                 : "Optional fizzy-drink challenge. Logs a glass too.")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
             }
@@ -357,7 +357,7 @@ struct StreakDots: View {
                     .frame(width: 10, height: 10)
             }
             Text(streak > 0 ? "\(streak)-day streak 🔥" : "Start a streak!")
-                .font(.system(.caption, design: .rounded, weight: .semibold)).foregroundStyle(.secondary)
+                .font(.system(.footnote, design: .rounded, weight: .semibold)).foregroundStyle(.secondary)
                 .padding(.leading, 4)
         }
         .accessibilityElement(children: .ignore)
