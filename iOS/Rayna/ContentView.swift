@@ -61,11 +61,7 @@ struct ContentView: View {
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.75), value: model.unlockBanner)
         .fullScreenCover(item: $model.factPage) { f in
-            RayFactPage(fact: f, onMore: {
-                model.factPage = nil
-                model.journeyToFacts = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { model.showJourney = true }
-            }, onDone: { model.factPage = nil })
+            RayFactPage(fact: f, onDone: { model.factPage = nil })
         }
         .sensoryFeedback(.impact(weight: .medium), trigger: model.glassEvent)
         .sensoryFeedback(.success, trigger: model.celebrate) { _, new in new }
@@ -135,8 +131,7 @@ struct ContentView: View {
                 Image(systemName: "trophy.fill").font(.title3).foregroundStyle(Color("AccentColor"))
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Rayna's journey").font(.system(.subheadline, design: .rounded, weight: .bold))
-                    Text(String(format: "%.1f L this week", model.store.recap.litres)
-                         + (model.extras.rayFactsOn ? " · \(model.extras.factsUnlocked) ray facts" : ""))
+                    Text(String(format: "%.1f L this week", model.store.recap.litres))
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
@@ -149,7 +144,7 @@ struct ContentView: View {
         }
         .buttonStyle(.plain)
         .foregroundStyle(ink)
-        .accessibilityHint("Opens your weekly recap, collection and ray facts")
+        .accessibilityHint("Opens your weekly recap and collection")
     }
 
     @ViewBuilder
@@ -397,7 +392,6 @@ struct JourneySheet: View {
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         NavigationStack {
-            ScrollViewReader { proxy in
                 ScrollView {
                     RaynaJourneyView(extras: model.extras, recap: model.store.recap, streak: model.streak) {
                         dismiss()
@@ -405,12 +399,6 @@ struct JourneySheet: View {
                     }
                         .padding()
                 }
-                .onAppear {
-                    guard model.journeyToFacts else { return }
-                    model.journeyToFacts = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { withAnimation { proxy.scrollTo("rayFacts", anchor: .top) } }
-                }
-            }
             .navigationTitle("Rayna's journey")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }

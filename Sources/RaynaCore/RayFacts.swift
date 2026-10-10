@@ -184,48 +184,6 @@ public struct RayFactCard: View {
     }
 }
 
-/// Grid of unlocked facts for the Journey screen.
-public struct RayFactsCollection: View {
-    public var unlocked: Int
-    public init(unlocked: Int) { self.unlocked = unlocked }
-    public var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Ray Facts").font(.system(.title3, design: .rounded, weight: .bold))
-                Spacer()
-                Text("\(min(unlocked, RayFacts.all.count)) of \(RayFacts.all.count)").font(.footnote).foregroundStyle(.secondary)
-            }
-            if unlocked == 0 {
-                Text("Reach 25% of your goal to hear your first ray fact.").font(.callout).foregroundStyle(.secondary)
-            }
-            ForEach(RayFacts.all.prefix(unlocked)) { f in
-                HStack(alignment: .top, spacing: 10) {
-                    RayGlyph(kind: f.kind).frame(width: 36, height: 36)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(f.kind.name).font(.footnote.weight(.bold)).foregroundStyle(.secondary)
-                        Text(f.text).font(.callout).fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                .padding(10).frame(maxWidth: .infinity, alignment: .leading)
-                .background(RoundedRectangle(cornerRadius: 14).fill(Color.primary.opacity(0.05)))
-            }
-            // Locked facts are mystery tiles only: no name, text or source until unlocked.
-            let locked = max(0, RayFacts.all.count - unlocked)
-            if locked > 0 {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 64), spacing: 8)], spacing: 8) {
-                    ForEach(0..<locked, id: \.self) { _ in RayMysteryTile() }
-                }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(locked) locked ray facts. Keep drinking to unlock.")
-            }
-            if unlocked < RayFacts.all.count {
-                Label("\(RayFacts.all.count - unlocked) more to discover: Rayna shares one at 25, 50, 75 and 100% of your goal", systemImage: "lock.fill")
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
-        }
-    }
-}
-
 public extension RayFact {
     /// Human-readable source for the fact page (keys are listed in docs/RAY-FACTS-SOURCES.md).
     var sourceName: String {
@@ -256,13 +214,12 @@ public struct RayFactTag: View {
     }
 }
 
-/// Clean full-screen page for one fact: big readable text, simple illustration, source, "More facts".
+/// Clean full-screen page for one fact: big readable text, simple illustration, source. Ephemeral: no browsing.
 public struct RayFactPage: View {
     public var fact: RayFact
-    public var onMore: () -> Void
     public var onDone: () -> Void
-    public init(fact: RayFact, onMore: @escaping () -> Void, onDone: @escaping () -> Void) {
-        self.fact = fact; self.onMore = onMore; self.onDone = onDone
+    public init(fact: RayFact, onDone: @escaping () -> Void) {
+        self.fact = fact; self.onDone = onDone
     }
     public var body: some View {
         ScrollView {
@@ -273,7 +230,7 @@ public struct RayFactPage: View {
                     .background(Circle().fill(Color(red: 0.80, green: 0.92, blue: 1.0)))
                     .padding(.top, 8)
                 VStack(spacing: 8) {
-                    Text("Ray fact #\(fact.id + 1)").font(.system(.subheadline, design: .rounded, weight: .bold)).foregroundStyle(.secondary)
+                    Text("🔍 Ray fact").font(.system(.subheadline, design: .rounded, weight: .bold)).foregroundStyle(.secondary)
                     Text(fact.kind.name).font(.system(.largeTitle, design: .rounded, weight: .bold)).multilineTextAlignment(.center)
                 }
                 Text(fact.text)
@@ -282,46 +239,14 @@ public struct RayFactPage: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: 560)
                 Text("Source: \(fact.sourceName)").font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
-                Button(action: onMore) {
-                    Label("More facts", systemImage: "books.vertical.fill")
-                        .font(.system(.body, design: .rounded, weight: .semibold))
-                        .frame(maxWidth: 360, minHeight: 50)
+                Button(action: onDone) {
+                    Text("Done").font(.system(.body, design: .rounded, weight: .semibold)).frame(maxWidth: 360, minHeight: 50)
                 }
                 .buttonStyle(.borderedProminent)
                 .padding(.top, 4)
             }
             .padding(24)
             .frame(maxWidth: .infinity)
-        }
-        .overlay(alignment: .topTrailing) {
-            Button("Done", action: onDone)
-                .font(.body.weight(.semibold))
-                .frame(minWidth: 44, minHeight: 44)
-                .padding(.horizontal, 12).padding(.top, 8)
-        }
-    }
-}
-
-/// A locked fact: silhouette + "?". Tapping just says how to unlock it.
-struct RayMysteryTile: View {
-    @State private var hint = false
-    var body: some View {
-        Button { hint = true } label: {
-            ZStack {
-                RayGlyph(kind: .general).foregroundStyle(.secondary).opacity(0.18).saturation(0).padding(8)
-                Text("?").font(.system(.title2, design: .rounded, weight: .heavy)).foregroundStyle(.secondary)
-            }
-            .frame(minWidth: 44, minHeight: 64)
-            .frame(maxWidth: .infinity)
-            .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(0.05)))
-        }
-        .buttonStyle(.plain)
-        .popover(isPresented: $hint) {
-            #if os(iOS)
-            Text("Keep drinking to unlock").font(.callout).padding().presentationCompactAdaptation(.popover)
-            #else
-            Text("Keep drinking to unlock").font(.callout).padding()
-            #endif
         }
     }
 }

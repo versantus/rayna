@@ -36,8 +36,8 @@ struct SettingsView: View {
                     }
                 } header: { Text(RaynaFeatures.kidMode ? "Ray Facts & kids" : "Ray Facts") } footer: {
                     Text(RaynaFeatures.kidMode
-                         ? "Ray Facts: a real ray fact unlocks with each glass (collect them in Rayna's journey). Kid mode: cups instead of litres, a 1.5 L goal, simpler words, bigger celebrations and ray friends who visit as the streak grows. In a pod, kids are marked so grown-ups can follow along."
-                         : "A real ray fact unlocks with each glass. Collect them in Rayna's journey.")
+                         ? "Ray Facts: Rayna shares a real ray fact at 25, 50, 75 and 100% of your goal. Tap her bubble to read it; then it swims off. Kid mode: cups instead of litres, a 1.5 L goal, simpler words, bigger celebrations and ray friends who visit as the streak grows. In a pod, kids are marked so grown-ups can follow along."
+                         : "Rayna shares a real ray fact at 25, 50, 75 and 100% of your goal. Tap her bubble to read it; then it swims off.")
                 }
                 Section("Daily goal") {
                     Stepper(value: model.binding(\.goalML), in: 1000...5000, step: 250) {

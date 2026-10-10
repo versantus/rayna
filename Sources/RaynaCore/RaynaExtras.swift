@@ -98,7 +98,8 @@ public struct RaynaExtras {
     }
     /// How many facts are unlocked (facts unlock in order, one per milestone).
     public var factsUnlocked: Int { get { d.integer(forKey: "factsUnlocked") } nonmutating set { d.set(min(newValue, RayFacts.all.count), forKey: "factsUnlocked") } }
-    /// Unlocks the next fact (if Ray Facts is on and any remain) and returns it.
+    /// Ray Facts are ephemeral (no collection); this count only tracks which have been shown, to avoid repeats.
+    /// Shows the next fact (if Ray Facts is on and any remain) and returns it.
     @discardableResult
     public func unlockNextFact() -> RayFact? {
         guard rayFactsOn, factsUnlocked < RayFacts.all.count else { return nil }

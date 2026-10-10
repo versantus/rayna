@@ -25,7 +25,6 @@ final class AppModel: ObservableObject {
     /// Fact Rayna is currently saying in her bubble (milestones only); tap opens the fact page.
     @Published var bubbleFact: RayFact?
     @Published var factPage: RayFact?
-    var journeyToFacts = false
 
     private init() {
         // Screenshot/demo mode: launch arg `-RaynaDemo <glasses>` or env RAYNA_DEMO=<glasses>
@@ -43,8 +42,7 @@ final class AppModel: ObservableObject {
             demoMode = false
         }
         showSettings = args.contains("-RaynaShowSettings") || env["RAYNA_SETTINGS"] == "1"
-        showJourney = env["RAYNA_JOURNEY"] == "1" || env["RAYNA_JOURNEY"] == "facts"
-        journeyToFacts = env["RAYNA_JOURNEY"] == "facts"
+        showJourney = env["RAYNA_JOURNEY"] == "1"
         if let u = env["RAYNA_UNLOCK"].flatMap(RaynaUnlock.init(rawValue:)) { unlockBanner = u }
         if env["RAYNA_POD"] == "1" { DispatchQueue.main.async { PodService.shared.loadDemo(); self.showPod = true } }
         if env["RAYNA_KID"] == "1" { setKidMode(true); store.seedDemo(glasses: Int(env["RAYNA_DEMO"] ?? "4") ?? 4, streak: Int(env["RAYNA_STREAK"] ?? "8") ?? 8) }

@@ -129,7 +129,7 @@ struct ContentView: View {
         }
         .frame(width: 340)
         .sheet(item: $state.factPage) { f in
-            RayFactPage(fact: f, onMore: { state.factPage = nil; DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { JourneyWindowController.shared.show(state: state) } }, onDone: { state.factPage = nil })
+            RayFactPage(fact: f, onDone: { state.factPage = nil })
                 .frame(width: 420, height: 560)
         }
         .onChange(of: state.celebrate) { newValue in
@@ -179,7 +179,7 @@ struct SettingsView: View {
                 set: { state.objectWillChange.send(); state.extras.swapChallenge = $0 }))
             Toggle("System notifications too", isOn: $state.systemNotifications)
             Button("Preview nudge") { NudgeController.shared.show(text: AppState.reminders.randomElement() ?? "Sip o'clock!", isSwap: false) }
-            Toggle("Ray Facts (a nerdy ray fact per glass)", isOn: Binding(
+            Toggle("Ray Facts (Rayna shares a fact at 25/50/75/100%)", isOn: Binding(
                 get: { state.extras.rayFactsOn }, set: { state.objectWillChange.send(); state.extras.rayFactsOn = $0 }))
             Toggle("Sounds (splash, bubbles, goal chime)", isOn: Binding(
                 get: { RaynaSounds.shared.enabled },
