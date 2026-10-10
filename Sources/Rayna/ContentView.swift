@@ -160,6 +160,9 @@ struct SettingsView: View {
                 set: { state.objectWillChange.send(); state.extras.swapChallenge = $0 }))
             Toggle("System notifications too", isOn: $state.systemNotifications)
             Button("Preview nudge") { NudgeController.shared.show(text: AppState.reminders.randomElement() ?? "Sip o'clock!", isSwap: false) }
+            Toggle("Sounds (splash, bubbles, goal chime)", isOn: Binding(
+                get: { RaynaSounds.shared.enabled },
+                set: { state.objectWillChange.send(); RaynaSounds.shared.enabled = $0; if $0 { RaynaSounds.shared.play(.splash) } }))
             Toggle("Launch at login", isOn: Binding(
                 get: { state.launchAtLogin },
                 set: { state.setLaunchAtLogin($0) }))

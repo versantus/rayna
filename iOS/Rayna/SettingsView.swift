@@ -37,6 +37,14 @@ struct SettingsView: View {
                     Text("Run days add 500 ml (or more for long runs via Apple Health). The Live Activity shows progress on your Lock Screen and Dynamic Island.").font(.footnote).foregroundStyle(.secondary)
                 }
                 Section {
+                    Toggle(isOn: Binding(get: { RaynaSounds.shared.enabled },
+                                         set: { model.objectWillChange.send(); RaynaSounds.shared.enabled = $0; if $0 { RaynaSounds.shared.play(.splash) } })) {
+                        Label("Sounds", systemImage: "speaker.wave.2.fill")
+                    }
+                } header: { Text("Sounds") } footer: {
+                    Text("Gentle ocean sounds: a splash for each glass, bubbles when Rayna wiggles and a chime when you hit your goal. They follow your Ring/Silent switch and mix with your music.")
+                }
+                Section {
                     Toggle("Reminders", isOn: model.binding(\.remindersOn))
                     Picker("Every", selection: model.binding(\.intervalMin)) {
                         ForEach([30, 45, 60, 90, 120], id: \.self) { Text("\($0) min").tag($0) }

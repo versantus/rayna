@@ -52,7 +52,7 @@ final class AppModel: ObservableObject {
             HealthManager.shared.applyRunDay(store: store) { applied in if applied { self.objectWillChange.send(); self.afterChange() } }
         }
         checkUnlocks()
-        if wiggle { wiggleAt = Date() }
+        if wiggle { wiggleAt = Date(); if !demoMode { RaynaSounds.shared.play(.bubbles) } }
         objectWillChange.send()
     }
 
@@ -84,11 +84,19 @@ final class AppModel: ObservableObject {
         let hit = store.logSwap()
         glassEvent += 1
         wiggleAt = Date()
+        playGlassSounds(hit: hit)
         if hit { celebrate = true; flipAt = Date().addingTimeInterval(0.3) }
         swapThanks = RaynaCopy.swapThanks.randomElement()
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) { self.swapThanks = nil }
         afterChange()
         checkUnlocks()
+    }
+
+    /// Splash on every glass, bubbles with the wiggle, and a chime + whoosh with the goal spin.
+    private func playGlassSounds(hit: Bool) {
+        guard !demoMode else { return }
+        RaynaSounds.shared.play(.splash)
+        RaynaSounds.shared.play(hit ? .chime : .bubbles, after: hit ? 0.3 : 0.25)
     }
 
     // MARK: Actions
@@ -98,6 +106,7 @@ final class AppModel: ObservableObject {
         if !demoMode { HealthManager.shared.logGlass(ml: store.glassML, store: store) }
         glassEvent += 1
         wiggleAt = Date()
+        playGlassSounds(hit: hit)
         if hit {
             celebrate = true
             flipAt = Date().addingTimeInterval(0.3)

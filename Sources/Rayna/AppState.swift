@@ -94,7 +94,11 @@ final class AppState: ObservableObject {
         log.append(Date())
         extras.recordDay(totalML)
         glassEvent += 1
+        let wasHit = progress >= 1 && lastGoalDay == AppState.key(for: Date())
         checkGoal()
+        RaynaSounds.shared.play(.splash)
+        let hitNow = !wasHit && progress >= 1
+        RaynaSounds.shared.play(hitNow ? .chime : .bubbles, after: hitNow ? 0.3 : 0.25)
         publishToPod()
         NotificationManager.shared.resetSchedule()
     }
