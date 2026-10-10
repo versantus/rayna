@@ -48,13 +48,16 @@ struct ContentView: View {
             .animation(.smooth, value: hSize)
 
             if let f = model.newFact {
+                // Phone: drops in under the header. Wide/two-column: a bottom toast so it never covers the amount.
+                let wide = hSize == .regular
                 VStack {
+                    if wide { Spacer() }
                     RayFactCard(fact: f) { model.newFact = nil }
-                        .frame(maxWidth: 560)
-                        .padding(.horizontal, 16).padding(.top, 76)
-                    Spacer()
+                        .frame(maxWidth: wide ? 480 : 560)
+                        .padding(.horizontal, 16).padding(.top, wide ? 0 : 76).padding(.bottom, wide ? 28 : 0)
+                    if !wide { Spacer() }
                 }
-                .transition(.move(edge: .top).combined(with: .opacity))
+                .transition(.move(edge: wide ? .bottom : .top).combined(with: .opacity))
             }
 
             if model.celebrate {
@@ -99,32 +102,36 @@ struct ContentView: View {
                 VStack(spacing: 16) {
                     quipBubble
                     GeometryReader { g in
-                        let side = min(g.size.width * 0.8, g.size.height / 1.4, 480)
+                        let side = min(g.size.width * 0.9, g.size.height / 1.38, 560)
                         RaynaView(progress: model.progress, wiggleAt: model.wiggleAt, flipAt: model.flipAt, size: side, fullTail: true,
                                   accessories: model.accessories)
                             .frame(width: side, height: side * 1.32)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                            .padding(.top, 24)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                     }
                 }
                 .frame(maxWidth: .infinity)
-                ScrollView {
-                    VStack(spacing: 16) {
-                        amount.padding(.top, 8)
-                        buttons
-                        runDayToggle
-                        if pod.status == .inPod && !pod.members.isEmpty { podCard }
-                        if model.showSwap { swapCard }
-                        journeyCard
-                    }
-                    .padding(.bottom, 12)
+                // Controls sit vertically centred beside Rayna; scroll only if they don't fit.
+                ViewThatFits(in: .vertical) {
+                    rightColumn.frame(maxHeight: .infinity, alignment: .center)
+                    ScrollView { rightColumn }.scrollBounceBehavior(.basedOnSize)
                 }
-                .scrollBounceBehavior(.basedOnSize)
                 .frame(width: min(440, width * 0.42))
             }
         }
         .padding(.horizontal, 28)
         .padding(.bottom, 8)
+    }
+
+    private var rightColumn: some View {
+        VStack(spacing: 16) {
+            amount.padding(.top, 8)
+            buttons
+            runDayToggle
+            if pod.status == .inPod && !pod.members.isEmpty { podCard }
+            if model.showSwap { swapCard }
+            journeyCard
+        }
+        .padding(.bottom, 12)
     }
 
     /// Compact weekly / facts summary for the right column.
@@ -136,7 +143,7 @@ struct ContentView: View {
                     Text("Rayna's journey").font(.system(.subheadline, design: .rounded, weight: .bold))
                     Text(String(format: "%.1f L this week", model.store.recap.litres)
                          + (model.extras.rayFactsOn ? " · \(model.extras.factsUnlocked) ray facts" : ""))
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
