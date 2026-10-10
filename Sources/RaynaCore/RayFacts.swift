@@ -209,6 +209,15 @@ public struct RayFactsCollection: View {
                 .padding(10).frame(maxWidth: .infinity, alignment: .leading)
                 .background(RoundedRectangle(cornerRadius: 14).fill(Color.primary.opacity(0.05)))
             }
+            // Locked facts are mystery tiles only: no name, text or source until unlocked.
+            let locked = max(0, RayFacts.all.count - unlocked)
+            if locked > 0 {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 64), spacing: 8)], spacing: 8) {
+                    ForEach(0..<locked, id: \.self) { _ in RayMysteryTile() }
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(locked) locked ray facts. Keep drinking to unlock.")
+            }
             if unlocked < RayFacts.all.count {
                 Label("\(RayFacts.all.count - unlocked) more to discover: Rayna shares one at 25, 50, 75 and 100% of your goal", systemImage: "lock.fill")
                     .font(.footnote).foregroundStyle(.secondary)
@@ -289,6 +298,30 @@ public struct RayFactPage: View {
                 .font(.body.weight(.semibold))
                 .frame(minWidth: 44, minHeight: 44)
                 .padding(.horizontal, 12).padding(.top, 8)
+        }
+    }
+}
+
+/// A locked fact: silhouette + "?". Tapping just says how to unlock it.
+struct RayMysteryTile: View {
+    @State private var hint = false
+    var body: some View {
+        Button { hint = true } label: {
+            ZStack {
+                RayGlyph(kind: .general).foregroundStyle(.secondary).opacity(0.18).saturation(0).padding(8)
+                Text("?").font(.system(.title2, design: .rounded, weight: .heavy)).foregroundStyle(.secondary)
+            }
+            .frame(minWidth: 44, minHeight: 64)
+            .frame(maxWidth: .infinity)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Color.primary.opacity(0.05)))
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $hint) {
+            #if os(iOS)
+            Text("Keep drinking to unlock").font(.callout).padding().presentationCompactAdaptation(.popover)
+            #else
+            Text("Keep drinking to unlock").font(.callout).padding()
+            #endif
         }
     }
 }

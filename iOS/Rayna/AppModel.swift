@@ -49,9 +49,12 @@ final class AppModel: ObservableObject {
         if env["RAYNA_POD"] == "1" { DispatchQueue.main.async { PodService.shared.loadDemo(); self.showPod = true } }
         if env["RAYNA_KID"] == "1" { setKidMode(true); store.seedDemo(glasses: Int(env["RAYNA_DEMO"] ?? "4") ?? 4, streak: Int(env["RAYNA_STREAK"] ?? "8") ?? 8) }
         if env["RAYNA_KID"] == "0" { setKidMode(false); if let g = demo { store.seedDemo(glasses: g, streak: Int(env["RAYNA_STREAK"] ?? "5") ?? 5) } }
+        #if DEBUG   // screenshot hooks; never in release builds
         if let n = env["RAYNA_FACTS"].flatMap(Int.init) { store.extras.factsUnlocked = n }
-        if let n = env["RAYNA_FACT"].flatMap(Int.init), n < RayFacts.all.count { bubbleFact = RayFacts.all[n] }
-        if let n = env["RAYNA_FACTPAGE"].flatMap(Int.init), n < RayFacts.all.count { factPage = RayFacts.all[n] }
+        if let n = env["RAYNA_FACT"].flatMap(Int.init), n < store.extras.factsUnlocked {   // demo only, never locked facts
+            bubbleFact = RayFacts.all[n] }
+        if let n = env["RAYNA_FACTPAGE"].flatMap(Int.init), n < store.extras.factsUnlocked { factPage = RayFacts.all[n] }
+        #endif
         if env["RAYNA_POD"] == "card" { DispatchQueue.main.async { PodService.shared.loadDemo() } }
         if env["RAYNA_SHARE"] == "goal" { DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.offerShare(.goal) } }
         store.rolloverIfNeeded()
