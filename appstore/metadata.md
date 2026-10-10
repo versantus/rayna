@@ -16,7 +16,7 @@
 | Copyright | © 2026 Versantus |
 
 ## Promotional text (≤170)
-Meet Rayna, the stingray who gets happier with every glass you drink. One tap to log, gentle nudges, a Home Screen widget, and a backflip when you hit your goal. 🌊
+Meet Rayna, the stingray who gets happier with every glass you drink. One tap to log, gentle nudges, a Home Screen widget, and a happy spin when you hit your goal. 🌊
 
 ## Description
 Rayna is a cheerful little stingray who lives in your water glass. The more you drink, the higher the water rises and the happier she gets. She starts the day a bit flat and droopy, and by the time you hit your goal she's flapping, smiling and spinning for joy in a burst of confetti.
@@ -31,12 +31,12 @@ FRIENDLY REMINDERS THAT KNOW WHEN TO STOP
 • Quiet hours, so nothing pings you at night
 • Tap “Drank one 💧” right on the notification to log a glass without opening the app, or “Later” to snooze for 15 minutes
 • Reminders stop once you've hit today's goal
-• Optional evening nudge: “Fancy swapping the next pint for a pint of water?” 🍺➡️💧
+• Optional evening nudge: “Fancy swapping your next fizzy drink for a glass of water?” 🥤➡️💧
 
 RAYNA GROWS WITH YOUR STREAK
 • Unlock a bubble trail (3 days), a run-day headband (7), a race medal (14) and a baby ray buddy (30)
 • A weekly recap with fun stats (“That's 22% of a bathtub”)
-• Optional evening swap-a-pint challenge with its own streak
+• Optional evening swap-a-fizzy-drink challenge with its own streak
 
 HYDRATE WITH FRIENDS
 • Start a pod over iCloud and invite friends with a link: no accounts
@@ -67,7 +67,7 @@ water,drink,hydration,reminder,tracker,habit,health,widget,stingray,running,watc
 Rayna's first splash on iPhone! 🌊
 
 ## App Review notes
-No login is needed. Tap “+1 glass” to log water; the gear icon opens Settings. Reminders are local notifications (no server). The Home Screen widget's “+1 glass” button uses an App Intent. All data is stored on the device in an App Group shared with the widget. Optional features: Apple Health (Settings → Apple Health; reads running workouts, writes Dietary Water), Pods (people icon; CloudKit sharing, needs iCloud sign-in, no developer server), Apple Watch app (WatchConnectivity), run-day Live Activity (Settings). Demo data for review isn't needed: one device can start a pod and see itself in the tank.
+No login is needed. Tap “+1 glass” to log water; the gear icon opens Settings. Reminders are local notifications (no server). The Home Screen widget's “+1 glass” button uses an App Intent. All data is stored on the device in an App Group shared with the widget. Optional features: Apple Health (Settings → Apple Health; reads running workouts, writes Dietary Water), Pods (Settings → Friends → Pods; CloudKit sharing, needs iCloud sign-in, no developer server), Apple Watch app (WatchConnectivity), run-day Live Activity (Settings). Demo data for review isn't needed: one device can start a pod and see itself in the tank.
 
 ## Age rating
 Answer **None** to every content question (no violence, no mature themes, no gambling, no unrestricted web access, no user-generated content, no medical/treatment information). Result: **4+**. Rayna is general hydration encouragement, not medical advice.
@@ -83,8 +83,8 @@ Answer **None** to every content question (no violence, no mature themes, no gam
 1. Over halfway, happy Rayna (60 %)
 2. Early in the day, droopy Rayna (20 %)
 3. Goal reached, 100 %
-4. Settings (goal, glass size, run-day Live Activity, reminders, swap-a-pint, Apple Health)
-5. Rayna with unlocks (headband, medal, bubbles, baby ray) and the swap-a-pint card
+4. Settings (goal, glass size, run-day Live Activity, reminders, swap-a-fizzy-drink, Apple Health)
+5. Rayna with unlocks (headband, medal, bubbles, baby ray) and the swap-a-fizzy-drink card
 6. Rayna's journey: weekly recap and the unlock collection
 7. Pod: shared tank with friends, nudges and pod streak
 

@@ -50,7 +50,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         let today = AppState.key(for: now)
         if s.eveningSwap, hour >= 18, !s.isQuiet(at: now), s.lastSwapDay != today {
             s.lastSwapDay = today
-            post(title: "Rayna 🍺➡️💧", body: AppState.swapText, actions: false)
+            post(title: "Rayna 🥤➡️💧", body: AppState.swapText, actions: false)
         }
 
         guard now >= nextReminder else { return }

@@ -2,6 +2,10 @@
 
 All notable changes to Rayna (macOS menu-bar app + iOS app). macOS versions are listed; the iOS app ships as 1.0 (unreleased).
 
+## Unreleased (iOS 1.0 build 2)
+- Pods moved off the main screen into Settings → Friends → Pods. The main screen shows a compact "Your pod" card only when you're in a pod.
+- No alcohol references: the swap-a-pint challenge is now the **swap-a-fizzy-drink** challenge (copy, notification, settings, metadata).
+
 ## 2.2.0: 2026-10-10
 
 ### Phase D

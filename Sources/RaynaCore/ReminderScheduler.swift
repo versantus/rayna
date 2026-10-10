@@ -57,14 +57,14 @@ public enum ReminderScheduler {
             n += 1
             t = t.addingTimeInterval(interval)
         }
-        // Evening pint-swap nudge at 19:00 (today if still ahead, and tomorrow).
+        // Fizzy-drink swap nudge at 19:00 (today if still ahead, and tomorrow).
         if store.eveningSwap {
             for d in 0...1 {
                 guard let day = cal.date(byAdding: .day, value: d, to: now),
                       let at = cal.date(bySettingHour: 19, minute: 0, second: 0, of: day),
                       at > now, !store.isQuiet(at: at) else { continue }
                 let c = UNMutableNotificationContent()
-                c.title = "Rayna 🍺➡️💧"
+                c.title = "Rayna 🥤➡️💧"
                 c.body = RaynaCopy.swapText
                 c.sound = .default
                 c.threadIdentifier = "rayna"

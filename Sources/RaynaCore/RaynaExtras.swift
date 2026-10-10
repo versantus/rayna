@@ -82,7 +82,7 @@ public struct RaynaExtras {
         get { (d.stringArray(forKey: "pendingUnlocks") ?? []).compactMap(RaynaUnlock.init(rawValue:)) }
         nonmutating set { d.set(newValue.map(\.rawValue), forKey: "pendingUnlocks") }
     }
-    /// Evening swap-a-pint challenge on/off.
+    /// Evening swap-a-fizzy-drink challenge on/off.
     public var swapChallenge: Bool { get { d.bool(forKey: "swapChallenge") } nonmutating set { d.set(newValue, forKey: "swapChallenge") } }
     /// Day key -> number of drinks swapped for water.
     public var swaps: [String: Int] {
@@ -156,10 +156,10 @@ public struct RaynaExtras {
 }
 
 public extension RaynaCopy {
-    static let swapPrompt = "Evening swap? Trade one drink for a glass of water. No pressure, Rayna's just cheering. 🍺➡️💧"
+    static let swapPrompt = "Fizzy-drink swap? Trade one fizzy drink for a glass of water. No pressure, Rayna is just cheering. 🥤➡️💧"
     static let swapThanks = [
         "Swap logged! Rayna's doing a happy spin. 💧",
-        "Cheers to that! Tomorrow-you says thanks. 🌊",
+        "Fizz-free and fabulous! Rayna approves. 🌊",
         "Nice one. Every swap counts, and so do you. 😊"
     ]
 }

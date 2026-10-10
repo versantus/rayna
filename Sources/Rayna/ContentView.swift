@@ -53,11 +53,11 @@ struct ContentView: View {
                 if state.showSwap {
                     Button { state.logSwap() } label: {
                         HStack(spacing: 6) {
-                            Text("🍺➡️💧")
+                            Text("🥤➡️💧")
                             VStack(alignment: .leading, spacing: 0) {
-                                Text(state.swapThanks ?? "I swapped a drink for water").font(.system(size: 12, weight: .semibold))
+                                Text(state.swapThanks ?? "I swapped a fizzy drink for water").font(.system(size: 12, weight: .semibold))
                                 let st = state.extras.swapStreak()
-                                Text(st > 0 ? "Swap streak \(st) · \(state.extras.swapsTotal) total" : "Optional evening challenge · logs a glass")
+                                Text(st > 0 ? "Swap streak \(st) · \(state.extras.swapsTotal) total" : "Optional fizzy-drink challenge · logs a glass")
                                     .font(.system(size: 10)).foregroundColor(.secondary)
                             }
                             Spacer(minLength: 0)
@@ -154,8 +154,8 @@ struct SettingsView: View {
             Stepper("Remind every \(state.intervalMin) min", value: $state.intervalMin, in: 45...60, step: 5)
             DatePicker("Quiet from", selection: timeBinding(\.quietStartMin), displayedComponents: .hourAndMinute)
             DatePicker("Quiet until", selection: timeBinding(\.quietEndMin), displayedComponents: .hourAndMinute)
-            Toggle("Evening swap nudge (after 18:00)", isOn: $state.eveningSwap)
-            Toggle("Swap-a-pint challenge button (after 18:00)", isOn: Binding(
+            Toggle("Fizzy-drink swap nudge (after 18:00)", isOn: $state.eveningSwap)
+            Toggle("Swap-a-fizzy-drink challenge button (after 18:00)", isOn: Binding(
                 get: { state.extras.swapChallenge },
                 set: { state.objectWillChange.send(); state.extras.swapChallenge = $0 }))
             Toggle("System notifications too", isOn: $state.systemNotifications)

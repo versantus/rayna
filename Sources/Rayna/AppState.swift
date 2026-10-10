@@ -24,7 +24,7 @@ final class AppState: ObservableObject {
     /// Unlock currently being celebrated in the dropdown.
     @Published var unlockBanner: RaynaUnlock?
     @Published var swapThanks: String?
-    /// History, unlocks and swap-a-pint stats (shared logic with iOS).
+    /// History, unlocks and swap-a-fizzy-drink stats (shared logic with iOS).
     let extras = RaynaExtras(defaults: .standard)
     var goalDays: [String] { get { d.stringArray(forKey: "goalDays") ?? [] } set { d.set(Array(newValue.suffix(30)), forKey: "goalDays") } }
     var accessories: Set<RaynaUnlock> { Set(extras.unlocked) }
@@ -108,7 +108,7 @@ final class AppState: ObservableObject {
         if progress < 1 { celebrate = false }
     }
 
-    /// "I swapped a drink for water": a swap + a glass.
+    /// "I swapped a fizzy drink for water": a swap + a glass.
     func logSwap() {
         extras.logSwap()
         objectWillChange.send()

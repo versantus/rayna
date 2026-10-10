@@ -4,6 +4,7 @@ import RaynaCore
 struct ContentView: View {
     @EnvironmentObject var model: AppModel
     @State private var confettiID = UUID()
+    @ObservedObject private var pod = PodService.shared
     @Environment(\.colorScheme) private var scheme
     @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .largeTitle) private var amountSize: CGFloat = 46
@@ -26,7 +27,7 @@ struct ContentView: View {
 
             // Fits on one screen when it can (SE → Pro Max); scrolls at large accessibility text sizes.
             ViewThatFits(in: .vertical) {
-                mainColumn(raynaMin: 110, scrolling: false)
+                mainColumn(raynaMin: compact ? 70 : 110, scrolling: false)
                 ScrollView { mainColumn(raynaMin: 180, scrolling: true) }
                     .scrollBounceBehavior(.basedOnSize)
             }
@@ -55,10 +56,8 @@ struct ContentView: View {
         }
         .sheet(isPresented: $model.showPod) {
             NavigationStack {
-                ScrollView { PodView().padding() }
-                    .navigationTitle("Pod")
+                PodScreen().environmentObject(model)
                     .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { model.showPod = false } } }
-                    .task { if !model.demoMode { await PodService.shared.refreshStatus() } }
             }
         }
         .sheet(isPresented: $model.showJourney) {
@@ -84,6 +83,7 @@ struct ContentView: View {
             .layoutPriority(-1)   // Rayna gives way so the controls always fit (iPhone SE)
             if !scrolling { Spacer(minLength: 0) }
             amount
+            if pod.status == .inPod && !pod.members.isEmpty { podCard }
             if model.showSwap { swapCard }
             buttons
             runDayToggle
@@ -126,11 +126,6 @@ struct ContentView: View {
 
     @ViewBuilder
     private var headerButtonRow: some View {
-            Button { model.showPod = true } label: {
-                Image(systemName: "person.3.fill").font(.title3)
-                    .frame(minWidth: 44, minHeight: 44).background(.ultraThinMaterial, in: Circle())
-            }
-            .accessibilityLabel("Pod")
             Button { model.showJourney = true } label: {
                 Image(systemName: "trophy.fill").font(.title2)
                     .frame(minWidth: 44, minHeight: 44).background(.ultraThinMaterial, in: Circle())
@@ -196,16 +191,48 @@ struct ContentView: View {
         }
     }
 
+    /// Compact "Your pod" summary (only when in a pod). Tap opens the full pod screen.
+    private var podCard: some View {
+        Button { model.showPod = true } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "person.3.fill").font(.title3).foregroundStyle(Color("AccentColor"))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Your pod · \(pod.podName)")
+                        .font(.system(.subheadline, design: .rounded, weight: .bold)).lineLimit(2)
+                    HStack(spacing: 6) {
+                        ForEach(pod.members.prefix(6)) { m in
+                            ProgressView(value: m.todayProgress)
+                                .tint(m.todayProgress >= 1 ? .green : Color("AccentColor"))
+                                .frame(maxWidth: 44)
+                                .accessibilityHidden(true)
+                        }
+                    }
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .frame(minHeight: 44)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(ink)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Your pod, \(pod.podName). " + pod.members.map { "\($0.name) \(Int($0.todayProgress * 100)) percent" }.joined(separator: ", "))
+        .accessibilityHint("Opens the pod screen")
+    }
+
     private var swapCard: some View {
         Button { model.logSwap() } label: {
             HStack(spacing: 10) {
-                Text("🍺➡️💧").font(.title3)
+                Text("🥤➡️💧").font(.title3)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(model.swapThanks ?? "I swapped a drink for water")
+                    Text(model.swapThanks ?? "I swapped a fizzy drink for water")
                         .font(.system(.subheadline, design: .rounded, weight: .bold))
                     let st = model.extras.swapStreak()
                     Text(st > 0 ? "Swap streak: \(st) evening\(st == 1 ? "" : "s") · \(model.extras.swapsTotal) total"
-                                : "Optional evening challenge. Logs a glass too.")
+                                : "Optional fizzy-drink challenge. Logs a glass too.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
@@ -215,7 +242,7 @@ struct ContentView: View {
         }
         .buttonStyle(.plain)
         .foregroundStyle(ink)
-        .accessibilityHint("Logs a swapped drink and a glass of water")
+        .accessibilityHint("Logs a swapped fizzy drink and a glass of water")
     }
 
     private var runDayToggle: some View {

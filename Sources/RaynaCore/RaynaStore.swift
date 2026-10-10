@@ -34,7 +34,7 @@ public final class RaynaStore {
     private var dayKey: String { get { defaults.string(forKey: "dayKey") ?? "" } set { defaults.set(newValue, forKey: "dayKey") } }
     private var lastGoalDay: String { get { defaults.string(forKey: "lastGoalDay") ?? "" } set { defaults.set(newValue, forKey: "lastGoalDay") } }
 
-    /// History, unlocks and swap-a-pint stats (same App Group defaults).
+    /// History, unlocks and swap-a-fizzy-drink stats (same App Group defaults).
     public var extras: RaynaExtras { RaynaExtras(defaults: defaults) }
 
     // MARK: Derived
@@ -71,7 +71,7 @@ public final class RaynaStore {
         extras.recordDay(totalML, now: now)
     }
 
-    /// "I swapped a drink for water": logs a swap and a glass. Returns true if that glass hit the goal.
+    /// "I swapped a fizzy drink for water": logs a swap and a glass. Returns true if that glass hit the goal.
     @discardableResult
     public func logSwap(now: Date = Date()) -> Bool {
         extras.logSwap(now: now)

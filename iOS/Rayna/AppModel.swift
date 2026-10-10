@@ -41,6 +41,7 @@ final class AppModel: ObservableObject {
         showJourney = env["RAYNA_JOURNEY"] == "1"
         if let u = env["RAYNA_UNLOCK"].flatMap(RaynaUnlock.init(rawValue:)) { unlockBanner = u }
         if env["RAYNA_POD"] == "1" { DispatchQueue.main.async { PodService.shared.loadDemo(); self.showPod = true } }
+        if env["RAYNA_POD"] == "card" { DispatchQueue.main.async { PodService.shared.loadDemo() } }
         if env["RAYNA_SHARE"] == "goal" { DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.offerShare(.goal) } }
         store.rolloverIfNeeded()
     }
@@ -77,7 +78,7 @@ final class AppModel: ObservableObject {
         }
     }
 
-    /// Evening challenge: "I swapped a drink for water" = a swap + a glass.
+    /// Evening challenge: "I swapped a fizzy drink for water" = a swap + a glass.
     func logSwap() {
         objectWillChange.send()
         let hit = store.logSwap()

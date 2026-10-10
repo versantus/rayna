@@ -8,6 +8,22 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    NavigationLink {
+                        PodScreen()
+                    } label: {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Pods")
+                                Text(PodService.shared.status == .inPod ? PodService.shared.podName : "Hydrate with friends over iCloud")
+                                    .font(.footnote).foregroundStyle(.secondary)
+                            }
+                        } icon: { Image(systemName: "person.3.fill") }
+                    }
+                    .frame(minHeight: 44)
+                } header: { Text("Friends") } footer: {
+                    Text("Start or join a pod, invite friends, nudge each other and build a pod streak.")
+                }
                 Section("Daily goal") {
                     Stepper(value: model.binding(\.goalML), in: 1000...5000, step: 250) {
                         Text("Goal: \(String(format: "%.2f L", Double(model.store.goalML) / 1000))")
@@ -28,8 +44,8 @@ struct SettingsView: View {
                     .disabled(!model.store.remindersOn)
                     DatePicker("Quiet from", selection: timeBinding(\.quietStartMin), displayedComponents: .hourAndMinute)
                     DatePicker("Quiet until", selection: timeBinding(\.quietEndMin), displayedComponents: .hourAndMinute)
-                    Toggle("Evening pint-swap nudge 🍺➡️💧", isOn: model.binding(\.eveningSwap))
-                    Toggle("Swap-a-pint challenge (after 18:00)", isOn: Binding(
+                    Toggle("Fizzy-drink swap nudge 🥤➡️💧", isOn: model.binding(\.eveningSwap))
+                    Toggle("Swap-a-fizzy-drink challenge (after 18:00)", isOn: Binding(
                         get: { model.extras.swapChallenge },
                         set: { model.objectWillChange.send(); model.extras.swapChallenge = $0 }))
                 } header: { Text("Reminders") } footer: {
@@ -76,5 +92,15 @@ struct SettingsView: View {
             let c = Calendar.current.dateComponents([.hour, .minute], from: $0)
             b.wrappedValue = (c.hour ?? 0) * 60 + (c.minute ?? 0)
         })
+    }
+}
+
+/// Full pod screen: create / join / invite / nudge. Pushed from Settings, or shown from the main-screen card.
+struct PodScreen: View {
+    @EnvironmentObject var model: AppModel
+    var body: some View {
+        ScrollView { PodView().padding() }
+            .navigationTitle("Pod")
+            .task { if !model.demoMode { await PodService.shared.refreshStatus() } }
     }
 }

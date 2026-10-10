@@ -29,7 +29,7 @@ public enum RaynaCopy {
         "Fun fact: I'm 100% happier when you're hydrated. 😄"
     ]
     public static var allReminders: [String] { reminders + moreReminders }
-    public static let swapText = "Evening swap? Trade your next drink for a glass of water. Tomorrow-you says cheers. 🍺➡️💧"
+    public static let swapText = "Fizzy-drink swap? Trade your next can of pop for a glass of water. Rayna says thanks! 🥤➡️💧"
 
     public static func dayKey(for date: Date) -> String {
         let c = Calendar.current.dateComponents([.year, .month, .day], from: date)
