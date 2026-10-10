@@ -2,7 +2,7 @@
 
 All notable changes to Rayna (macOS menu-bar app + iOS app). macOS versions are listed; the iOS app ships as 1.0 (unreleased).
 
-## Unreleased: 2.2.0
+## 2.2.0: 2026-10-10
 
 ### Phase D
 - **Apple Watch app (watchOS 10+):** big "+1 glass", progress ring, Rayna still by band, synced with the iPhone via WatchConnectivity (application context + messages/queued userInfo). Watch complication (circular/rectangular/corner/inline).
