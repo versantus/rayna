@@ -407,13 +407,13 @@ public struct PodView: View {
                 Button { Task { await pod.startPod(name: newName) } } label: {
                     Label("Start a pod", systemImage: "person.3.fill").frame(maxWidth: .infinity)
                 }.buttonStyle(.borderedProminent)
-                Text("To join a friend's pod, just open their invite link.").font(.caption).foregroundStyle(.secondary)
+                Text("To join a friend's pod, just open their invite link.").font(.footnote).foregroundStyle(.secondary)
             case .inPod:
                 HStack {
                     VStack(alignment: .leading) {
                         Text(pod.podName).font(.system(.title3, design: .rounded, weight: .bold))
                         Text(pod.podStreak > 0 ? "Pod streak: \(pod.podStreak) day\(pod.podStreak == 1 ? "" : "s") 🔥" : "Pod streak starts when everyone hits their goal")
-                            .font(.caption).foregroundStyle(.secondary)
+                            .font(.subheadline).foregroundStyle(.secondary)
                     }
                     Spacer()
                     if let url = pod.shareURL {
@@ -422,48 +422,55 @@ public struct PodView: View {
                     }
                 }
                 tank
-                Button(role: .destructive) { Task { await pod.leavePod() } } label: { Text(pod.isOwner ? "End pod" : "Leave pod") }
-                    .font(.caption)
+                Button(role: .destructive) { Task { await pod.leavePod() } } label: {
+                    Label(pod.isOwner ? "End pod" : "Leave pod", systemImage: "xmark.circle")
+                        .font(.body.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .buttonStyle(.bordered)
+                .tint(.red)
+                .padding(.top, 8)
             }
-            if let e = pod.lastError { Text(e).font(.caption2).foregroundStyle(.red) }
+            if let e = pod.lastError { Text(e).font(.footnote).foregroundStyle(.red) }
         }
     }
 
     private var tank: some View {
-        HStack(alignment: .bottom, spacing: 8) {
+        // Adaptive grid: 2 big tanks per row on iPhone, more on iPad.
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12, alignment: .top)], alignment: .center, spacing: 16) {
             ForEach(pod.members) { m in
                 VStack(spacing: 6) {
                     GeometryReader { g in
                         let p = m.todayProgress
                         ZStack(alignment: .bottom) {
-                            RoundedRectangle(cornerRadius: 14).fill(Color(red: 0.85, green: 0.94, blue: 1))
+                            RoundedRectangle(cornerRadius: 18).fill(Color(red: 0.85, green: 0.94, blue: 1))
                             LinearGradient(colors: [Color(red: 0.4, green: 0.8, blue: 0.95), Color(red: 0.1, green: 0.45, blue: 0.8)],
                                            startPoint: .top, endPoint: .bottom)
                                 .frame(height: g.size.height * (0.08 + 0.84 * p))
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
-                            let side = min(g.size.width * 0.95, g.size.height * 0.6)
+                            let side = min(g.size.width * 1.0, g.size.height * 0.85)
                             let waterTop = g.size.height * (1 - (0.08 + 0.84 * p))
-                            let y = min(max(waterTop - side * 0.35, 0), g.size.height - side)
+                            let y = min(max(waterTop - side * 0.3, -side * 0.08), g.size.height - side * 0.92)
                             RaynaStill(progress: p)
                                 .frame(width: side, height: side)
-                                .frame(maxHeight: .infinity, alignment: .top)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                                 .offset(y: y)
                                 .animation(.spring, value: p)
                         }
                     }
-                    .frame(height: 170)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                    Text(m.id == pod.myID ? "\(m.name) (you)" : m.name).font(.system(.caption, design: .rounded, weight: .bold)).lineLimit(1)
-                    Text("\(m.glasses) 🥛 · \(Int(m.todayProgress * 100))%").font(.caption2).foregroundStyle(.secondary)
+                    .frame(height: 190)
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                    Text((m.id == pod.myID ? "\(m.name) (you)" : m.name))
+                        .font(.system(.body, design: .rounded, weight: .bold)).lineLimit(2).multilineTextAlignment(.center)
+                    Text("\(m.glasses) 🥛 · \(Int(m.todayProgress * 100))%").font(.subheadline).foregroundStyle(.secondary)
                     if m.id != pod.myID {
                         let left = pod.nudgesLeft(for: m.id)
-                        Button { Task { await pod.nudge(m) } } label: { Text(left > 0 ? "Nudge 👋" : "Nudged") .font(.caption2) }
-                            .buttonStyle(.bordered).frame(minHeight: 44).disabled(left == 0 || m.todayProgress >= 1)
-                    } else {
-                        Text(" ").font(.caption2).padding(.vertical, 4)
+                        Button { Task { await pod.nudge(m) } } label: {
+                            Text(left > 0 ? "Nudge 👋" : "Nudged").font(.subheadline.weight(.semibold)).frame(maxWidth: .infinity, minHeight: 36)
+                        }
+                        .buttonStyle(.bordered).frame(minHeight: 44).disabled(left == 0 || m.todayProgress >= 1)
                     }
                 }
-                .frame(maxWidth: .infinity)
+                .accessibilityElement(children: .contain)
             }
         }
     }

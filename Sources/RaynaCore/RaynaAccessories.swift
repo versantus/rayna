@@ -117,7 +117,7 @@ public struct RaynaJourneyView: View {
                         .frame(height: 96)
                         Text("\(u.emoji) \(u.title)").font(.system(.subheadline, design: .rounded, weight: .semibold))
                         Text(got ? u.blurb : "\(u.days)-day streak to unlock · \(max(0, u.days - max(streak, extras.bestStreak))) to go")
-                            .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                            .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
                     }
                     .padding(10).frame(maxWidth: .infinity)
                     .background(RoundedRectangle(cornerRadius: 16).fill(Color.primary.opacity(got ? 0.06 : 0.03)))
@@ -140,7 +140,7 @@ public struct RaynaJourneyView: View {
                         RoundedRectangle(cornerRadius: 5)
                             .fill(d.goalMet ? Color(red: 0.18, green: 0.67, blue: 0.7) : Color(red: 0.35, green: 0.6, blue: 0.75).opacity(0.5))
                             .frame(height: max(4, 70 * CGFloat(d.ml) / CGFloat(maxML)))
-                        Text(d.label).font(.system(.caption2, design: .rounded, weight: .semibold)).foregroundStyle(.secondary)
+                        Text(d.label).font(.system(.footnote, design: .rounded, weight: .semibold)).foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -160,7 +160,7 @@ public struct RaynaJourneyView: View {
 
     private func stat(_ k: String, _ v: String) -> some View {
         VStack(alignment: .leading, spacing: 1) {
-            Text(k).font(.caption).foregroundStyle(.secondary)
+            Text(k).font(.footnote).foregroundStyle(.secondary)
             Text(v).font(.system(.subheadline, design: .rounded, weight: .bold))
         }
     }
@@ -176,7 +176,7 @@ public struct RaynaUnlockBanner: View {
     }
     public var body: some View {
         VStack(spacing: 10) {
-            Text("New for Rayna!").font(.system(.caption, design: .rounded, weight: .heavy)).foregroundStyle(.secondary)
+            Text("New for Rayna!").font(.system(.footnote, design: .rounded, weight: .heavy)).foregroundStyle(.secondary)
             TimelineView(.animation) { tl in
                 ZStack {
                     RaynaStill(progress: 1)

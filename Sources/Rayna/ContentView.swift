@@ -58,7 +58,7 @@ struct ContentView: View {
                                 Text(state.swapThanks ?? "I swapped a fizzy drink for water").font(.system(size: 12, weight: .semibold))
                                 let st = state.extras.swapStreak()
                                 Text(st > 0 ? "Swap streak \(st) · \(state.extras.swapsTotal) total" : "Optional fizzy-drink challenge · logs a glass")
-                                    .font(.system(size: 10)).foregroundColor(.secondary)
+                                    .font(.system(size: 11)).foregroundColor(.secondary)
                             }
                             Spacer(minLength: 0)
                         }
