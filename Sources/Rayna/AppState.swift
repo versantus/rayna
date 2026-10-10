@@ -24,6 +24,7 @@ final class AppState: ObservableObject {
     /// Unlock currently being celebrated in the dropdown.
     @Published var unlockBanner: RaynaUnlock?
     @Published var swapThanks: String?
+    @Published var newFact: RayFact?
     /// History, unlocks and swap-a-fizzy-drink stats (shared logic with iOS).
     let extras = RaynaExtras(defaults: .standard)
     var goalDays: [String] { get { d.stringArray(forKey: "goalDays") ?? [] } set { d.set(Array(newValue.suffix(30)), forKey: "goalDays") } }
@@ -101,6 +102,10 @@ final class AppState: ObservableObject {
         RaynaSounds.shared.play(hitNow ? .chime : .bubbles, after: hitNow ? 0.3 : 0.25)
         publishToPod()
         NotificationManager.shared.resetSchedule()
+        if let f = extras.unlockNextFact() {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { self.newFact = f }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10) { if self.newFact == f { self.newFact = nil } }
+        }
     }
 
     func undo() {

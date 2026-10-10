@@ -107,12 +107,17 @@ struct ContentView: View {
             if showConfetti {
                 ConfettiView().id(confettiID)
             }
+            if let f = state.newFact, state.unlockBanner == nil {
+                VStack { Spacer(); RayFactCard(fact: f) { state.newFact = nil }.padding(10) }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
             if let u = state.unlockBanner {
                 RaynaUnlockBanner(unlock: u, onShare: { state.unlockBanner = nil; MacShare.share(state.shareInfo(.unlock(u))) }) { state.unlockBanner = nil }
                     .scaleEffect(0.9)
             }
         }
         .frame(width: 340)
+        .animation(.spring(response: 0.45, dampingFraction: 0.8), value: state.newFact)
         .onChange(of: state.celebrate) { newValue in
             if newValue { party() }
         }
@@ -160,6 +165,8 @@ struct SettingsView: View {
                 set: { state.objectWillChange.send(); state.extras.swapChallenge = $0 }))
             Toggle("System notifications too", isOn: $state.systemNotifications)
             Button("Preview nudge") { NudgeController.shared.show(text: AppState.reminders.randomElement() ?? "Sip o'clock!", isSwap: false) }
+            Toggle("Ray Facts (a nerdy ray fact per glass)", isOn: Binding(
+                get: { state.extras.rayFactsOn }, set: { state.objectWillChange.send(); state.extras.rayFactsOn = $0 }))
             Toggle("Sounds (splash, bubbles, goal chime)", isOn: Binding(
                 get: { RaynaSounds.shared.enabled },
                 set: { state.objectWillChange.send(); RaynaSounds.shared.enabled = $0; if $0 { RaynaSounds.shared.play(.splash) } }))

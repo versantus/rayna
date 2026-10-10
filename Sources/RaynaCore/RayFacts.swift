@@ -170,7 +170,7 @@ public struct RayFactCard: View {
             RayGlyph(kind: fact.kind).frame(width: glyph, height: glyph)
                 .padding(6).background(Circle().fill(Color.primary.opacity(0.06)))
             VStack(alignment: .leading, spacing: 4) {
-                Text("Ray fact #\(fact.id + 1) · \(fact.kind.name)").font(.system(.caption, design: .rounded, weight: .bold)).foregroundStyle(.secondary)
+                Text("Ray fact #\(fact.id + 1) · \(fact.kind.name)").font(.system(.footnote, design: .rounded, weight: .bold)).foregroundStyle(.secondary)
                 Text(fact.text).font(.system(.subheadline, design: .rounded)).fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
@@ -193,7 +193,7 @@ public struct RayFactsCollection: View {
             HStack {
                 Text("Ray Facts").font(.system(.title3, design: .rounded, weight: .bold))
                 Spacer()
-                Text("\(min(unlocked, RayFacts.all.count)) of \(RayFacts.all.count)").font(.caption).foregroundStyle(.secondary)
+                Text("\(min(unlocked, RayFacts.all.count)) of \(RayFacts.all.count)").font(.footnote).foregroundStyle(.secondary)
             }
             if unlocked == 0 {
                 Text("Log a glass to unlock your first ray fact.").font(.callout).foregroundStyle(.secondary)
@@ -202,7 +202,7 @@ public struct RayFactsCollection: View {
                 HStack(alignment: .top, spacing: 10) {
                     RayGlyph(kind: f.kind).frame(width: 36, height: 36)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(f.kind.name).font(.caption.weight(.bold)).foregroundStyle(.secondary)
+                        Text(f.kind.name).font(.footnote.weight(.bold)).foregroundStyle(.secondary)
                         Text(f.text).font(.callout).fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -211,7 +211,7 @@ public struct RayFactsCollection: View {
             }
             if unlocked < RayFacts.all.count {
                 Label("\(RayFacts.all.count - unlocked) more to discover, one per glass", systemImage: "lock.fill")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(.secondary)
             }
         }
     }
