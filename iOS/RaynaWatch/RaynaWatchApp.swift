@@ -18,6 +18,8 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
     override init() {
         super.init()
         load()
+        // Screenshots: SIMCTL_CHILD_RAYNA_DEMO_ML=1500 xcrun simctl launch …
+        if let v = ProcessInfo.processInfo.environment["RAYNA_DEMO_ML"].flatMap(Int.init) { ml = v; goal = 2500; streak = 14; save() }
         if WCSession.isSupported() { WCSession.default.delegate = self; WCSession.default.activate() }
     }
 
