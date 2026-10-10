@@ -36,6 +36,7 @@ final class NudgeController {
         let host = NSHostingView(rootView: view)
         host.frame = NSRect(origin: .zero, size: size)
         p.contentView = host
+        host.layoutSubtreeIfNeeded()   // lay out before first display
         p.orderFrontRegardless()
         panel = p
     }
@@ -64,29 +65,31 @@ struct NudgeView: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 4) {
-            if bubble {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(text)
-                        .font(.system(size: 13, weight: .medium))
-                        .fixedSize(horizontal: false, vertical: true)
+            // Always in the hierarchy (laid out once, before showing); only opacity/scale animate.
+            VStack(alignment: .leading, spacing: 8) {
+                Text(text)
+                    .font(.system(size: 13, weight: .medium))
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 6) {
                     if !isSwap {
-                        HStack(spacing: 6) {
-                            Button("Drank one 💧") { drank() }.buttonStyle(.borderedProminent)
-                            Button("Later") { later() }
-                        }
-                        .controlSize(.small)
+                        Button("Drank one 💧") { drank() }.buttonStyle(NudgeButtonStyle(prominent: true))
+                        Button("Later") { later() }.buttonStyle(NudgeButtonStyle(prominent: false))
                     } else {
-                        Button("Cheers 🍻") { swimOff(after: 0) }.controlSize(.small)
+                        Button("Cheers 🍻") { swimOff(after: 0) }.buttonStyle(NudgeButtonStyle(prominent: true))
                     }
+                    Spacer(minLength: 0)
                 }
-                .padding(12)
-                .frame(width: 230, alignment: .leading)
-                .background(
-                    RoundedRectangle(cornerRadius: 14).fill(.regularMaterial)
-                        .shadow(color: .black.opacity(0.25), radius: 8, y: 3)
-                )
-                .transition(.scale(scale: 0.6, anchor: .trailing).combined(with: .opacity))
+                .frame(height: 26)
             }
+            .padding(12)
+            .frame(width: 230, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 14).fill(.regularMaterial)
+                    .shadow(color: .black.opacity(0.25), radius: 8, y: 3)
+            )
+            .scaleEffect(bubble ? 1 : 0.6, anchor: .trailing)
+            .opacity(bubble ? 1 : 0)
+            .allowsHitTesting(bubble)
             RaynaView(progress: max(state.progress, 0.5), wiggleAt: wiggleAt, flipAt: flipAt, pout: pout)
                 .scaleEffect(1.3)
                 .frame(width: 140, height: 140)
@@ -142,5 +145,23 @@ struct NudgeView: View {
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { onDone() }
         }
+    }
+}
+
+/// Pure-SwiftUI button look: doesn't depend on the (non-key) panel's active state,
+/// so it renders identically on first appearance and on hover.
+struct NudgeButtonStyle: ButtonStyle {
+    let prominent: Bool
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundColor(prominent ? .white : .primary)
+            .padding(.horizontal, 10)
+            .frame(height: 24)
+            .background(RoundedRectangle(cornerRadius: 7)
+                .fill(prominent ? Color.accentColor : Color.secondary.opacity(0.18)))
+            .opacity(configuration.isPressed ? 0.75 : 1)
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .contentShape(Rectangle())
     }
 }
