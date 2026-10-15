@@ -19,7 +19,7 @@ Rayna is a tiny macOS menu-bar app that reminds you to drink water. A cheerful s
 - **Reduce Motion** — respects the macOS accessibility setting.
 
 ## Install
-Download the DMG, drag **Rayna** into **Applications** and open it. The app is ad-hoc signed (not notarized), so on first launch: right-click Rayna → **Open** → **Open**, or go to **System Settings → Privacy & Security → Open Anyway**.
+Download the DMG, drag **Rayna** into **Applications** and open it. The DMG and app are Developer ID signed and notarised by Apple, so they open normally with no Gatekeeper workaround.
 
 ## Build from source
 Requires macOS 13+ and the Xcode Command Line Tools (`xcode-select --install`); no Xcode project needed.
@@ -27,7 +27,8 @@ Requires macOS 13+ and the Xcode Command Line Tools (`xcode-select --install`); 
 ```sh
 git clone https://github.com/versantus/rayna.git
 cd rayna
-./build.sh                       # builds Rayna.app (release, ad-hoc signed)
+./build.sh                       # builds Rayna.app (release, ad-hoc signed, for local use)
+./scripts/release-dmg.sh         # Developer ID signed, notarised + stapled universal DMG
 cp -R Rayna.app /Applications/
 open /Applications/Rayna.app
 ```

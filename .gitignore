@@ -6,3 +6,5 @@
 iOS/build/
 *.xcarchive
 xcuserdata/
+builds/
+site/*.dmg
