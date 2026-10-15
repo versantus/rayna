@@ -227,6 +227,9 @@ struct SettingsView: View {
                         Toggle("", isOn: extra({ RaynaSounds.shared.enabled }, { RaynaSounds.shared.enabled = $0; if $0 { RaynaSounds.shared.play(.splash) } }))
                             .labelsHidden().toggleStyle(.switch)
                     }
+                    BrandRow(symbol: "sparkles.rectangle.stack.fill", tint: RaynaBrand.aqua, title: "Show splash on launch") {
+                        Toggle("", isOn: extra({ SplashWindowController.enabled }, { SplashWindowController.enabled = $0 })).labelsHidden().toggleStyle(.switch)
+                    }
                     BrandRow(symbol: "power", tint: .green, title: "Launch at login") {
                         Toggle("", isOn: Binding(get: { state.launchAtLogin }, set: { state.setLaunchAtLogin($0) }))
                             .labelsHidden().toggleStyle(.switch)
