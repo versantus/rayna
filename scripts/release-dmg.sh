@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 
 IDENTITY="${IDENTITY:-Developer ID Application: Versantus IT Services Ltd (F9MJXEKGAR)}"
 NOTARY_PROFILE="${NOTARY_PROFILE:-rayna-notary}"
-OUT_DIR="${OUT_DIR:-$HOME/RaynaBuilds}"
+OUT_DIR="${OUT_DIR:-$PWD/builds}"
 VERSION="2.2.0"; BUILD="6"
 DMG="$OUT_DIR/Rayna-$VERSION-signed.dmg"
 
