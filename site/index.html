@@ -1,0 +1,66 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rayna — a happy stingray that reminds you to drink water</title>
+<meta name="description" content="Rayna is a free macOS menu-bar water reminder. A cheerful stingray fills up as you drink and swims in with friendly nudges.">
+<meta property="og:title" content="Rayna — Stay hydrated. Stingrays are happy.">
+<meta property="og:description" content="A free macOS menu-bar water reminder with a happy stingray mascot.">
+<meta property="og:image" content="https://rayna-water.netlify.app/og.png"><meta property="og:url" content="https://rayna-water.netlify.app/"><meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png"><link rel="icon" href="favicon-16.png" sizes="16x16" type="image/png">
+<style>
+:root{--bg:#f6f9ff;--card:#fff;--text:#1d1d1f;--sub:#5f6470;--accent:#0a84ff;--line:rgba(0,0,0,.08);--hero:linear-gradient(135deg,#9cc8ff,#cfaaff 60%,#ffc4d3)}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1117;--card:#161b24;--text:#f2f4f8;--sub:#9aa3b2;--line:rgba(255,255,255,.1);--hero:linear-gradient(135deg,#0d2350,#2c1850 60%,#3d1b2d)}}
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.55}
+a{color:var(--accent)}.wrap{max-width:1040px;margin:0 auto;padding:0 22px}
+header.hero{background:var(--hero);padding:70px 0 90px;text-align:center;overflow:hidden}
+.pool{position:relative;width:240px;height:240px;margin:0 auto;border-radius:50%;background:radial-gradient(circle,#8cd6f0 0%,#2e78b0 100%);box-shadow:0 10px 40px rgba(20,60,120,.25),inset 0 0 30px rgba(255,255,255,.25);overflow:hidden;cursor:pointer}.pool .ray,.pool .ray-still{position:absolute;inset:6%;width:88%;height:88%;display:block;animation:none}.pool .ray-still{display:none}@keyframes bob{50%{transform:translateY(-10px) rotate(-4deg)}}
+@media(prefers-reduced-motion:reduce){.pool .ray{display:none}.pool .ray-still{display:block}}
+h1{font-size:clamp(40px,7vw,72px);margin:.1em 0 0;letter-spacing:-.02em}.tag{font-size:clamp(19px,2.6vw,25px);margin:.2em 0 1.2em;font-weight:600;opacity:.9}
+.lead{max-width:600px;margin:0 auto 28px;color:var(--text);opacity:.85}
+.dl{display:inline-flex;align-items:center;gap:10px;background:var(--accent);color:#fff;text-decoration:none;font-weight:700;font-size:18px;padding:15px 28px;border-radius:14px;box-shadow:0 10px 30px rgba(10,132,255,.35);transition:transform .15s}.dl:hover{transform:translateY(-2px)}
+.dls{display:flex;flex-wrap:wrap;gap:12px;justify-content:center}.dl.ios{background:#000;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:9px 24px}.ios-t{display:flex;flex-direction:column;line-height:1.05;text-align:left;font-size:21px}.ios-t small{font-size:11px;font-weight:500}
+.meta{font-size:14px;margin-top:12px;opacity:.8}.gh{display:inline-block;margin-top:10px;font-weight:600;color:inherit}
+.video{margin:-60px auto 0;max-width:960px;border-radius:18px;overflow:hidden;box-shadow:0 30px 70px rgba(0,0,0,.28);background:#000;position:relative}
+.video video{display:block;width:100%;height:auto}.vcap{text-align:center;font-size:13px;color:var(--sub);margin-top:10px}
+section{padding:60px 0 10px}h2{font-size:30px;margin:0 0 22px;text-align:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+.f{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px}.f b{display:block;font-size:17px;margin-bottom:4px}.f span{color:var(--sub);font-size:15px}.f .e{font-size:26px}
+.shot{display:block;max-width:760px;width:100%;margin:0 auto;border-radius:14px;border:1px solid var(--line)}
+.steps{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 26px;max-width:720px;margin:0 auto}.steps li{margin:6px 0}
+code{background:rgba(127,127,127,.15);padding:2px 6px;border-radius:6px;font-size:.92em}
+footer{text-align:center;color:var(--sub);font-size:14px;padding:60px 0 40px}
+</style></head><body>
+<header class="hero"><div class="wrap">
+<div class="pool" id="pool" title="Say hi to Rayna"><video class="ray" id="rayvid" autoplay muted loop playsinline preload="auto" poster="rayna-hero-poster.png" width="240" height="240" aria-label="Rayna the stingray, gently swimming"><source src="rayna-idle-happy.webm" type='video/webm; codecs="vp09.00.10.08"'><source src="rayna-idle-happy.mp4" type="video/mp4"></video><img class="ray-still" src="rayna-hero-poster.png" width="240" height="240" alt="Rayna the stingray"></div>
+<script>(function(){var v=document.getElementById('rayvid'),p=document.getElementById('pool');if(!v)return;
+var ua=navigator.userAgent,safari=/Safari\//.test(ua)&&!/Chrome|Chromium|Edg|Firefox|FxiOS|CriOS/.test(ua);
+var fmt=safari?'mp4':'webm';
+if(safari){var w=v.querySelector('source[type^="video/webm"]');if(w){w.remove();v.load();}}
+if(matchMedia('(prefers-reduced-motion: reduce)').matches){v.pause();return;}
+var busy=false;function wiggle(){if(busy)return;busy=true;v.loop=false;v.src='rayna-wiggle.'+fmt;v.play().catch(function(){});
+v.onended=function(){v.onended=null;v.loop=true;v.src='rayna-idle-happy.'+fmt;v.play().catch(function(){});busy=false;};}
+p.addEventListener('mouseenter',wiggle);p.addEventListener('click',wiggle);})();</script>
+<h1>Rayna</h1><p class="tag">Stay hydrated. Stingrays are happy.</p>
+<p class="lead">A free little macOS menu-bar app. Rayna fills up as you drink and swims in with a friendly nudge when it's time for another glass.</p>
+<div class="dls"><a class="dl" href="Rayna-2.2.0.dmg" download> Download for macOS</a> <a class="dl ios" href="https://apps.apple.com/gb/app/rayna/id6821361710" aria-label="Download Rayna on the App Store for iPhone"><span class="ios-t"><small>Download on the</small>App Store</span></a></div>
+<div class="meta">Version 2.2.0 · DMG, 7.1 MB · macOS 13 Ventura or later · Apple silicon and Intel</div>
+<div class="meta" style="margin-top:14px;font-weight:600">📱 Rayna for iPhone is on the App Store, with a Home Screen widget and one-tap “Drank one 💧” notifications.</div>
+<a class="gh" href="https://github.com/versantus/rayna">View source on GitHub →</a>
+</div></header>
+<div class="wrap"><div class="video"><video src="rayna-demo.mp4" poster="rayna-demo-poster.png" autoplay muted loop playsinline aria-label="Animated preview of Rayna"></video></div>
+<p class="vcap">Animated preview (a mock-up of the app, not a screen recording).</p></div>
+<section><div class="wrap"><h2>What Rayna does</h2><div class="grid">
+<div class="f"><div class="e">💧</div><b>Menu-bar fill</b><span>A drop icon and today's percentage, always in view.</span></div>
+<div class="f"><div class="e">🌊</div><b>Animated nudges</b><span>Rayna swims in with a speech bubble: “Drank one 💧” or “Later”.</span></div>
+<div class="f"><div class="e">🥤</div><b>One-click logging</b><span>+1 glass with undo. Set your own glass size and daily goal.</span></div>
+<div class="f"><div class="e">🏃</div><b>Run-day bonus</b><span>Flip a switch for +500 ml on days you run.</span></div>
+<div class="f"><div class="e">🌙</div><b>Quiet hours</b><span>No nudges overnight (22:00–07:30 by default, adjustable).</span></div>
+<div class="f"><div class="e">🥤</div><b>Fizzy-drink swap</b><span>An optional, guilt-free nudge after 18:00 to swap a fizzy drink for a glass of water.</span></div>
+<div class="f"><div class="e">🔥</div><b>Streaks</b><span>Count consecutive goal days. Hit your goal and get a barrel roll and confetti.</span></div>
+<div class="f"><div class="e">♿️</div><b>Reduce Motion</b><span>Follows your macOS accessibility setting and tones the animations down.</span></div>
+</div></div></section>
+<section><div class="wrap"><h2>First launch</h2><div class="steps"><ol>
+<li>Open <code>Rayna-2.2.0.dmg</code> and drag <b>Rayna</b> into <b>Applications</b>.</li>
+<li>Open Rayna from Applications. It's signed with a Developer ID and notarised by Apple, so it opens like any other app.</li>
+<li>Allow notifications if asked. Rayna lives in your menu bar (look for the 💧 and a percentage). There's no Dock icon.</li>
+</ol><p style="color:var(--sub);font-size:14px;margin:8px 0 0">Rayna is a universal app for Apple silicon and Intel Macs. Prefer to build it yourself? Instructions are <a href="https://github.com/versantus/rayna#build-from-source">on GitHub</a>.</p></div></div></section>
+<footer>Made by Nik Roberts · Versantus · <a href="https://github.com/versantus/rayna">GitHub</a> · MIT licensed · <a href='/privacy'>Privacy</a></footer>
+</body></html>
