@@ -6,3 +6,4 @@
 iOS/build/
 *.xcarchive
 xcuserdata/
+builds/
