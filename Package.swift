@@ -12,6 +12,8 @@ let package = Package(
         .target(name: "RaynaCore", path: "Sources/RaynaCore",
                 resources: [.copy("Resources/RaynaFrames"), .copy("Resources/Sounds")]),
         // macOS menu-bar app (built by ./build.sh)
-        .executableTarget(name: "Rayna", dependencies: ["RaynaCore"], path: "Sources/Rayna")
+        .executableTarget(name: "Rayna", dependencies: ["RaynaCore"], path: "Sources/Rayna"),
+        // Pure iCloud-sync merge logic (`swift test`).
+        .testTarget(name: "RaynaCoreTests", dependencies: ["RaynaCore"], path: "Tests/RaynaCoreTests")
     ]
 )

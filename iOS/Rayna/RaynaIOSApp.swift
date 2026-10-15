@@ -12,6 +12,12 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         DispatchQueue.global(qos: .utility).async { ReminderScheduler.registerCategories() }
         application.registerForRemoteNotifications()
         WatchSync.shared.start()   // silent CloudKit pushes for pods
+        RaynaCloudSync.configure(defaults: RaynaStore.shared.defaults) {
+            // Remote intake/settings landed in the store: refresh UI, widgets, watch (no re-sync loop).
+            AppModel.shared.refresh()
+            AppModel.shared.afterRemoteChange()
+        }
+        RaynaCloudSync.shared.syncNow()
         return true
     }
 
@@ -26,6 +32,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
                      fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
         Task { @MainActor in
             await PodService.shared.handlePush()
+            await RaynaCloudSync.shared.handlePush()
             completionHandler(.newData)
         }
     }
@@ -65,7 +72,7 @@ struct RaynaIOSApp: App {
             ContentView()
                 .environmentObject(model)
                 .onChange(of: scenePhase) { _, phase in
-                    if phase == .active { model.refresh() }
+                    if phase == .active { model.refresh(); RaynaCloudSync.shared?.syncNow() }
                 }
         }
     }

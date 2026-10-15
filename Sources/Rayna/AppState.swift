@@ -7,15 +7,15 @@ final class AppState: ObservableObject {
     static let shared = AppState()
     private let d = UserDefaults.standard
 
-    @Published var totalML: Int { didSet { d.set(totalML, forKey: "totalML") } }
+    @Published var totalML: Int { didSet { d.set(totalML, forKey: "totalML"); localChanged() } }
     @Published var log: [Date] { didSet { d.set(log, forKey: "log") } }
-    @Published var runDay: Bool { didSet { d.set(runDay, forKey: "runDay"); checkGoal() } }
-    @Published var goalML: Int { didSet { d.set(goalML, forKey: "goalML"); checkGoal() } }
-    @Published var glassML: Int { didSet { d.set(glassML, forKey: "glassML") } }
+    @Published var runDay: Bool { didSet { d.set(runDay, forKey: "runDay"); localChanged(); checkGoal() } }
+    @Published var goalML: Int { didSet { d.set(goalML, forKey: "goalML"); localChanged(); checkGoal() } }
+    @Published var glassML: Int { didSet { d.set(glassML, forKey: "glassML"); localChanged() } }
     @Published var intervalMin: Int { didSet { d.set(intervalMin, forKey: "intervalMin"); NotificationManager.shared.resetSchedule() } }
-    @Published var quietStartMin: Int { didSet { d.set(quietStartMin, forKey: "quietStartMin") } }
-    @Published var quietEndMin: Int { didSet { d.set(quietEndMin, forKey: "quietEndMin") } }
-    @Published var eveningSwap: Bool { didSet { d.set(eveningSwap, forKey: "eveningSwap") } }
+    @Published var quietStartMin: Int { didSet { d.set(quietStartMin, forKey: "quietStartMin"); localChanged() } }
+    @Published var quietEndMin: Int { didSet { d.set(quietEndMin, forKey: "quietEndMin"); localChanged() } }
+    @Published var eveningSwap: Bool { didSet { d.set(eveningSwap, forKey: "eveningSwap"); localChanged() } }
     @Published var streak: Int { didSet { d.set(streak, forKey: "streak") } }
     @Published var systemNotifications: Bool { didSet { d.set(systemNotifications, forKey: "systemNotifications"); if systemNotifications { NotificationManager.shared.requestAuth() } } }
     @Published var glassEvent = 0
@@ -80,6 +80,25 @@ final class AppState: ObservableObject {
         RunLoop.main.add(t, forMode: .common)
         timer = t
     }
+
+    /// Re-read synced keys after iCloud sync wrote another device's changes into the defaults.
+    func reloadFromDefaults() {
+        reloading = true; defer { reloading = false }
+        if d.string(forKey: "dayKey") != dayKey, let k = d.string(forKey: "dayKey") { dayKey = k }
+        let pairs: [(ReferenceWritableKeyPath<AppState, Int>, String)] = [(\.totalML, "totalML"), (\.goalML, "goalML"), (\.glassML, "glassML"),
+            (\.quietStartMin, "quietStartMin"), (\.quietEndMin, "quietEndMin"), (\.streak, "streak")]
+        for (kp, k) in pairs where self[keyPath: kp] != d.integer(forKey: k) { self[keyPath: kp] = d.integer(forKey: k) }
+        let newLog = (d.array(forKey: "log") as? [Date]) ?? []
+        if newLog != log { log = newLog }
+        if runDay != d.bool(forKey: "runDay") { runDay = d.bool(forKey: "runDay") }
+        if eveningSwap != d.bool(forKey: "eveningSwap") { eveningSwap = d.bool(forKey: "eveningSwap") }
+        lastGoalDay = d.string(forKey: "lastGoalDay") ?? lastGoalDay
+        objectWillChange.send()
+    }
+    /// True while applying synced values (so it doesn't count as a local edit).
+    private var reloading = false
+    /// Local edits: let iCloud sync pick them up (debounced).
+    func localChanged() { if !reloading { MainActor.assumeIsolated { RaynaCloudSync.shared?.syncSoon() } } }
 
     // MARK: Derived
     var effectiveGoal: Int { goalML + (runDay ? 500 : 0) }

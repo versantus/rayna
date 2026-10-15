@@ -173,7 +173,7 @@ struct SettingsView: View {
     }
 
     private func extra(_ get: @escaping () -> Bool, _ set: @escaping (Bool) -> Void) -> Binding<Bool> {
-        Binding(get: get, set: { state.objectWillChange.send(); set($0) })
+        Binding(get: get, set: { state.objectWillChange.send(); set($0); state.localChanged() })
     }
 
     var body: some View {
@@ -228,6 +228,10 @@ struct SettingsView: View {
                     BrandRow(symbol: "power", tint: .green, title: "Launch at login") {
                         Toggle("", isOn: Binding(get: { state.launchAtLogin }, set: { state.setLaunchAtLogin($0) }))
                             .labelsHidden().toggleStyle(.switch)
+                    }
+                    if let sync = RaynaCloudSync.shared {
+                        Divider()
+                        RaynaSyncSettingsRow(sync: sync).toggleStyle(.switch)
                     }
                     Divider()
                     Button { WelcomeWindowController.shared.show(state: state) } label: {

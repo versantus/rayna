@@ -80,6 +80,13 @@ struct SettingsView: View {
                 } header: { Text("Apple Health") } footer: {
                     Text("Rayna reads today's runs to add your run-day bonus (+500 ml, more for runs over an hour) and can log each glass as Dietary Water. Garmin, Strava and other apps that sync to Apple Health work too; there's no direct Garmin connection.")
                 }
+                if let sync = RaynaCloudSync.shared {
+                    Section {
+                        RaynaSyncSettingsRow(sync: sync)
+                    } header: { Text("iCloud") } footer: {
+                        Text("Syncs today's water, your history and settings between your iPhone, Apple Watch and Mac through your private iCloud.")
+                    }
+                }
                 Section {
                     Link("Privacy policy", destination: URL(string: "https://rayna-water.netlify.app/privacy.html")!)
                     Link("Rayna for Mac", destination: URL(string: "https://rayna-water.netlify.app")!)
