@@ -24,6 +24,7 @@
 		61A3BC3D1E2B007A4A3F4346 /* RaynaWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FC589A540816FB874EA853A /* RaynaWatchApp.swift */; };
 		648F9B1A4CD93ECC8559FBCA /* RaynaWatchWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7DEC39A55DE4AF1E9778A0BF /* RaynaWatchWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		66A03C9C8FEA08D86DBC35EF /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39E035FE300B9678173D4065 /* LiveActivityManager.swift */; };
+		6B1D7C70502462878B577C61 /* BrandedWindows.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9599807F678148A580D316F /* BrandedWindows.swift */; };
 		6B22C8CBEB1EF8C8590AD5DB /* RaynaActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = E194E1E0606D36D7D4B4B3E7 /* RaynaActivity.swift */; };
 		6CBB5F849DABFEB3516EFC1C /* RaynaWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E304D665590360E7CFAFA116 /* RaynaWidget.swift */; };
 		74151B6518F5C85BCC843055 /* AddGlassIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4562E3D0679E16F0A1F3B5CF /* AddGlassIntent.swift */; };
@@ -142,6 +143,7 @@
 		A774FC61B848A62767818FD2 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		AE7A5FDD6D45DF0BE71F2ABC /* rayna */ = {isa = PBXFileReference; lastKnownFileType = folder; name = rayna; path = ..; sourceTree = SOURCE_ROOT; };
 		BFCCA9E99CEAC13B12DEE0F3 /* RaynaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaynaApp.swift; sourceTree = "<group>"; };
+		C9599807F678148A580D316F /* BrandedWindows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandedWindows.swift; sourceTree = "<group>"; };
 		D6F0347DB03BE7020908CAEF /* WatchSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSync.swift; sourceTree = "<group>"; };
 		D7805989DD91471597445195 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		D901844C361FC73AB5ACBC69 /* WatchShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchShared.swift; sourceTree = "<group>"; };
@@ -252,6 +254,7 @@
 			isa = PBXGroup;
 			children = (
 				D7805989DD91471597445195 /* AppState.swift */,
+				C9599807F678148A580D316F /* BrandedWindows.swift */,
 				53D577DCB2A0A7A80F9AE672 /* ContentView.swift */,
 				A774FC61B848A62767818FD2 /* NotificationManager.swift */,
 				A2D359B1E8091AA30A83B7FB /* NudgeController.swift */,
@@ -601,6 +604,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8778C676A60D461AC5E17891 /* AppState.swift in Sources */,
+				6B1D7C70502462878B577C61 /* BrandedWindows.swift in Sources */,
 				B70A92F429895BDB58AAB7F7 /* ContentView.swift in Sources */,
 				5832B4F0A8AA2C484F9D0681 /* NotificationManager.swift in Sources */,
 				CA72939AD8507F29B1AE1494 /* NudgeController.swift in Sources */,
@@ -729,7 +733,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = RaynaMac/RaynaMac.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = RaynaMac/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -770,7 +774,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = RaynaMac/RaynaMac.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = RaynaMac/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (

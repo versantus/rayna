@@ -15,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         RaynaFrames.preloadForLaunch(progress: AppState.shared.progress)
         DispatchQueue.main.async { NotificationManager.shared.setUp() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { WelcomeWindowController.shared.showIfFirstLaunch(state: AppState.shared) }
         // Dev/marketing: `Rayna --export-share-cards <dir>` writes sample story + square PNGs and quits.
         if let i = CommandLine.arguments.firstIndex(of: "--export-share-cards"), i + 1 < CommandLine.arguments.count {
             let dir = URL(fileURLWithPath: CommandLine.arguments[i + 1])
@@ -24,6 +25,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 try? FileManager.default.copyItem(at: u, to: dir.appendingPathComponent(u.lastPathComponent))
             }
             exit(0)
+        }
+        // Dev/screenshots: `Rayna --show-window settings|journey|welcome`.
+        if let i = CommandLine.arguments.firstIndex(of: "--show-window"), i + 1 < CommandLine.arguments.count {
+            let which = CommandLine.arguments[i + 1]
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                switch which {
+                case "settings": SettingsWindowController.shared.show(state: AppState.shared)
+                case "journey": JourneyWindowController.shared.show(state: AppState.shared)
+                default: WelcomeWindowController.shared.show(state: AppState.shared)
+                }
+            }
         }
         if CommandLine.arguments.contains("--preview-nudge") {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
