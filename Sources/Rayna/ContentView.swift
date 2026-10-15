@@ -111,6 +111,12 @@ struct ContentView: View {
                     } label: {
                         Label("Journey…", systemImage: "trophy")
                     }
+                    Button {
+                        WelcomeWindowController.shared.show(state: state)
+                    } label: {
+                        Image(systemName: "info.circle")
+                    }
+                    .help("Welcome… / About Rayna")
                     Spacer()
                     Button("Quit Rayna") { NSApp.terminate(nil) }
                         .keyboardShortcut("q")
@@ -166,29 +172,74 @@ struct SettingsView: View {
         )
     }
 
+    private func extra(_ get: @escaping () -> Bool, _ set: @escaping (Bool) -> Void) -> Binding<Bool> {
+        Binding(get: get, set: { state.objectWillChange.send(); set($0) })
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Stepper("Goal: \(state.goalML) ml", value: $state.goalML, in: 1000...5000, step: 250)
-            Stepper("Glass: \(state.glassML) ml", value: $state.glassML, in: 100...750, step: 50)
-            Stepper("Remind every \(state.intervalMin) min", value: $state.intervalMin, in: 45...60, step: 5)
-            DatePicker("Quiet from", selection: timeBinding(\.quietStartMin), displayedComponents: .hourAndMinute)
-            DatePicker("Quiet until", selection: timeBinding(\.quietEndMin), displayedComponents: .hourAndMinute)
-            Toggle("Fizzy-drink swap nudge (after 18:00)", isOn: $state.eveningSwap)
-            Toggle("Swap-a-fizzy-drink challenge button (after 18:00)", isOn: Binding(
-                get: { state.extras.swapChallenge },
-                set: { state.objectWillChange.send(); state.extras.swapChallenge = $0 }))
-            Toggle("System notifications too", isOn: $state.systemNotifications)
-            Button("Preview nudge") { NudgeController.shared.show(text: AppState.reminders.randomElement() ?? "Sip o'clock!", isSwap: false) }
-            Toggle("Ray Facts (Rayna shares a fact at 25/50/75/100%)", isOn: Binding(
-                get: { state.extras.rayFactsOn }, set: { state.objectWillChange.send(); state.extras.rayFactsOn = $0 }))
-            Toggle("Sounds (splash, bubbles, goal chime)", isOn: Binding(
-                get: { RaynaSounds.shared.enabled },
-                set: { state.objectWillChange.send(); RaynaSounds.shared.enabled = $0; if $0 { RaynaSounds.shared.play(.splash) } }))
-            Toggle("Launch at login", isOn: Binding(
-                get: { state.launchAtLogin },
-                set: { state.setLaunchAtLogin($0) }))
+        VStack(alignment: .leading, spacing: 14) {
+            BrandHeader(title: "Rayna Settings",
+                        subtitle: "Tune your goal, reminders and extras.",
+                        progress: state.progress)
+            HStack(alignment: .top, spacing: 14) {
+                VStack(spacing: 14) {
+                    BrandCard(title: "Goal", symbol: "target", tint: RaynaBrand.blue) {
+                        BrandRow(symbol: "drop.fill", tint: RaynaBrand.blue, title: "Daily goal", detail: "\(state.goalML) ml") {
+                            Stepper("", value: $state.goalML, in: 1000...5000, step: 250).labelsHidden()
+                        }
+                        BrandRow(symbol: "cup.and.saucer.fill", tint: .teal, title: "Glass size", detail: "\(state.glassML) ml") {
+                            Stepper("", value: $state.glassML, in: 100...750, step: 50).labelsHidden()
+                        }
+                    }
+                    BrandCard(title: "Reminders", symbol: "bell.badge.fill", tint: .orange) {
+                        BrandRow(symbol: "timer", tint: .orange, title: "Remind every", detail: "\(state.intervalMin) min") {
+                            Stepper("", value: $state.intervalMin, in: 45...60, step: 5).labelsHidden()
+                        }
+                        BrandRow(symbol: "app.badge", tint: .red, title: "System notifications too") {
+                            Toggle("", isOn: $state.systemNotifications).labelsHidden().toggleStyle(.switch)
+                        }
+                        Button { NudgeController.shared.show(text: AppState.reminders.randomElement() ?? "Sip o'clock!", isSwap: false) } label: {
+                            Label("Preview nudge", systemImage: "play.circle.fill")
+                        }
+                    }
+                    BrandCard(title: "Quiet hours", symbol: "moon.stars.fill", tint: .indigo) {
+                        BrandRow(symbol: "moon.fill", tint: .indigo, title: "Quiet from") {
+                            DatePicker("", selection: timeBinding(\.quietStartMin), displayedComponents: .hourAndMinute).labelsHidden()
+                        }
+                        BrandRow(symbol: "sunrise.fill", tint: .yellow, title: "Quiet until") {
+                            DatePicker("", selection: timeBinding(\.quietEndMin), displayedComponents: .hourAndMinute).labelsHidden()
+                        }
+                    }
+                }
+                BrandCard(title: "Extras", symbol: "sparkles", tint: RaynaBrand.pink) {
+                    BrandRow(symbol: "bubbles.and.sparkles.fill", tint: .mint, title: "Fizzy-drink swap nudge", detail: "After 18:00") {
+                        Toggle("", isOn: $state.eveningSwap).labelsHidden().toggleStyle(.switch)
+                    }
+                    BrandRow(symbol: "flag.checkered", tint: .purple, title: "Swap-a-fizzy-drink challenge button", detail: "After 18:00") {
+                        Toggle("", isOn: extra({ state.extras.swapChallenge }, { state.extras.swapChallenge = $0 })).labelsHidden().toggleStyle(.switch)
+                    }
+                    BrandRow(symbol: "lightbulb.fill", tint: .yellow, title: "Ray Facts", detail: "Rayna shares a fact at 25/50/75/100%") {
+                        Toggle("", isOn: extra({ state.extras.rayFactsOn }, { state.extras.rayFactsOn = $0 })).labelsHidden().toggleStyle(.switch)
+                    }
+                    BrandRow(symbol: "speaker.wave.2.fill", tint: .pink, title: "Sounds", detail: "Splash, bubbles, goal chime") {
+                        Toggle("", isOn: extra({ RaynaSounds.shared.enabled }, { RaynaSounds.shared.enabled = $0; if $0 { RaynaSounds.shared.play(.splash) } }))
+                            .labelsHidden().toggleStyle(.switch)
+                    }
+                    BrandRow(symbol: "power", tint: .green, title: "Launch at login") {
+                        Toggle("", isOn: Binding(get: { state.launchAtLogin }, set: { state.setLaunchAtLogin($0) }))
+                            .labelsHidden().toggleStyle(.switch)
+                    }
+                    Divider()
+                    Button { WelcomeWindowController.shared.show(state: state) } label: {
+                        Label("Show welcome…", systemImage: "hand.wave.fill")
+                    }
+                }
+            }
+            Spacer(minLength: 60)
         }
-        .font(.system(size: 12))
+        .padding(.horizontal, 22).padding(.top, 34)
+        .frame(width: 700, height: 600)
+        .raynaBackdrop(waveHeight: 70)
     }
 }
 
@@ -200,19 +251,9 @@ final class SettingsWindowController {
 
     func show(state: AppState) {
         if window == nil {
-            let host = NSHostingController(rootView: SettingsView().padding(20).frame(width: 340).environmentObject(state))
-            let w = NSWindow(contentViewController: host)
-            w.title = "Rayna Settings"
-            w.styleMask = [.titled, .closable]
-            w.isReleasedWhenClosed = false
-            w.center()
-            window = w
+            window = RaynaBrand.makeWindow(title: "Rayna Settings", root: SettingsView().environmentObject(state))
         }
-        // Close the menu-bar panel, then bring the (accessory) app forward.
-        NSApp.keyWindow?.orderOut(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        window?.makeKeyAndOrderFront(nil)
-        window?.orderFrontRegardless()
+        RaynaBrand.present(window)
     }
 }
 
@@ -223,34 +264,28 @@ final class JourneyWindowController {
 
     func show(state: AppState) {
         let view = ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 16) {
+                BrandHeader(title: "Rayna's journey", subtitle: "Streak, unlocks and your weekly recap.", progress: state.progress)
                 RaynaJourneyView(extras: state.extras, recap: state.recap, streak: state.streak) {
                     MacShare.share(state.shareInfo(state.streak >= 3 ? .streak(state.streak) : .recap))
                 }
-                Divider()
-                Text("Pod").font(.system(.title3, design: .rounded, weight: .bold))
-                PodView(onInvite: { url in MacShare.shareURL(url) })
-                    .task { await PodService.shared.refreshStatus() }
-            }.padding(20)
+                BrandCard(title: "Pod", symbol: "person.3.fill", tint: RaynaBrand.blue) {
+                    PodView(onInvite: { url in MacShare.shareURL(url) })
+                        .task { await PodService.shared.refreshStatus() }
+                }
+                Spacer(minLength: 60)
+            }.padding(.horizontal, 20).padding(.top, 34)
         }
-        .frame(width: 460, height: 700)
+        .frame(width: 480, height: 720)
+        .raynaBackdrop(waveHeight: 70)
         if let w = window {
             w.contentViewController = NSHostingController(rootView: view)
         } else {
-            let w = NSWindow(contentViewController: NSHostingController(rootView: view))
-            w.title = "Rayna's journey"
-            w.styleMask = [.titled, .closable]
-            w.isReleasedWhenClosed = false
-            w.center()
-            window = w
+            window = RaynaBrand.makeWindow(title: "Rayna's journey", root: view)
         }
-        NSApp.keyWindow?.orderOut(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        window?.makeKeyAndOrderFront(nil)
-        window?.orderFrontRegardless()
+        RaynaBrand.present(window)
     }
 }
-
 extension MacShare {
     @MainActor
     static func shareURL(_ url: URL) {
