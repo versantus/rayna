@@ -14,6 +14,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         WatchSync.shared.start()   // silent CloudKit pushes for pods
         RaynaCloudSync.configure(defaults: RaynaStore.shared.defaults) {
             // Remote intake/settings landed in the store: refresh UI, widgets, watch (no re-sync loop).
+            RaynaStore.shared.reconcileGoal()   // synced glasses may have completed today's goal
             AppModel.shared.refresh()
             AppModel.shared.afterRemoteChange()
         }

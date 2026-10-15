@@ -103,14 +103,16 @@ struct ContentView: View {
                     Button {
                         SettingsWindowController.shared.show(state: state)
                     } label: {
-                        Label("Settings…", systemImage: "gearshape")
+                        Image(systemName: "gearshape")
                     }
+                    .help("Settings… (⌘,)")
                     .keyboardShortcut(",")
                     Button {
                         JourneyWindowController.shared.show(state: state)
                     } label: {
-                        Label("Journey…", systemImage: "trophy")
+                        Image(systemName: "trophy")
                     }
+                    .help("Journey…")
                     Button {
                         WelcomeWindowController.shared.show(state: state)
                     } label: {

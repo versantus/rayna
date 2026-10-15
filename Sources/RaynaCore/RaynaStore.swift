@@ -90,6 +90,10 @@ public final class RaynaStore {
         return true
     }
 
+    /// Records today's goal/streak if synced glasses (from another device) completed it. Returns true if newly hit.
+    @discardableResult
+    public func reconcileGoal(now: Date = Date()) -> Bool { checkGoal(now: now) }
+
     public func rolloverIfNeeded(now: Date = Date()) {
         let today = RaynaCopy.dayKey(for: now)
         if dayKey != today {

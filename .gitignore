@@ -6,3 +6,6 @@
 iOS/build/
 *.xcarchive
 xcuserdata/
+builds/
+.netlify/
+node_modules/

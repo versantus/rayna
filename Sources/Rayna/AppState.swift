@@ -93,6 +93,9 @@ final class AppState: ObservableObject {
         if runDay != d.bool(forKey: "runDay") { runDay = d.bool(forKey: "runDay") }
         if eveningSwap != d.bool(forKey: "eveningSwap") { eveningSwap = d.bool(forKey: "eveningSwap") }
         lastGoalDay = d.string(forKey: "lastGoalDay") ?? lastGoalDay
+        // Synced glasses can complete the goal without a local +1, so record the goal day/streak here too
+        // (otherwise the streak could read 0 days on a device that never saw its own glass hit the goal).
+        checkGoal()
         objectWillChange.send()
     }
     /// True while applying synced values (so it doesn't count as a local edit).
