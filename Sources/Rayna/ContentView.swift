@@ -103,14 +103,16 @@ struct ContentView: View {
                     Button {
                         SettingsWindowController.shared.show(state: state)
                     } label: {
-                        Label("Settings…", systemImage: "gearshape")
+                        Image(systemName: "gearshape")
                     }
+                    .help("Settings… (⌘,)")
                     .keyboardShortcut(",")
                     Button {
                         JourneyWindowController.shared.show(state: state)
                     } label: {
-                        Label("Journey…", systemImage: "trophy")
+                        Image(systemName: "trophy")
                     }
+                    .help("Journey…")
                     Button {
                         WelcomeWindowController.shared.show(state: state)
                     } label: {
@@ -173,7 +175,7 @@ struct SettingsView: View {
     }
 
     private func extra(_ get: @escaping () -> Bool, _ set: @escaping (Bool) -> Void) -> Binding<Bool> {
-        Binding(get: get, set: { state.objectWillChange.send(); set($0) })
+        Binding(get: get, set: { state.objectWillChange.send(); set($0); state.localChanged() })
     }
 
     var body: some View {
@@ -225,9 +227,16 @@ struct SettingsView: View {
                         Toggle("", isOn: extra({ RaynaSounds.shared.enabled }, { RaynaSounds.shared.enabled = $0; if $0 { RaynaSounds.shared.play(.splash) } }))
                             .labelsHidden().toggleStyle(.switch)
                     }
+                    BrandRow(symbol: "sparkles.rectangle.stack.fill", tint: RaynaBrand.aqua, title: "Show splash on launch") {
+                        Toggle("", isOn: extra({ SplashWindowController.enabled }, { SplashWindowController.enabled = $0 })).labelsHidden().toggleStyle(.switch)
+                    }
                     BrandRow(symbol: "power", tint: .green, title: "Launch at login") {
                         Toggle("", isOn: Binding(get: { state.launchAtLogin }, set: { state.setLaunchAtLogin($0) }))
                             .labelsHidden().toggleStyle(.switch)
+                    }
+                    if let sync = RaynaCloudSync.shared {
+                        Divider()
+                        RaynaSyncSettingsRow(sync: sync).toggleStyle(.switch)
                     }
                     Divider()
                     Button { WelcomeWindowController.shared.show(state: state) } label: {

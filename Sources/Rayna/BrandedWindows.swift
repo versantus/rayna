@@ -178,7 +178,10 @@ final class WelcomeWindowController {
 
     func showIfFirstLaunch(state: AppState) {
         if CommandLine.arguments.contains("--reset-welcome") { UserDefaults.standard.removeObject(forKey: Self.seenKey) }
-        guard !Self.hasSeen else { return }
+        guard !Self.hasSeen else {
+            if SplashWindowController.enabled || CommandLine.arguments.contains("--show-splash") { SplashWindowController.shared.show() }
+            return
+        }
         show(state: state)
     }
 
@@ -191,5 +194,73 @@ final class WelcomeWindowController {
             window = RaynaBrand.makeWindow(title: "Welcome to Rayna", root: root)
         }
         RaynaBrand.present(window)
+    }
+}
+
+// MARK: - Launch splash (every launch except the first, when Welcome shows)
+
+struct SplashView: View {
+    var onTap: () -> Void
+    @State private var rise = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        ZStack {
+            LinearGradient(colors: [RaynaBrand.aqua.opacity(0.35), Color.white.opacity(0.95)], startPoint: .bottom, endPoint: .top)
+            VStack(spacing: 8) {
+                RaynaView(progress: 0.8, size: 120)
+                    .frame(width: 120, height: 120)
+                    .offset(y: reduceMotion ? 0 : (rise ? -4 : 6))
+                Text("Rayna").font(.system(size: 30, weight: .bold, design: .rounded)).foregroundColor(RaynaBrand.blue)
+                Text("Sip, sip, hooray!").font(.system(size: 13)).foregroundColor(.secondary)
+            }
+            .padding(.bottom, 30)
+            VStack { Spacer(); WaterBackground(progress: 0.55).frame(height: 90) }
+        }
+        .frame(width: 300, height: 300)
+        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).stroke(RaynaBrand.aqua.opacity(0.4), lineWidth: 1))
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onTap)
+        .onAppear { if !reduceMotion { withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) { rise = true } } }
+    }
+}
+
+final class SplashWindowController {
+    static let shared = SplashWindowController()
+    static let enabledKey = "showSplash"
+    private var window: NSWindow?
+
+    static var enabled: Bool {
+        get { UserDefaults.standard.object(forKey: enabledKey) as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: enabledKey) }
+    }
+
+    func show(duration: TimeInterval = 1.8) {
+        guard window == nil else { return }
+        let host = NSHostingController(rootView: SplashView(onTap: { [weak self] in self?.dismiss() }))
+        let w = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 300, height: 300), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        w.contentViewController = host
+        w.setContentSize(NSSize(width: 300, height: 300))
+        w.isOpaque = false
+        w.backgroundColor = .clear
+        w.hasShadow = true
+        w.level = .floating
+        w.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        w.isReleasedWhenClosed = false
+        w.center()
+        window = w
+        NSApp.activate(ignoringOtherApps: true)
+        w.alphaValue = 0
+        w.orderFrontRegardless()
+        NSAnimationContext.runAnimationGroup { $0.duration = 0.25; w.animator().alphaValue = 1 }
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in self?.dismiss() }
+    }
+
+    func dismiss() {
+        guard let w = window else { return }
+        window = nil
+        let reduce = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        NSAnimationContext.runAnimationGroup({ $0.duration = reduce ? 0.1 : 0.45; w.animator().alphaValue = 0 }) { w.orderOut(nil) }
     }
 }

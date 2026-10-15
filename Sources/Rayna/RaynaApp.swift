@@ -11,8 +11,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func application(_ application: NSApplication, didReceiveRemoteNotification userInfo: [String: Any]) {
+        Task { @MainActor in
+            await PodService.shared.handlePush()
+            await RaynaCloudSync.shared?.handlePush()
+        }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        RaynaCloudSync.configure(defaults: .standard) { AppState.shared.reloadFromDefaults() }
+        NSApp.registerForRemoteNotifications()
+        RaynaCloudSync.shared.syncNow()
+        // Fallback when a push is missed (e.g. after sleep): sync every 5 minutes.
+        Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { _ in Task { @MainActor in RaynaCloudSync.shared?.syncNow() } }
         RaynaFrames.preloadForLaunch(progress: AppState.shared.progress)
         DispatchQueue.main.async { NotificationManager.shared.setUp() }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { WelcomeWindowController.shared.showIfFirstLaunch(state: AppState.shared) }

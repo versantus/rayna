@@ -174,6 +174,16 @@ final class AppModel: ObservableObject {
     }
 
     func afterChange() {
+        Task { @MainActor in RaynaCloudSync.shared?.syncSoon() }
+        publishToPod()
+        WatchSync.shared.push()
+        LiveActivityManager.sync(store: store)
+        WidgetCenter.shared.reloadAllTimelines()
+        if !demoMode { ReminderScheduler.reschedule() }
+    }
+
+    /// After iCloud sync applied changes from another device.
+    func afterRemoteChange() {
         publishToPod()
         WatchSync.shared.push()
         LiveActivityManager.sync(store: store)
