@@ -3,12 +3,64 @@ import Foundation
 
 // MARK: - Unlocks ("Rayna evolves")
 
-/// Streak-based unlocks. Drawn in code on top of the Higgsfield frames (see RaynaAccessories).
+/// Unlocks. Streak badges are drawn in code (see RaynaAccessories). Over-achiever badges use an SF Symbol
+/// stand-in until bespoke art exists; the list of that art is in docs/V1.1-NOTES.md.
 public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
+    /// How a badge is earned. Streak badges are the only ones `noteStreak` awards.
+    public enum Rule: Equatable {
+        case streakDays(Int)
+        case dayPercent(Int)
+        case exceedStreak(Int)
+        case personalBest
+        case podOver
+    }
+
     case bubbles, headband, medal, baby
+    /// 125% / 150% / 200% of today's goal.
+    case surge, tide, flood
+    /// Consecutive days strictly over the goal.
+    case over3, over7, over30
+    case personalBest
+    /// Everyone in the pod beat their own goal today.
+    case podWave
+
     public var id: String { rawValue }
+    public var rule: Rule {
+        switch self {
+        case .bubbles: return .streakDays(3)
+        case .headband: return .streakDays(7)
+        case .medal: return .streakDays(14)
+        case .baby: return .streakDays(30)
+        case .surge: return .dayPercent(125)
+        case .tide: return .dayPercent(150)
+        case .flood: return .dayPercent(200)
+        case .over3: return .exceedStreak(3)
+        case .over7: return .exceedStreak(7)
+        case .over30: return .exceedStreak(30)
+        case .personalBest: return .personalBest
+        case .podWave: return .podOver
+        }
+    }
+    /// Days threshold for streak-style badges. Zero for badges that are not a day count.
     public var days: Int {
-        switch self { case .bubbles: return 3; case .headband: return 7; case .medal: return 14; case .baby: return 30 }
+        switch rule {
+        case .streakDays(let n), .exceedStreak(let n): return n
+        default: return 0
+        }
+    }
+    /// SF Symbol stand-in. Nil for the original drawn accessories.
+    public var symbolName: String? {
+        switch self {
+        case .bubbles, .headband, .medal, .baby: return nil
+        case .surge: return "bolt.fill"
+        case .tide: return "drop.fill"
+        case .flood: return "sparkles"
+        case .over3: return "flame"
+        case .over7: return "flame.fill"
+        case .over30: return "crown.fill"
+        case .personalBest: return "trophy.fill"
+        case .podWave: return "person.3.fill"
+        }
     }
     public var title: String {
         switch self {
@@ -16,10 +68,31 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
         case .headband: return "Run-day headband"
         case .medal: return "Race medal"
         case .baby: return "Baby ray buddy"
+        case .surge: return "Ripple"
+        case .tide: return "Spring tide"
+        case .flood: return "Flood tide"
+        case .over3: return "Extra mile"
+        case .over7: return "Week of extra"
+        case .over30: return "Month of extra"
+        case .personalBest: return "Personal best"
+        case .podWave: return "Pod wave"
         }
     }
     public var emoji: String {
-        switch self { case .bubbles: return "🫧"; case .headband: return "🎽"; case .medal: return "🏅"; case .baby: return "🐣" }
+        switch self {
+        case .bubbles: return "🫧"
+        case .headband: return "🎽"
+        case .medal: return "🏅"
+        case .baby: return "🐣"
+        case .surge: return "⚡️"
+        case .tide: return "💧"
+        case .flood: return "✨"
+        case .over3: return "🔥"
+        case .over7: return "🔥"
+        case .over30: return "👑"
+        case .personalBest: return "🏆"
+        case .podWave: return "🌊"
+        }
     }
     public var blurb: String {
         switch self {
@@ -27,6 +100,28 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
         case .headband: return "A whole week. Rayna's got her running headband on."
         case .medal: return "Two weeks of goals. That's medal-worthy."
         case .baby: return "Thirty days! A baby ray has joined the swim."
+        case .surge: return "125% of your goal in a day. Rayna's riding a ripple."
+        case .tide: return "150% today. That's a spring tide."
+        case .flood: return "Double your goal. Flood tide! Rayna is delighted."
+        case .over3: return "Three days in a row over your goal."
+        case .over7: return "A whole week of beating your goal."
+        case .over30: return "Thirty days over goal. That's legendary."
+        case .personalBest: return "Your biggest drinking day yet."
+        case .podWave: return "Everyone in the pod beat their goal today."
+        }
+    }
+    public func lockedHint(streak: Int, bestStreak: Int) -> String {
+        switch rule {
+        case .streakDays(let d):
+            return "\(d)-day streak to unlock · \(max(0, d - max(streak, bestStreak))) to go"
+        case .dayPercent(let p):
+            return "Drink \(p)% of your goal in a day"
+        case .exceedStreak(let d):
+            return "Beat your goal \(d) days in a row"
+        case .personalBest:
+            return "Drink more than any day so far"
+        case .podOver:
+            return "Everyone in your pod beats their goal on the same day"
         }
     }
 }
@@ -141,16 +236,76 @@ public struct RaynaExtras {
         var s = swaps; s[RaynaCopy.dayKey(for: now), default: 0] += 1; swaps = s
     }
 
-    /// Call when the streak changes. Returns unlocks earned for the first time (also queued in pendingUnlocks).
+    /// Call when the streak changes. Awards streak badges only (not the over-achiever set).
     @discardableResult
     public func noteStreak(_ streak: Int) -> [RaynaUnlock] {
         if streak > bestStreak { bestStreak = streak }
-        let have = Set(unlocked)
-        let new = RaynaUnlock.allCases.filter { streak >= $0.days && !have.contains($0) }
-        guard !new.isEmpty else { return [] }
-        unlocked = unlocked + new
-        pendingUnlocks = pendingUnlocks + new
-        return new
+        let earned = RaynaUnlock.allCases.filter {
+            if case .streakDays(let days) = $0.rule { return streak >= days }
+            return false
+        }
+        return award(earned)
+    }
+
+    /// Awards percent-of-goal, over-goal streak and personal-best badges from today's total.
+    /// A day beats the goal only when `ml > goal`. Earlier days are compared with this same goal
+    /// (history stores millilitres, not the goal that day). The first logged day is not a personal best.
+    @discardableResult
+    public func noteIntake(ml: Int, goal: Int, now: Date = Date()) -> [RaynaUnlock] {
+        guard goal > 0, ml > 0 else { return [] }
+        var earned: [RaynaUnlock] = []
+        let percent = ml * 100 / goal
+        let over = exceedStreak(goal: goal, now: now)
+        for badge in RaynaUnlock.allCases {
+            switch badge.rule {
+            case .dayPercent(let need) where percent >= need: earned.append(badge)
+            case .exceedStreak(let days) where over >= days: earned.append(badge)
+            case .personalBest where isPersonalBest(ml: ml, now: now): earned.append(badge)
+            default: break
+            }
+        }
+        return award(earned)
+    }
+
+    /// Awards the pod badge once, when every member has beaten their own goal today.
+    @discardableResult
+    public func notePodOverAchieved(_ over: Bool) -> [RaynaUnlock] {
+        guard over else { return [] }
+        return award(RaynaUnlock.allCases.filter { if case .podOver = $0.rule { return true }; return false })
+    }
+
+    /// Consecutive days with `ml > goal`, ending today. Today must itself be over; a streak does not
+    /// carry through a morning before today's extra glass.
+    public func exceedStreak(goal: Int, now: Date = Date()) -> Int {
+        guard goal > 0 else { return 0 }
+        let cal = Calendar.current
+        let h = history
+        var day = now
+        var n = 0
+        while n < 60 {
+            if (h[RaynaCopy.dayKey(for: day)] ?? 0) <= goal { break }
+            n += 1
+            guard let prev = cal.date(byAdding: .day, value: -1, to: day) else { break }
+            day = prev
+        }
+        return n
+    }
+
+    /// True when today is strictly above every earlier day, and at least one earlier day was logged.
+    public func isPersonalBest(ml: Int, now: Date = Date()) -> Bool {
+        let today = RaynaCopy.dayKey(for: now)
+        let prev = history.filter { $0.key != today }.values.max() ?? 0
+        return prev > 0 && ml > prev
+    }
+
+    @discardableResult
+    private func award(_ candidates: [RaynaUnlock]) -> [RaynaUnlock] {
+        var seen = Set(unlocked)
+        let fresh = candidates.filter { seen.insert($0).inserted }
+        guard !fresh.isEmpty else { return [] }
+        unlocked = unlocked + fresh
+        pendingUnlocks = pendingUnlocks + fresh
+        return fresh
     }
     public func takePendingUnlocks() -> [RaynaUnlock] {
         let p = pendingUnlocks; if !p.isEmpty { pendingUnlocks = [] }; return p

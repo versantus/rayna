@@ -61,7 +61,9 @@ final class AppModel: ObservableObject {
     func refresh(wiggle: Bool = false) {
         store.rolloverIfNeeded()
         if !demoMode {
-            HealthManager.shared.applyRunDay(store: store) { applied in if applied { self.objectWillChange.send(); self.afterChange() } }
+            HealthManager.shared.applyRunDay(store: store) { applied in
+                if applied { self.objectWillChange.send(); self.afterChange(); self.checkUnlocks() }
+            }
         }
         checkUnlocks()
         if wiggle { wiggleAt = Date(); if !demoMode { RaynaSounds.shared.play(.bubbles) } }
@@ -107,9 +109,11 @@ final class AppModel: ObservableObject {
     func offerShare(_ kind: RaynaShareKind) { share = shareInfo(kind) }
 
     func checkUnlocks() {
-        if unlockBanner == nil, let u = store.extras.takePendingUnlocks().last {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { self.unlockBanner = u }
-        }
+        guard unlockBanner == nil else { return }
+        let pending = store.extras.takePendingUnlocks()
+        let streak = pending.last { if case .streakDays = $0.rule { return true }; return false }
+        guard let u = streak ?? pending.last else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { self.unlockBanner = u }
     }
 
     /// Evening challenge: "I swapped a fizzy drink for water" = a swap + a glass.
@@ -162,7 +166,7 @@ final class AppModel: ObservableObject {
 
     func binding<T>(_ kp: ReferenceWritableKeyPath<RaynaStore, T>) -> Binding<T> {
         Binding(get: { self.store[keyPath: kp] },
-                set: { self.objectWillChange.send(); self.store[keyPath: kp] = $0; self.afterChange() })
+                set: { self.objectWillChange.send(); self.store[keyPath: kp] = $0; self.afterChange(); self.checkUnlocks() })
     }
 
     func publishToPod() {

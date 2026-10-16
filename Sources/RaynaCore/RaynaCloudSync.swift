@@ -16,7 +16,10 @@ public struct SyncLocalDefaults {
         let today = RaynaCopy.dayKey(for: now)
         let isToday = d.string(forKey: "dayKey") == today
         var settings: [String: Int] = [:]
-        for k in Self.intSettings + Self.boolSettings { settings[k] = d.integer(forKey: k) }
+        for k in Self.intSettings + Self.boolSettings {
+            let v = d.integer(forKey: k)
+            settings[k] = k == "glassML" ? GlassSize.sanitize(v) : v
+        }
         var s = SyncLocalSnapshot(
             today: today,
             todayML: isToday ? d.integer(forKey: "totalML") : 0,
@@ -51,7 +54,9 @@ public struct SyncLocalDefaults {
         }
         if s.swaps != old.swaps { d.set(s.swaps, forKey: "swaps") }
         for (k, v) in s.settings where old.settings[k] != v {
-            if Self.boolSettings.contains(k) { d.set(v != 0, forKey: k) } else { d.set(v, forKey: k) }
+            if Self.boolSettings.contains(k) { d.set(v != 0, forKey: k) }
+            else if k == "glassML" { d.set(GlassSize.sanitize(v), forKey: k) }
+            else { d.set(v, forKey: k) }
         }
         if s.streak != old.streak { d.set(s.streak, forKey: "streak") }
         if s.lastGoalDay != old.lastGoalDay { d.set(s.lastGoalDay, forKey: "lastGoalDay") }

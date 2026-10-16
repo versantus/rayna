@@ -11,7 +11,13 @@ final class AppState: ObservableObject {
     @Published var log: [Date] { didSet { d.set(log, forKey: "log") } }
     @Published var runDay: Bool { didSet { d.set(runDay, forKey: "runDay"); localChanged(); checkGoal() } }
     @Published var goalML: Int { didSet { d.set(goalML, forKey: "goalML"); localChanged(); checkGoal() } }
-    @Published var glassML: Int { didSet { d.set(glassML, forKey: "glassML"); localChanged() } }
+    @Published var glassML: Int {
+        didSet {
+            let clean = GlassSize.sanitize(glassML)
+            if clean != glassML { glassML = clean; return }
+            d.set(clean, forKey: "glassML"); localChanged()
+        }
+    }
     @Published var intervalMin: Int { didSet { d.set(intervalMin, forKey: "intervalMin"); NotificationManager.shared.resetSchedule() } }
     @Published var quietStartMin: Int { didSet { d.set(quietStartMin, forKey: "quietStartMin"); localChanged() } }
     @Published var quietEndMin: Int { didSet { d.set(quietEndMin, forKey: "quietEndMin"); localChanged() } }
@@ -62,7 +68,10 @@ final class AppState: ObservableObject {
         log = (d.array(forKey: "log") as? [Date]) ?? []
         runDay = d.bool(forKey: "runDay")
         goalML = d.integer(forKey: "goalML")
-        glassML = d.integer(forKey: "glassML")
+        let rawGlass = d.integer(forKey: "glassML")
+        let cleanGlass = GlassSize.sanitize(rawGlass)
+        if cleanGlass != rawGlass { d.set(cleanGlass, forKey: "glassML") }
+        glassML = cleanGlass
         intervalMin = min(60, max(45, d.integer(forKey: "intervalMin")))
         quietStartMin = d.integer(forKey: "quietStartMin")
         quietEndMin = d.integer(forKey: "quietEndMin")
@@ -156,18 +165,28 @@ final class AppState: ObservableObject {
     }
 
     private func checkGoal() {
-        guard progress >= 1 else { return }
-        let today = AppState.key(for: Date())
-        if lastGoalDay != today {
-            streak = (lastGoalDay == AppState.yesterdayKey) ? streak + 1 : 1
-            lastGoalDay = today
-            goalDays = goalDays + [today]
-            celebrate = true
-            if let u = extras.noteStreak(streak).last {
-                extras.pendingUnlocks = []
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.unlockBanner = u }
+        if progress >= 1 {
+            let today = AppState.key(for: Date())
+            if lastGoalDay != today {
+                streak = (lastGoalDay == AppState.yesterdayKey) ? streak + 1 : 1
+                lastGoalDay = today
+                goalDays = goalDays + [today]
+                celebrate = true
+                extras.noteStreak(streak)
             }
         }
+        celebrateNewUnlocks()
+    }
+
+    /// Shows one new badge. Streak badges win over an over-achiever badge earned on the same glass.
+    private func celebrateNewUnlocks() {
+        let streakPending = extras.pendingUnlocks
+        let intake = extras.noteIntake(ml: totalML, goal: effectiveGoal)
+        guard unlockBanner == nil else { extras.pendingUnlocks = []; return }
+        let streak = streakPending.last { if case .streakDays = $0.rule { return true }; return false }
+        guard let u = streak ?? intake.last ?? extras.pendingUnlocks.last else { return }
+        extras.pendingUnlocks = []
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.unlockBanner = u }
     }
 
     func rolloverIfNeeded() {

@@ -116,6 +116,7 @@ struct ContentView: View {
         VStack(spacing: 16) {
             amount.padding(.top, 8)
             buttons
+            glassSizeRow
             if !model.kidMode { runDayToggle }
             if pod.status == .inPod && !pod.members.isEmpty { podCard }
             if model.showSwap { swapCard }
@@ -167,6 +168,7 @@ struct ContentView: View {
             if pod.status == .inPod && !pod.members.isEmpty { podCard }
             if model.showSwap { swapCard }
             buttons
+            glassSizeRow
             if !model.kidMode { runDayToggle }
         }
         .padding(.horizontal, 22)
@@ -284,8 +286,9 @@ struct ContentView: View {
     private var buttons: some View {
         HStack(spacing: 12) {
             Button { model.addGlass() } label: {
-                Label(model.kidMode ? "+1 cup" : "+1 glass", systemImage: "drop.fill")
+                Label(model.kidMode ? "+1 cup" : "+1 glass · \(model.store.glassML) ml", systemImage: "drop.fill")
                     .font(.system(.title2, design: .rounded, weight: .bold))
+                    .lineLimit(1).minimumScaleFactor(0.7)
                     .frame(maxWidth: .infinity).padding(.vertical, compact ? 12 : 16)
             }
             .buttonStyle(.borderedProminent)
@@ -298,6 +301,12 @@ struct ContentView: View {
             .disabled(model.totalML == 0)
             .accessibilityLabel("Undo last glass")
         }
+    }
+
+    private var glassSizeRow: some View {
+        GlassSizeQuickAdd(glassML: model.binding(\.glassML))
+            .foregroundStyle(ink)
+            .padding(.horizontal, 4)
     }
 
     /// Compact "Your pod" summary (only when in a pod). Tap opens the full pod screen.

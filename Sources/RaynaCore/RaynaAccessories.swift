@@ -8,6 +8,25 @@ public struct RaynaAccessories: View {
     public init(unlocks: Set<RaynaUnlock>, date: Date = Date()) { self.unlocks = unlocks; self.date = date }
 
     public var body: some View {
+        ZStack {
+            drawn
+            // One badge at a time (collection cell, celebration). The live ray keeps the drawn streak set only.
+            if unlocks.count == 1, let name = unlocks.first?.symbolName {
+                Image(systemName: name)
+                    .font(.system(size: 22, weight: .bold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color(red: 0.1, green: 0.45, blue: 0.75))
+                    .padding(5)
+                    .background(Circle().fill(Color.white.opacity(0.9)))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                    .padding(6)
+                    .accessibilityHidden(true)
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    private var drawn: some View {
         Canvas { ctx, size in
             let s = min(size.width, size.height)
             let ox = (size.width - s) / 2, oy = (size.height - s) / 2
@@ -131,7 +150,7 @@ public struct RaynaJourneyView: View {
                         }
                         .frame(height: 96)
                         Text("\(u.emoji) \(u.title)").font(.system(.subheadline, design: .rounded, weight: .semibold))
-                        Text(got ? u.blurb : "\(u.days)-day streak to unlock · \(max(0, u.days - max(streak, extras.bestStreak))) to go")
+                        Text(got ? u.blurb : u.lockedHint(streak: streak, bestStreak: extras.bestStreak))
                             .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
                     }
                     .padding(10).frame(maxWidth: .infinity)

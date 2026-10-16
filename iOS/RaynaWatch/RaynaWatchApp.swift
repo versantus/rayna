@@ -95,7 +95,8 @@ struct WatchHome: View {
             Text(String(format: "%.2f / %.1f L", Double(model.ml) / 1000, Double(model.goal) / 1000))
                 .font(.system(.footnote, design: .rounded, weight: .bold))
             Button { model.addGlass() } label: {
-                Label("+1 glass", systemImage: "drop.fill").font(.system(.headline, design: .rounded))
+                Label("+\(model.glassML) ml", systemImage: "drop.fill").font(.system(.headline, design: .rounded))
+                    .lineLimit(1).minimumScaleFactor(0.6)
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)

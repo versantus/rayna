@@ -65,6 +65,8 @@ struct ContentView: View {
                     }
                 }
 
+                GlassSizeQuickAdd(glassML: $state.glassML)
+
                 if state.showSwap {
                     Button { state.logSwap() } label: {
                         HStack(spacing: 6) {
@@ -190,8 +192,10 @@ struct SettingsView: View {
                             Stepper("", value: $state.goalML, in: 1000...5000, step: 250).labelsHidden()
                         }
                         BrandRow(symbol: "cup.and.saucer.fill", tint: .teal, title: "Glass size", detail: "\(state.glassML) ml") {
-                            Stepper("", value: $state.glassML, in: 100...750, step: 50).labelsHidden()
+                            MacGlassStepper(glassML: $state.glassML)
                         }
+                        GlassSizeCustomField(glassML: $state.glassML)
+                            .padding(.horizontal, 4)
                     }
                     BrandCard(title: "Reminders", symbol: "bell.badge.fill", tint: .orange) {
                         BrandRow(symbol: "timer", tint: .orange, title: "Remind every", detail: "\(state.intervalMin) min") {
@@ -247,7 +251,7 @@ struct SettingsView: View {
             Spacer(minLength: 60)
         }
         .padding(.horizontal, 22).padding(.top, 34)
-        .frame(width: 700, height: 600)
+        .frame(width: 700, height: 680)
         .raynaBackdrop(waveHeight: 70)
     }
 }

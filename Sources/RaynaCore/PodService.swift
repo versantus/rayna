@@ -48,6 +48,13 @@ public final class PodService: ObservableObject {
     @Published public private(set) var myID = ""
     @Published public var lastError: String?
     @Published public private(set) var isOwner = false
+    /// Named invites that have not been accepted yet. Accepted people show up as member tiles instead.
+    @Published public private(set) var pendingInvites: [PodPendingInvite] = []
+    /// Presents the system share sheet for the existing CKShare (iOS UICloudSharingController, Mac cloud sharing).
+    public var presentShare: (@MainActor (CKShare) -> Void)?
+    /// Called after a roster refresh so the app can award the pod-wide badge from local prefs.
+    public var onRoster: (@MainActor ([PodMember]) -> Void)?
+    private var currentShare: CKShare?
 
     private let d = UserDefaults.standard
     private lazy var container = CKContainer(identifier: PodService.containerID)
@@ -146,6 +153,7 @@ public final class PodService: ObservableObject {
         share.publicPermission = .readWrite
         let me = memberRecord(zone: z, glasses: 0, ml: 0, goal: 2500, streak: 0)
         try await save([pod, share, me], in: container.privateCloudDatabase)
+        currentShare = share
         shareURL = share.url
         d.set(share.url?.absoluteString, forKey: "podShareURL")
         d.set(name, forKey: "podName")
@@ -177,7 +185,8 @@ public final class PodService: ObservableObject {
     }
 
     private func resetLocal() {
-        zoneOwner = nil; ownerFlag = false; members = []; shareURL = nil; podName = ""; podStreak = 0
+        zoneOwner = nil; ownerFlag = false; members = []; pendingInvites = []; currentShare = nil
+        shareURL = nil; podName = ""; podStreak = 0
         isOwner = false; status = .noPod
     }
 
@@ -241,6 +250,7 @@ public final class PodService: ObservableObject {
             zoneOwner = metadata.share.recordID.zoneID.ownerName
             ownerFlag = false
             isOwner = false
+            currentShare = metadata.share
             shareURL = metadata.share.url
             status = .inPod
             await subscribe()
@@ -292,16 +302,83 @@ public final class PodService: ObservableObject {
                 d.set(podName, forKey: "podName")
                 podStreak = pod["podStreak"] as? Int ?? 0
             }
-            if shareURL == nil, let share = recs.first(where: { $0 is CKShare }) as? CKShare { shareURL = share.url }
+            if let share = recs.first(where: { $0 is CKShare }) as? CKShare {
+                currentShare = share
+                if let url = share.url { shareURL = url }
+                pendingInvites = invites(from: share)
+            } else {
+                currentShare = nil
+                pendingInvites = []
+            }
             members = recs.filter { $0.recordType == "Member" }.map { r in
                 PodMember(id: r["userID"] as? String ?? r.recordID.recordName, name: r["name"] as? String ?? "?",
                           glasses: r["glasses"] as? Int ?? 0, ml: r["ml"] as? Int ?? 0, goal: r["goal"] as? Int ?? 2500,
                           streak: r["streak"] as? Int ?? 0, updated: r["updated"] as? Date ?? .distantPast,
                           isKid: (r["isKid"] as? Int ?? 0) == 1)
             }.sorted { $0.id == myID ? true : ($1.id == myID ? false : $0.name < $1.name) }
+            onRoster?(members)
             await updatePodStreak()
             await checkNudges(in: recs)
         } catch { lastError = Self.friendly(error) }
+    }
+
+    /// The share to hand to UICloudSharingController / NSSharingService, if we have fetched it.
+    public func shareForPresentation() -> CKShare? { currentShare }
+
+    private func invites(from share: CKShare) -> [PodPendingInvite] {
+        let people = share.participants.map { p -> InvitePerson in
+            let formatted = p.userIdentity.nameComponents.map {
+                PersonNameComponentsFormatter.localizedString(from: $0, style: .default, options: [])
+            }
+            let recordName = p.userIdentity.userRecordID?.recordName
+            return InvitePerson(
+                key: PodInviteList.participantKey(userRecordName: recordName,
+                                                  email: p.userIdentity.lookupInfo?.emailAddress,
+                                                  phone: p.userIdentity.lookupInfo?.phoneNumber),
+                name: PodInviteList.displayName(formattedName: formatted,
+                                                email: p.userIdentity.lookupInfo?.emailAddress,
+                                                phone: p.userIdentity.lookupInfo?.phoneNumber),
+                pending: p.acceptanceStatus == .pending && p.role != .owner,
+                isCurrentUser: recordName != nil && recordName == myID)
+        }
+        return PodInviteList.pending(people)
+    }
+
+    /// Owner: drop a pending participant from the share. Confirmed by the caller.
+    public func cancelInvite(id: String) async {
+        guard isOwner else { lastError = "Only the pod owner can cancel an invite."; return }
+        guard zoneID != nil, let shareID = currentShare?.recordID else {
+            pendingInvites.removeAll { $0.id == id }
+            return
+        }
+        do {
+            guard let share = try await db.record(for: shareID) as? CKShare else {
+                lastError = "That invite has already been accepted or removed."
+                return
+            }
+            guard let participant = participant(matching: id, in: share) else {
+                lastError = "That invite has already been accepted or removed."
+                await fetch()
+                return
+            }
+            share.removeParticipant(participant)
+            try await save([share], in: db)
+            await fetch()
+        } catch {
+            lastError = Self.friendly(error)
+        }
+    }
+
+    /// Match a tile id back to a pending participant, in the same order the tiles were built.
+    private func participant(matching id: String, in share: CKShare) -> CKShare.Participant? {
+        let waiting = share.participants.filter { $0.acceptanceStatus == .pending && $0.role != .owner && !isMe($0) }
+        guard let idx = invites(from: share).firstIndex(where: { $0.id == id }), waiting.indices.contains(idx) else { return nil }
+        return waiting[idx]
+    }
+
+    private func isMe(_ p: CKShare.Participant) -> Bool {
+        guard !myID.isEmpty, let id = p.userIdentity.userRecordID?.recordName else { return false }
+        return id == myID
     }
 
     /// Pod streak: +1 for each day everyone hits their goal.
@@ -387,6 +464,8 @@ public final class PodService: ObservableObject {
             PodMember(id: "b", name: "Priya", glasses: 3, ml: 600, goal: 1500, streak: 2, updated: now, isKid: true),
             PodMember(id: "c", name: "Tom", glasses: 11, ml: 2750, goal: 2500, streak: 21, updated: now)
         ]
+        pendingInvites = [PodPendingInvite(id: "email:alex@example.com", name: "Alex")]
+        onRoster?(members)
     }
 }
 
@@ -397,6 +476,9 @@ public struct PodView: View {
     @ObservedObject var pod: PodService
     var onInvite: ((URL) -> Void)?
     @State private var newName = "My pod"
+    @State private var selectedInvite: PodPendingInvite?
+    @State private var showInviteActions = false
+    @State private var confirmCancel = false
     public init(pod: PodService = .shared, onInvite: ((URL) -> Void)? = nil) { self.pod = pod; self.onInvite = onInvite }
 
     public var body: some View {
@@ -422,11 +504,18 @@ public struct PodView: View {
                         Text(pod.podName).font(.system(.title3, design: .rounded, weight: .bold))
                         Text(pod.podStreak > 0 ? "Pod streak: \(pod.podStreak) day\(pod.podStreak == 1 ? "" : "s") 🔥" : "Pod streak starts when everyone hits their goal")
                             .font(.subheadline).foregroundStyle(.secondary)
+                        if !pod.pendingInvites.isEmpty {
+                            Text("\(pod.pendingInvites.count) waiting to join")
+                                .font(.subheadline).foregroundStyle(.secondary)
+                        }
                     }
                     Spacer()
-                    if let url = pod.shareURL {
-                        if let onInvite { Button { onInvite(url) } label: { Label("Invite", systemImage: "person.badge.plus") } }
-                        else { ShareLink(item: url, message: Text("Join my Rayna pod 🌊")) { Label("Invite", systemImage: "person.badge.plus") } }
+                    if pod.shareURL != nil {
+                        if pod.presentShare != nil || onInvite != nil {
+                            Button(action: sendInvite) { Label("Invite", systemImage: "person.badge.plus") }
+                        } else if let url = pod.shareURL {
+                            ShareLink(item: url, message: Text("Join my Rayna pod 🌊")) { Label("Invite", systemImage: "person.badge.plus") }
+                        }
                     }
                 }
                 tank
@@ -441,6 +530,45 @@ public struct PodView: View {
             }
             if let e = pod.lastError { Text(e).font(.footnote).foregroundStyle(.red) }
         }
+        .confirmationDialog(selectedInvite?.name ?? "Invite", isPresented: $showInviteActions, titleVisibility: .visible) {
+            if pod.isOwner {
+                Button("Resend invite") { if let invite = selectedInvite { resend(invite) } }
+                Button("Cancel invite", role: .destructive) { confirmCancel = true }
+            }
+            Button("Close", role: .cancel) { selectedInvite = nil }
+        } message: {
+            Text(pod.isOwner
+                 ? "Waiting to join. Resend the invite, or cancel it."
+                 : "Waiting to join. The pod owner can resend or cancel this invite.")
+        }
+        .alert("Cancel invite?", isPresented: $confirmCancel) {
+            Button("Cancel invite", role: .destructive) {
+                if let id = selectedInvite?.id { Task { await pod.cancelInvite(id: id) } }
+                selectedInvite = nil
+            }
+            Button("Keep invite", role: .cancel) { selectedInvite = nil }
+        } message: {
+            Text("\(selectedInvite?.name ?? "They") will need a new invite to join.")
+        }
+    }
+
+    private func sendInvite() {
+        if let share = pod.shareForPresentation(), let present = pod.presentShare {
+            present(share)
+        } else if let url = pod.shareURL {
+            onInvite?(url)
+        }
+    }
+
+    private func resend(_: PodPendingInvite) {
+        if let share = pod.shareForPresentation(), let present = pod.presentShare {
+            present(share)
+        } else if let url = pod.shareURL {
+            onInvite?(url)
+        } else {
+            pod.lastError = "There's no invite link to resend yet."
+        }
+        selectedInvite = nil
     }
 
     private var tank: some View {
@@ -479,6 +607,39 @@ public struct PodView: View {
                     }
                 }
                 .accessibilityElement(children: .contain)
+            }
+            ForEach(pod.pendingInvites) { invite in
+                Button {
+                    selectedInvite = invite
+                    showInviteActions = true
+                } label: {
+                    VStack(spacing: 6) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 18).fill(Color.gray.opacity(0.16))
+                            RaynaStill(progress: 0.15)
+                                .opacity(0.38)
+                                .saturation(0)
+                                .grayscale(1)
+                                .padding(12)
+                        }
+                        .frame(height: 190)
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                        Text(invite.name)
+                            .font(.system(.body, design: .rounded, weight: .bold))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2).multilineTextAlignment(.center)
+                        Text("Waiting to join")
+                            .font(.subheadline).foregroundStyle(.tertiary)
+                        Color.clear.frame(height: 44)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .opacity(0.85)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(invite.name), waiting to join")
+                .accessibilityHint(pod.isOwner ? "Resend or cancel the invite" : "Hasn't joined yet")
             }
         }
     }

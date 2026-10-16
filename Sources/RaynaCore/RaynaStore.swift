@@ -22,7 +22,10 @@ public final class RaynaStore {
     public var log: [Date] { get { (defaults.array(forKey: "log") as? [Date]) ?? [] } set { defaults.set(newValue, forKey: "log") } }
     public var runDay: Bool { get { defaults.bool(forKey: "runDay") } set { defaults.set(newValue, forKey: "runDay"); checkGoal() } }
     public var goalML: Int { get { defaults.integer(forKey: "goalML") } set { defaults.set(newValue, forKey: "goalML"); checkGoal() } }
-    public var glassML: Int { get { defaults.integer(forKey: "glassML") } set { defaults.set(newValue, forKey: "glassML") } }
+    public var glassML: Int {
+        get { GlassSize.sanitize(defaults.integer(forKey: "glassML")) }
+        set { defaults.set(GlassSize.sanitize(newValue), forKey: "glassML") }
+    }
     public var intervalMin: Int { get { defaults.integer(forKey: "intervalMin") } set { defaults.set(newValue, forKey: "intervalMin") } }
     public var quietStartMin: Int { get { defaults.integer(forKey: "quietStartMin") } set { defaults.set(newValue, forKey: "quietStartMin") } }
     public var quietEndMin: Int { get { defaults.integer(forKey: "quietEndMin") } set { defaults.set(newValue, forKey: "quietEndMin") } }
@@ -80,6 +83,7 @@ public final class RaynaStore {
 
     @discardableResult
     private func checkGoal(now: Date = Date()) -> Bool {
+        extras.noteIntake(ml: totalML, goal: effectiveGoal, now: now)
         guard progress >= 1 else { return false }
         let today = RaynaCopy.dayKey(for: now)
         guard lastGoalDay != today else { return false }

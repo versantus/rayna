@@ -44,8 +44,12 @@ struct SettingsView: View {
                         Text("Goal: \(String(format: "%.2f L", Double(model.store.goalML) / 1000))")
                     }
                     Picker("Glass size", selection: model.binding(\.glassML)) {
-                        ForEach([150, 200, 250, 330, 400, 500], id: \.self) { Text("\($0) ml").tag($0) }
+                        ForEach(GlassSize.presets, id: \.self) { Text("\($0) ml").tag($0) }
+                        if !GlassSize.presets.contains(model.store.glassML) {
+                            Text("Custom · \(model.store.glassML) ml").tag(model.store.glassML)
+                        }
                     }
+                    GlassSizeCustomField(glassML: model.binding(\.glassML))
                     Toggle("Live Activity on run days", isOn: Binding(
                         get: { LiveActivityManager.enabled },
                         set: { model.objectWillChange.send(); LiveActivityManager.enabled = $0; LiveActivityManager.sync(store: model.store) }))

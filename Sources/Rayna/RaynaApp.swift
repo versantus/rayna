@@ -19,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        MacPodInvite.install()
         NSApp.setActivationPolicy(.accessory)
         RaynaCloudSync.configure(defaults: .standard) { AppState.shared.reloadFromDefaults() }
         NSApp.registerForRemoteNotifications()
@@ -88,4 +89,44 @@ enum MenuGlyph {
         img.size = NSSize(width: 18, height: 18)
         return img
     }()
+}
+
+/// Re-presents the pod CKShare. Falls back to the link picker when cloud sharing can't run (for example an ad-hoc build).
+enum MacPodInvite {
+    @MainActor
+    static func install() {
+        let pod = PodService.shared
+        pod.presentShare = { @MainActor share in present(share) }
+        pod.onRoster = { @MainActor members in
+            let state = AppState.shared
+            let fresh = state.extras.notePodOverAchieved(PodAchievement.everyoneBeatGoal(members))
+            guard state.unlockBanner == nil, let u = fresh.last else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { state.unlockBanner = u }
+        }
+    }
+
+    @MainActor
+    static func present(_ share: CKShare) {
+        if let service = NSSharingService(named: .cloudSharing), service.canPerform(withItems: [share]) {
+            service.delegate = MacPodShareDelegate.shared
+            MacPodShareDelegate.shared.hold(service)
+            service.perform(withItems: [share])
+        } else if let url = share.url {
+            MacShare.shareURL(url)
+        }
+    }
+}
+
+final class MacPodShareDelegate: NSObject, NSSharingServiceDelegate {
+    static let shared = MacPodShareDelegate()
+    private var service: NSSharingService?
+    func hold(_ service: NSSharingService) { self.service = service }
+    func sharingService(_ sharingService: NSSharingService, didShare items: [Any]) {
+        service = nil
+        Task { @MainActor in await PodService.shared.fetch() }
+    }
+    func sharingService(_ sharingService: NSSharingService, didFailToShare items: [Any], error: Error) {
+        service = nil
+        Task { @MainActor in PodService.shared.lastError = error.localizedDescription }
+    }
 }

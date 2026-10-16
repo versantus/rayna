@@ -145,8 +145,9 @@ struct WelcomeView: View {
                     Stepper("", value: $state.goalML, in: 1000...5000, step: 250).labelsHidden()
                 }
                 BrandRow(symbol: "cup.and.saucer.fill", tint: .teal, title: "Glass size", detail: "\(state.glassML) ml") {
-                    Stepper("", value: $state.glassML, in: 100...750, step: 50).labelsHidden()
+                    MacGlassStepper(glassML: $state.glassML)
                 }
+                GlassSizeCustomField(glassML: $state.glassML)
                 Divider()
                 BrandRow(symbol: "power", tint: .green, title: "Launch at login") {
                     Toggle("", isOn: Binding(get: { state.launchAtLogin }, set: { state.setLaunchAtLogin($0) }))
@@ -164,7 +165,7 @@ struct WelcomeView: View {
             Spacer(minLength: 70)
         }
         .padding(.horizontal, 28)
-        .frame(width: 480, height: 680)
+        .frame(width: 480, height: 760)
         .raynaBackdrop(waveHeight: 110)
     }
 }
