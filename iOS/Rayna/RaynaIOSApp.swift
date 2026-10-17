@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         #if DEBUG
         MainActor.assumeIsolated { PodService.shared.debugTools = true }
         #endif
+        Task { @MainActor in PodService.shared.testerTools = await PodService.isTestFlight() }
         UNUserNotificationCenter.current().delegate = self
         RaynaFrames.preloadForLaunch(progress: RaynaStore.shared.progress)
         DispatchQueue.global(qos: .utility).async { ReminderScheduler.registerCategories() }

@@ -1,5 +1,6 @@
 import Foundation
 import CloudKit
+import StoreKit
 #if os(macOS)
 import Security
 #endif
@@ -102,6 +103,8 @@ public final class PodService: ObservableObject {
     @Published public private(set) var isOwner = false
     /// Set from Debug app launches. Release builds leave this false, so the sample roster never appears.
     @Published public var debugTools = false
+    /// TestFlight (and Debug) builds: small testing helpers such as resetting today's nudge limits. Never in App Store builds.
+    @Published public var testerTools = false
     /// Sample members and one pending invite, drawn locally. Never saved to the pod zone.
     @Published public private(set) var fakePod = false
     private var fakeMembers: [PodMember] = []
@@ -822,6 +825,21 @@ public final class PodService: ObservableObject {
         } catch { presentCloudError(error) }
     }
 
+    /// Testing: clear today's "3 nudges per person" counts and Sent ticks on this phone, so nudges can be sent again.
+    public func resetNudgeLimitsToday() {
+        let day = RaynaCopy.dayKey(for: Date())
+        for key in d.dictionaryRepresentation().keys where key.hasPrefix("nudges-\(day)-") || key.hasPrefix("nudgeSent-\(day)-") {
+            d.removeObject(forKey: key)
+        }
+        objectWillChange.send()
+    }
+
+    /// True for TestFlight installs (StoreKit's sandbox environment), so testers get the testing helpers.
+    public static func isTestFlight() async -> Bool {
+        guard let result = try? await AppTransaction.shared, case .verified(let t) = result else { return false }
+        return t.environment == .sandbox
+    }
+
     /// When I last nudged this person today, once it had saved to iCloud.
     public func nudgeSent(to memberID: String) -> Date? {
         d.object(forKey: "nudgeSent-\(RaynaCopy.dayKey(for: Date()))-\(memberID)") as? Date
@@ -1068,6 +1086,10 @@ public struct PodView: View {
                     .padding(.top, 8)
                 }
                 PodNameField(pod: pod)
+                if pod.debugTools || pod.testerTools {
+                    Button("Reset today's nudge limits (testing)") { pod.resetNudgeLimitsToday() }
+                        .font(.footnote)
+                }
                 Button(role: .destructive) { Task { await pod.leavePod() } } label: {
                     Label(pod.isOwner ? "End pod" : "Leave pod", systemImage: "xmark.circle")
                         .font(.body.weight(.semibold))

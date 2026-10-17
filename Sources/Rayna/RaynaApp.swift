@@ -37,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #if DEBUG
         MainActor.assumeIsolated { PodService.shared.debugTools = true }
         #endif
+        Task { @MainActor in PodService.shared.testerTools = await PodService.isTestFlight() }
         NSApp.setActivationPolicy(.accessory)
         RaynaCloudSync.configure(defaults: .standard) { AppState.shared.reloadFromDefaults() }
         NSApp.registerForRemoteNotifications()
