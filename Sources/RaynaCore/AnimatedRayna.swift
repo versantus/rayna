@@ -150,6 +150,17 @@ public struct RaynaScript: Equatable {
     public var duration: Double { clips.reduce(0) { $0 + $1.duration } }
 }
 
+/// Size of the live ray in the gap between the quip and the stats.
+/// She aims for 90% of that slot's width, and shrinks only when the slot is shorter than that.
+public enum RaynaStage {
+    public static let widthFraction: CGFloat = 0.90
+
+    public static func side(width: CGFloat, height: CGFloat) -> CGFloat {
+        guard width > 0, height > 0 else { return 0 }
+        return min(width * widthFraction, height)
+    }
+}
+
 /// Animated Rayna: picks a clip by state and plays its frames with TimelineView.
 /// idle-happy (progress ≥ 45%) / idle-thirsty loops, wiggle on +1 glass, a code-driven spin at goal,
 /// or an explicit `script` (nudge panel). Reduce Motion shows the band still.

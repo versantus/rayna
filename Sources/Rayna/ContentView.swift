@@ -17,9 +17,10 @@ struct ContentView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     header
                     quipBubble
-                    RaynaView(progress: state.progress, wiggleAt: wiggleAt, flipAt: flipAt, size: 200, accessories: state.accessories)
+                    RaynaView(progress: state.progress, wiggleAt: wiggleAt, flipAt: flipAt,
+                              size: RaynaStage.side(width: 352, height: 310), accessories: state.accessories)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 210)
+                        .frame(height: RaynaStage.side(width: 352, height: 310))
                     amount
                     if pod.status == .inPod && !pod.visibleMembers.isEmpty { podCard }
                     if state.showSwap { swapCard }
@@ -53,7 +54,7 @@ struct ContentView: View {
                     .scaleEffect(0.9)
             }
         }
-        .frame(width: 360, height: 640)
+        .frame(width: 380, height: 740)
         .sheet(item: $state.factPage) { f in
             RayFactPage(fact: f, onDone: { state.factPage = nil })
                 .frame(width: 420, height: 560)

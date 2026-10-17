@@ -34,6 +34,15 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(GlassSize.sanitize(GlassSize.customTag), 250)
         XCTAssertEqual(RaynaCopy.runDayLabel(bonusML: 500), "Exercise day (+500 ml)")
         XCTAssertEqual(RaynaCopy.exerciseDaySymbol, "dumbbell.fill")
+        XCTAssertEqual(Double(RaynaStage.widthFraction), 0.90, accuracy: 0.001)
+        // iPhone 13 content width after 16pt padding. Height has room, so she takes 90% of that slot (~83% of 390).
+        XCTAssertEqual(Double(RaynaStage.side(width: 358, height: 420)), 358 * 0.90, accuracy: 0.01)
+        XCTAssertGreaterThanOrEqual(Double(RaynaStage.side(width: 358, height: 420)) / 390, 0.80)
+        XCTAssertLessThanOrEqual(Double(RaynaStage.side(width: 358, height: 420)) / 390, 0.90)
+        // A short slot (iPhone SE with large type) shrinks her to the height instead of clipping.
+        XCTAssertEqual(Double(RaynaStage.side(width: 343, height: 180)), 180, accuracy: 0.01)
+        XCTAssertEqual(Double(RaynaStage.side(width: 0, height: 200)), 0, accuracy: 0.01)
+        XCTAssertEqual(Double(RaynaStage.side(width: 200, height: 0)), 0, accuracy: 0.01)
         XCTAssertFalse(RaynaCopy.quip(for: 1).localizedCaseInsensitiveContains("race"))
         XCTAssertFalse(RaynaCopy.reminders.joined(separator: " ").localizedCaseInsensitiveContains("marathon"))
         XCTAssertEqual(RaynaUnlock.headband.title, "Workout headband")

@@ -3,6 +3,7 @@
 All notable changes to Rayna (macOS menu-bar app + iOS app). macOS versions are listed; the iOS app ships as 1.0 (unreleased).
 
 ## Unreleased
+- The main-screen ray fills the space under the quip, up to 90% of that width, and sits down into the water. The quip and the controls are tighter so they don't take her height. The Mac menu-bar panel and the Watch face use the same sizing. The exercise-day toggle on that screen already reads "Exercise day (+500 ml)" with a dumbbell.
 - Status lines: 30 variants for each progress band, plus goal, reminder, exercise-day and kid-mode lines (300 in `QuipLines.swift`). A shuffle bag avoids repeating the line just shown, and some lines follow the time of day. Every line is child-friendly, so kid mode can use the whole catalog. Exercise lines talk about exercise, workouts, moving, playing and swimming.
 - The live ray wears one badge. By default that is the latest one earned. In the collection, tap a badge and choose Wear, or Wear nothing. The choice is `wornBadge` in the existing prefs payload. Tide, flood and the pod wave do not stack on the headband, medal or bubbles. The celebration card shows the badge just earned, and the share card shows the worn one.
 - Debug builds can show sample pod members (not saved to iCloud), a pod debug row (share link, participants, last fetch, subscription) and Refresh pod now. Real two-account steps are in docs/TESTING-PODS.md.

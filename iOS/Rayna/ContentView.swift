@@ -8,7 +8,7 @@ struct ContentView: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.horizontalSizeClass) private var hSize
-    @ScaledMetric(relativeTo: .largeTitle) private var amountSize: CGFloat = 46
+    @ScaledMetric(relativeTo: .largeTitle) private var amountSize: CGFloat = 40
 
     /// Text colour on the water scene: deep navy by day, white in Dark Mode.
     /// Short screens (iPhone SE / mini): tighter spacing.
@@ -37,8 +37,8 @@ struct ContentView: View {
                 } else {
                     // Fits on one screen when it can (SE → Pro Max); scrolls at large accessibility text sizes.
                     ViewThatFits(in: .vertical) {
-                        mainColumn(raynaMin: compact ? 70 : 110, scrolling: false)
-                        ScrollView { mainColumn(raynaMin: 180, scrolling: true) }
+                        mainColumn(scrolling: false)
+                        ScrollView { mainColumn(scrolling: true) }
                             .scrollBounceBehavior(.basedOnSize)
                     }
                     .frame(maxWidth: 600)   // readable width when a regular-width window is still narrow
@@ -92,12 +92,12 @@ struct ContentView: View {
                 VStack(spacing: 16) {
                     quipBubble
                     GeometryReader { g in
-                        let side = min(g.size.width * 0.9, g.size.height / 1.38, 560)
-                        RaynaView(progress: model.progress, wiggleAt: model.wiggleAt, flipAt: model.flipAt, size: side, fullTail: true,
+                        let side = RaynaStage.side(width: g.size.width, height: g.size.height)
+                        RaynaView(progress: model.progress, wiggleAt: model.wiggleAt, flipAt: model.flipAt, size: side,
                                   accessories: model.accessories)
-                            .frame(width: side, height: side * 1.32)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                     }
+                    .layoutPriority(1)
                 }
                 .frame(maxWidth: .infinity)
                 // Controls sit vertically centred beside Rayna; scroll only if they don't fit.
@@ -149,21 +149,11 @@ struct ContentView: View {
     }
 
     @ViewBuilder
-    private func mainColumn(raynaMin: CGFloat, scrolling: Bool) -> some View {
-        VStack(spacing: compact ? 10 : 18) {
+    private func mainColumn(scrolling: Bool) -> some View {
+        VStack(spacing: compact ? 6 : 8) {
             header
             quipBubble
-            if !scrolling { Spacer(minLength: 0) }
-            GeometryReader { geo in
-                let side = min(geo.size.width * 0.86, geo.size.height / 1.32)
-                RaynaView(progress: model.progress, wiggleAt: model.wiggleAt, flipAt: model.flipAt, size: side, fullTail: true,
-                          accessories: model.accessories)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .frame(minHeight: raynaMin, idealHeight: scrolling ? raynaMin : nil)
-            .frame(height: scrolling ? raynaMin * 1.4 : nil)
-            .layoutPriority(-1)   // Rayna gives way so the controls always fit (iPhone SE)
-            if !scrolling { Spacer(minLength: 0) }
+            rayStage(scrolling: scrolling)
             amount
             if pod.status == .inPod && !pod.visibleMembers.isEmpty { podCard }
             if model.showSwap { swapCard }
@@ -171,8 +161,36 @@ struct ContentView: View {
             glassSizeRow
             if !model.kidMode { runDayToggle }
         }
-        .padding(.horizontal, 22)
-        .padding(.bottom, 8)
+        .padding(.horizontal, 16)
+        .padding(.bottom, compact ? 4 : 6)
+    }
+
+    /// The ray fills the gap under the quip. On a normal phone she takes the leftover height, up to 90% of the width.
+    /// At very large type the column scrolls and she stays a square at that same width, so nothing is clipped.
+    @ViewBuilder
+    private func rayStage(scrolling: Bool) -> some View {
+        if scrolling {
+            Color.clear
+                .aspectRatio(1, contentMode: .fit)
+                .overlay {
+                    GeometryReader { geo in
+                        stagedRay(side: RaynaStage.side(width: geo.size.width, height: geo.size.height))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                }
+        } else {
+            GeometryReader { geo in
+                stagedRay(side: RaynaStage.side(width: geo.size.width, height: geo.size.height))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            }
+            .frame(minHeight: compact ? 150 : 200)
+            .layoutPriority(1)
+        }
+    }
+
+    private func stagedRay(side: CGFloat) -> some View {
+        RaynaView(progress: model.progress, wiggleAt: model.wiggleAt, flipAt: model.flipAt, size: side,
+                  accessories: model.accessories)
     }
 
     private var headerButtons: some View {
@@ -195,7 +213,7 @@ struct ContentView: View {
                 }
             }
         }
-        .padding(.top, 8)
+        .padding(.top, compact ? 2 : 4)
     }
 
     private var titleBlock: some View {
@@ -257,9 +275,11 @@ struct ContentView: View {
                 .accessibilityLabel("Share your goal")
             }
         }
-            .font(.system(.title3, design: .rounded, weight: .semibold))
+            .font(.system(.callout, design: .rounded, weight: .semibold))
             .multilineTextAlignment(.center)
-            .padding(.horizontal, 18).padding(.vertical, 14)
+            .lineLimit(typeSize.isAccessibilitySize ? nil : 3)
+            .minimumScaleFactor(0.85)
+            .padding(.horizontal, 14).padding(.vertical, compact ? 6 : 8)
             .frame(maxWidth: .infinity)
             .foregroundStyle(ink)
             .background(bubbleFill, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -287,13 +307,14 @@ struct ContentView: View {
                 Label(RaynaCopy.addGlassLabel(glassML: model.store.glassML, kidMode: model.kidMode), systemImage: "drop.fill")
                     .font(.system(.title2, design: .rounded, weight: .bold))
                     .lineLimit(1).minimumScaleFactor(0.7)
-                    .frame(maxWidth: .infinity).padding(.vertical, compact ? 12 : 16)
+                    .frame(maxWidth: .infinity, minHeight: 44)
             }
             .buttonStyle(.borderedProminent)
             .buttonBorderShape(.capsule)
             Button { model.undo() } label: {
                 Image(systemName: "arrow.uturn.backward")
-                    .font(.system(.title2, weight: .bold)).padding(.vertical, 16).padding(.horizontal, 6)
+                    .font(.system(.title2, weight: .bold))
+                    .frame(minWidth: 44, minHeight: 44)
             }
             .buttonStyle(.bordered).buttonBorderShape(.capsule)
             .disabled(model.totalML == 0)
@@ -368,7 +389,7 @@ struct ContentView: View {
             Label(RaynaCopy.runDayLabel(bonusML: model.store.runBonusML), systemImage: RaynaCopy.exerciseDaySymbol)
                 .font(.system(.body, design: .rounded, weight: .semibold))
         }
-        .padding(.horizontal, 16).padding(.vertical, 10)
+        .padding(.horizontal, 14).padding(.vertical, compact ? 4 : 6)
         .background(.ultraThinMaterial, in: Capsule())
     }
 }

@@ -100,25 +100,31 @@ struct WatchHome: View {
     @EnvironmentObject var model: WatchModel
     @State private var tilt = 0.0
     var body: some View {
-        VStack(spacing: 4) {
-            ZStack {
-                Circle().stroke(Color.white.opacity(0.15), lineWidth: 6)
-                Circle().trim(from: 0, to: model.progress)
-                    .stroke(Color(red: 0.3, green: 0.8, blue: 0.9), style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                Image("band\(raynaBand(model.progress))").resizable().scaledToFit().padding(10)
-                    .rotationEffect(.degrees(tilt))
+        GeometryReader { geo in
+            // Leave room for the litres line and the + button, then give Rayna the rest.
+            let side = RaynaStage.side(width: geo.size.width, height: max(64, geo.size.height - 70))
+            VStack(spacing: 2) {
+                ZStack {
+                    Circle().stroke(Color.white.opacity(0.15), lineWidth: 6)
+                    Circle().trim(from: 0, to: model.progress)
+                        .stroke(Color(red: 0.3, green: 0.8, blue: 0.9), style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                    Image("band\(raynaBand(model.progress))").resizable().scaledToFit().padding(4)
+                        .rotationEffect(.degrees(tilt))
+                }
+                .frame(width: side, height: side)
+                Text(String(format: "%.2f / %.1f L", Double(model.ml) / 1000, Double(model.goal) / 1000))
+                    .font(.system(.footnote, design: .rounded, weight: .bold))
+                    .lineLimit(1).minimumScaleFactor(0.7)
+                Button { model.addGlass() } label: {
+                    Label("+\(model.glassML) ml", systemImage: "drop.fill").font(.system(.headline, design: .rounded))
+                        .lineLimit(1).minimumScaleFactor(0.6)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color(red: 0.1, green: 0.55, blue: 0.85))
             }
-            .frame(height: 96)
-            Text(String(format: "%.2f / %.1f L", Double(model.ml) / 1000, Double(model.goal) / 1000))
-                .font(.system(.footnote, design: .rounded, weight: .bold))
-            Button { model.addGlass() } label: {
-                Label("+\(model.glassML) ml", systemImage: "drop.fill").font(.system(.headline, design: .rounded))
-                    .lineLimit(1).minimumScaleFactor(0.6)
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(Color(red: 0.1, green: 0.55, blue: 0.85))
+            .frame(width: geo.size.width, height: geo.size.height)
         }
         .onChange(of: model.wiggle) { _, _ in
             withAnimation(.spring(response: 0.2, dampingFraction: 0.3)) { tilt = 10 }

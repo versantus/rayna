@@ -30,7 +30,7 @@ struct RaynaComplicationView: View {
                 .gaugeStyle(.accessoryCircularCapacity)
         case .accessoryRectangular:
             HStack {
-                Image("band\(raynaBand(e.progress))").resizable().scaledToFit().frame(width: 36)
+                Image("band\(raynaBand(e.progress))").resizable().scaledToFit().frame(maxWidth: 52, maxHeight: .infinity)
                 VStack(alignment: .leading) {
                     Text(String(format: "%.1f / %.1f L", Double(e.ml) / 1000, Double(e.goal) / 1000)).font(.headline)
                     ProgressView(value: e.progress)
