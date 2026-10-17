@@ -145,7 +145,6 @@ struct WelcomeView: View {
                     Stepper("", value: $state.goalML, in: 1000...5000, step: 250).labelsHidden()
                 }
                 GlassSizePicker(glassML: $state.glassML)
-                GlassSizeCustomField(glassML: $state.glassML)
                 Divider()
                 BrandRow(symbol: "power", tint: .green, title: "Launch at login") {
                     Toggle("", isOn: Binding(get: { state.launchAtLogin }, set: { state.setLaunchAtLogin($0) }))

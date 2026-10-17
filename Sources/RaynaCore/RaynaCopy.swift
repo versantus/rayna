@@ -9,7 +9,7 @@ public enum RaynaCopy {
         (0.55, "Over halfway! Stingrays are happy, and so am I. 😄"),
         (0.75, "Nearly there — tide's coming in! 🌊"),
         (0.9, "One more glass and I do a happy spin…"),
-        (1, "GOAL! Happy spin deployed. You're race-ready! 🎉")
+        (1, "GOAL! Happy spin deployed. You're set for the day! 🎉")
     ]
     /// Simpler words for kid mode.
     public static let kidQuips: [(Double, String)] = [
@@ -30,7 +30,7 @@ public enum RaynaCopy {
     public static let reminderMinutes = [30, 45, 60, 90, 120]
 
     public static let reminders = [
-        "Sip o'clock! Half-marathon legs run on water, not wishes. 💧",
+        "Sip o'clock! A heavy session needs water, not wishes. 💧",
         "Psst. Your stingray is drying out. One glass?",
         "Hydration check! 250 ml and I'll stop flapping. 🌊"
     ]
@@ -71,7 +71,11 @@ public enum RaynaCopy {
         kidMode ? "+1 cup" : "+1 glass · \(glassML) ml"
     }
 
-    public static func runDayLabel(bonusML: Int) -> String { "Run day (+\(bonusML) ml)" }
+    /// SF Symbol for the exercise-day toggle. `dumbbell.fill` is on macOS 13 and iOS 17.
+    public static let exerciseDaySymbol = "dumbbell.fill"
+
+    /// Short toggle. The stored flag stays `runDay`. Longer settings copy says "heavy exercise day".
+    public static func runDayLabel(bonusML: Int) -> String { "Exercise day (+\(bonusML) ml)" }
 
     public static func dayKey(for date: Date) -> String {
         let c = Calendar.current.dateComponents([.year, .month, .day], from: date)

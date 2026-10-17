@@ -7,7 +7,7 @@ import Foundation
 // - Days: glasses are events with ids (union); Undo adds the id to a tombstone set (union), so an undo on
 //   one device removes that exact glass everywhere. Fizzy-drink swaps are a per-device counter (max per device).
 //   Totals that existed before sync was turned on are a "baseline" merged by max (no double counting).
-//   Run day is last-writer-wins with a timestamp; the run bonus and "goal met" merge by max / OR.
+//   The exercise-day flag (`runDay`) is last-writer-wins with a timestamp; the bonus (`runBonusML`) and "goal met" merge by max / OR.
 // - Settings: last-writer-wins per key (ties: larger value).
 // - Profile: goal days and unlocks are unions; best streak and facts shown are max; the current streak
 //   follows the device with the latest goal day (ties: max).

@@ -195,7 +195,7 @@ struct ContentView: View {
 
     private var runDayToggle: some View {
         Toggle(isOn: $state.runDay) {
-            Label(RaynaCopy.runDayLabel(bonusML: state.runBonusML), systemImage: "figure.run")
+            Label(RaynaCopy.runDayLabel(bonusML: state.runBonusML), systemImage: RaynaCopy.exerciseDaySymbol)
                 .font(.system(size: 13, weight: .semibold, design: .rounded))
         }
         .toggleStyle(.switch)
@@ -276,7 +276,6 @@ struct SettingsView: View {
                         Stepper("", value: $state.goalML, in: 1000...5000, step: 250).labelsHidden()
                     }
                     GlassSizePicker(glassML: $state.glassML)
-                    GlassSizeCustomField(glassML: $state.glassML)
                 }
                 BrandCard(title: "Sounds", symbol: "speaker.wave.2.fill", tint: .pink) {
                     BrandRow(symbol: "speaker.wave.2.fill", tint: .pink, title: "Sounds") {

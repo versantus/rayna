@@ -31,7 +31,7 @@ public struct RaynaShareInfo {
     public var subtitle: String {
         switch kind {
         case .goal: return String(format: "%.2f L of %.1f L today", litres, goalL)
-        case .streak: return "Hydration goal hit \(streak) days running"
+        case .streak: return "Hydration goal hit \(streak) days in a row"
         case .unlock(let u): return u.blurb
         case .recap: return String(format: "%.1f L this week · %d-day streak", weekL, streak)
         }

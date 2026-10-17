@@ -74,8 +74,8 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
     public var title: String {
         switch self {
         case .bubbles: return "Bubble trail"
-        case .headband: return "Run-day headband"
-        case .medal: return "Race medal"
+        case .headband: return "Workout headband"
+        case .medal: return "Workout medal"
         case .baby: return "Baby ray buddy"
         case .surge: return "Ripple"
         case .tide: return "Spring tide"
@@ -90,7 +90,7 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
     public var emoji: String {
         switch self {
         case .bubbles: return "🫧"
-        case .headband: return "🎽"
+        case .headband: return "🏋️"
         case .medal: return "🏅"
         case .baby: return "🐣"
         case .surge: return "⚡️"
@@ -106,7 +106,7 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
     public var blurb: String {
         switch self {
         case .bubbles: return "Three days in a row! Rayna leaves a happy bubble trail."
-        case .headband: return "A whole week. Rayna's got her running headband on."
+        case .headband: return "A whole week. Rayna's got her workout headband on."
         case .medal: return "Two weeks of goals. That's medal-worthy."
         case .baby: return "Thirty days! A baby ray has joined the swim."
         case .surge: return "125% of your goal in a day. Rayna's riding a ripple."

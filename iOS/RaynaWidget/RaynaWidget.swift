@@ -194,7 +194,7 @@ struct RaynaLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.bottom) {
                     VStack {
                         ProgressView(value: ctx.state.progress)
-                        Text(String(format: "%.2f / %.1f L · run day", Double(ctx.state.ml) / 1000, Double(ctx.state.goal) / 1000)).font(.caption)
+                        Text(String(format: "%.2f / %.1f L · exercise day", Double(ctx.state.ml) / 1000, Double(ctx.state.goal) / 1000)).font(.caption)
                     }
                 }
             } compactLeading: { Image(systemName: "drop.fill").foregroundStyle(.cyan) }

@@ -34,7 +34,7 @@ FRIENDLY REMINDERS THAT KNOW WHEN TO STOP
 • Optional evening nudge: “Fancy swapping your next fizzy drink for a glass of water?” 🥤➡️💧
 
 RAYNA GROWS WITH YOUR STREAK
-• Unlock a bubble trail (3 days), a run-day headband (7), a race medal (14) and a baby ray buddy (30)
+• Unlock a bubble trail (3 days), a workout headband (7), a workout medal (14) and a baby ray buddy (30)
 • A weekly recap with fun stats (“That's 22% of a bathtub”)
 • Optional evening swap-a-fizzy-drink challenge with its own streak
 
@@ -46,11 +46,11 @@ HYDRATE WITH FRIENDS
 WIDGETS, WATCH AND LIVE ACTIVITY
 • Home Screen and Lock Screen widgets, with “+1 glass” right from the widget
 • Apple Watch app and complications
-• Optional run-day Live Activity on the Lock Screen and Dynamic Island
+• Optional exercise-day Live Activity on the Lock Screen and Dynamic Island
 
-BUILT FOR RUNNERS (AND EVERYONE ELSE)
-• Default goal of 2.5 L, with a one-tap Run day toggle that adds 500 ml
-• Optional Apple Health: runs (including from Garmin or Strava via Health) switch on run day automatically, and glasses can be saved as Dietary Water
+BUILT FOR HEAVY EXERCISE DAYS (AND EVERYONE ELSE)
+• Default goal of 2.5 L, with a one-tap Exercise day toggle that adds 500 ml
+• Optional Apple Health: workouts (including from Garmin or Strava via Health) switch on a heavy exercise day automatically, and glasses can be saved as Dietary Water
 • Set your own goal and glass size
 • Streak dots show how many days in a row you've hit your goal
 
@@ -61,13 +61,13 @@ PRIVATE BY DESIGN
 Rayna also lives in your Mac's menu bar. It's free and open source at rayna-water.netlify.app.
 
 ## Keywords (≤100, comma-separated, no spaces)
-water,drink,hydration,reminder,tracker,habit,health,widget,stingray,running,watch,friends,goal,streak
+water,drink,hydration,reminder,tracker,habit,health,widget,stingray,workout,watch,friends,goal,streak
 
 ## What's New (1.0)
 Rayna's first splash on iPhone! 🌊
 
 ## App Review notes
-No login is needed. Tap “+1 glass” to log water; the gear icon opens Settings. Reminders are local notifications (no server). The Home Screen widget's “+1 glass” button uses an App Intent. All data is stored on the device in an App Group shared with the widget. Optional features: Apple Health (Settings → Apple Health; reads running workouts, writes Dietary Water), Pods (Settings → Friends → Pods; CloudKit sharing, needs iCloud sign-in, no developer server), Apple Watch app (WatchConnectivity), run-day Live Activity (Settings). Demo data for review isn't needed: one device can start a pod and see itself in the tank.
+No login is needed. Tap “+1 glass” to log water; the gear icon opens Settings. Reminders are local notifications (no server). The Home Screen widget's “+1 glass” button uses an App Intent. All data is stored on the device in an App Group shared with the widget. Optional features: Apple Health (Settings → Apple Health; reads today's workouts, writes Dietary Water), Pods (Settings → Friends → Pods; CloudKit sharing, needs iCloud sign-in, no developer server), Apple Watch app (WatchConnectivity), exercise-day Live Activity (Settings). Demo data for review isn't needed: one device can start a pod and see itself in the tank.
 
 ## Age rating
 Answer **None** to every content question (no violence, no mature themes, no gambling, no unrestricted web access, no user-generated content, no medical/treatment information). Result: **4+**. Rayna is general hydration encouragement, not medical advice.
@@ -83,7 +83,7 @@ Answer **None** to every content question (no violence, no mature themes, no gam
 1. Over halfway, happy Rayna (60 %)
 2. Early in the day, droopy Rayna (20 %)
 3. Goal reached, 100 %
-4. Settings (Friends → Pods, goal, glass size, run-day Live Activity, reminders, fizzy-drink swap)
+4. Settings (Friends → Pods, goal, glass size, exercise-day Live Activity, reminders, fizzy-drink swap)
 5. Rayna with unlocks (headband, medal, bubbles, baby ray), the "Your pod" card and the fizzy-drink swap card
 6. Rayna's journey: weekly recap and the unlock collection
 7. Pod: shared tank with friends, nudges and pod streak

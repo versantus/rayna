@@ -4,7 +4,8 @@ All notable changes to Rayna (macOS menu-bar app + iOS app). macOS versions are 
 
 ## Unreleased
 - Pod screen shows pending CKShare invites as faded tiles (name or "Invited", "Waiting to join"). The owner can resend the share sheet or cancel the invite after a confirmation. No new CloudKit fields.
-- Custom glass size: presets stay, and a typed size from 50 to 2,000 ml is saved in `glassML` (already synced on `RaynaPrefs`). +1 glass on iPhone, Mac and Watch uses it.
+- Custom glass size: presets stay, and a typed size from 50 to 2,000 ml is saved in `glassML` (already synced on `RaynaPrefs`). +1 glass on iPhone, Mac and Watch uses it. The picker adds a Custom row; the millilitre field appears only while Custom is selected, and a saved size that is not a preset opens on Custom.
+- Exercise day: the +500 ml boost is labelled "Exercise day (+500 ml)" (longer copy says "heavy exercise day"), with a dumbbell instead of a running figure. Badge names are Workout headband and Workout medal. Stored keys (`runDay`, `runBonusML`, `healthRunDay`, `healthAutoRun`, `liveActivityRunDay`) and unlock ids (`headband`, `medal`) are unchanged. Apple Health counts heavy-exercise workouts, not only runs. Fixes #6.
 - Over-achiever badges: 125/150/200% of a day's goal, 3/7/30-day streaks of beating the goal, a personal-best day, and a pod-wide day where everyone beats their goal. Final art is in the iOS and Mac asset catalogs (`badge-<id>` and `badge-<id>-overlay`); SF Symbols remain only when an asset is missing. Drawing scripts live in `tools/badge-art/`. Debug builds can unlock them with `RAYNA_BADGES` or Settings → Unlock all badges.
 - Mac menu bar matches the iPhone: same glass presets, pod screen, streak dots, reminder intervals, share-card preview, settings order and labels. Kid mode uses the same flag. No new CloudKit fields. Pod nudges stay fixed text. See the parity table in docs/V1.1-NOTES.md.
 

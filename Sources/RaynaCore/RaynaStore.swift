@@ -41,13 +41,13 @@ public final class RaynaStore {
     public var extras: RaynaExtras { RaynaExtras(defaults: defaults) }
 
     // MARK: Derived
-    /// Run-day bonus in ml (500 by default; Health can scale it by workout length).
+    /// Exercise-day bonus in ml (500 by default; Health can scale it). Stored as `runBonusML`.
     public var runBonusML: Int { get { let v = defaults.integer(forKey: "runBonusML"); return v > 0 ? v : 500 } set { defaults.set(newValue, forKey: "runBonusML"); checkGoal() } }
-    /// Day key on which Health auto-applied the run bonus (so a manual "off" isn't overridden again).
+    /// Day key on which Health auto-applied the exercise-day bonus (so a manual "off" isn't overridden again). Key stays `healthRunDay`.
     public var healthRunDay: String { get { defaults.string(forKey: "healthRunDay") ?? "" } set { defaults.set(newValue, forKey: "healthRunDay") } }
     public var healthAutoRun: Bool { get { defaults.bool(forKey: "healthAutoRun") } set { defaults.set(newValue, forKey: "healthAutoRun") } }
     public var healthWriteWater: Bool { get { defaults.bool(forKey: "healthWriteWater") } set { defaults.set(newValue, forKey: "healthWriteWater") } }
-    public var effectiveGoal: Int { goalML + (runDay && !extras.kidMode ? runBonusML : 0) }   // no run day in kid mode
+    public var effectiveGoal: Int { goalML + (runDay && !extras.kidMode ? runBonusML : 0) }   // no exercise day in kid mode
     public var progress: Double { effectiveGoal > 0 ? min(Double(totalML) / Double(effectiveGoal), 1) : 0 }
     public var glasses: Int { glassML > 0 ? totalML / glassML : 0 }
     public var quip: String { RaynaCopy.quip(for: progress) }

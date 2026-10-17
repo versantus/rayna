@@ -455,7 +455,7 @@ public final class PodService: ObservableObject {
 
     // MARK: Demo (screenshots)
     public func loadDemo() {
-        myID = "me"; podName = "Saturday Runners"; podStreak = 4; status = .inPod; isOwner = true
+        myID = "me"; podName = "Saturday Crew"; podStreak = 4; status = .inPod; isOwner = true
         shareURL = URL(string: "https://www.icloud.com/share/demo")
         let now = Date()
         members = [

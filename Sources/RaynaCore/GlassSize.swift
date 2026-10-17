@@ -6,7 +6,10 @@ public enum GlassSize {
     public static let minML = 50
     public static let maxML = 2000
     public static let fallback = 250
+    /// Picker tag for the Custom row. Never stored as `glassML`.
+    public static let customTag = -1
 
+    public static func isPreset(_ ml: Int) -> Bool { presets.contains(ml) }
     public static func isValid(_ ml: Int) -> Bool { (minML...maxML).contains(ml) }
 
     /// 0 (unset) stays the 250 ml default. Anything else is clamped into 50–2,000.
@@ -23,16 +26,46 @@ public enum GlassSize {
     }
 }
 
-/// The same glass picker on iPhone and Mac: the presets, plus the current custom size when it is not a preset.
+/// Presets, plus Custom. The millilitre field is shown only while Custom is selected.
+/// A saved size that is not a preset opens on Custom with that value in the field.
 public struct GlassSizePicker: View {
     @Binding var glassML: Int
-    public init(glassML: Binding<Int>) { _glassML = glassML }
-    public var body: some View {
-        Picker("Glass size", selection: $glassML) {
-            ForEach(GlassSize.presets, id: \.self) { Text("\($0) ml").tag($0) }
-            if !GlassSize.presets.contains(glassML) {
-                Text("Custom · \(glassML) ml").tag(glassML)
+    @State private var choosingCustom: Bool
+
+    public init(glassML: Binding<Int>) {
+        _glassML = glassML
+        _choosingCustom = State(initialValue: !GlassSize.isPreset(glassML.wrappedValue))
+    }
+
+    private var selection: Binding<Int> {
+        Binding(
+            get: { choosingCustom ? GlassSize.customTag : glassML },
+            set: { new in
+                if new == GlassSize.customTag {
+                    choosingCustom = true
+                } else if GlassSize.isPreset(new) {
+                    choosingCustom = false
+                    glassML = new
+                }
             }
+        )
+    }
+
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Picker("Glass size", selection: selection) {
+                ForEach(GlassSize.presets, id: \.self) { Text("\($0) ml").tag($0) }
+                Text("Custom").tag(GlassSize.customTag)
+            }
+            if choosingCustom {
+                GlassSizeCustomField(glassML: $glassML)
+            }
+        }
+        .onChange(of: glassML) { newValue in
+            // A synced or typed preset closes Custom. A non-preset size (including one
+            // arriving while a preset was showing) opens Custom. Selecting Custom itself
+            // does not change glassML, so this does not snap the field shut.
+            choosingCustom = !GlassSize.isPreset(newValue)
         }
     }
 }
@@ -73,7 +106,7 @@ public struct GlassSizeCustomField: View {
                 Button("Set size", action: apply)
                     .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
-            Text(message ?? "Or type your own, from \(GlassSize.minML) to \(GlassSize.maxML) ml. +1 glass uses it on iPhone, Mac and Watch.")
+            Text(message ?? "From \(GlassSize.minML) to \(GlassSize.maxML) ml. +1 glass uses it on iPhone, Mac and Watch.")
                 .font(.footnote)
                 .foregroundStyle(message == nil ? Color.secondary : Color.red)
                 .fixedSize(horizontal: false, vertical: true)
@@ -93,39 +126,9 @@ public struct GlassSizeCustomField: View {
     }
 }
 
-/// Quick-add size: the existing presets, plus a custom field. Collapsed to one row until opened.
+/// Same glass control as Settings, for the main screen.
 public struct GlassSizeQuickAdd: View {
     @Binding var glassML: Int
-    @State private var open = false
     public init(glassML: Binding<Int>) { _glassML = glassML }
-
-    public var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Button { open.toggle() } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "cup.and.saucer")
-                    Text("Glass size · \(glassML) ml")
-                    Spacer(minLength: 0)
-                    Text(open ? "Done" : "Custom")
-                }
-                .font(.subheadline.weight(.semibold))
-                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityHint(open ? "Hides the size editor" : "Set a preset or a custom size")
-            if open {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(GlassSize.presets, id: \.self) { ml in
-                            Button("\(ml)") { glassML = ml }
-                                .buttonStyle(.bordered)
-                                .tint(glassML == ml ? Color.accentColor : Color.secondary)
-                        }
-                    }
-                }
-                GlassSizeCustomField(glassML: $glassML)
-            }
-        }
-    }
+    public var body: some View { GlassSizePicker(glassML: $glassML) }
 }

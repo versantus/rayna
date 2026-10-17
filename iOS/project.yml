@@ -44,7 +44,7 @@ targets:
     info:
       path: Rayna/Info.plist
       properties:
-        NSHealthShareUsageDescription: Rayna reads today's running workouts to add your run-day water bonus automatically.
+        NSHealthShareUsageDescription: Rayna reads today's workouts to add your heavy-exercise water bonus automatically.
         NSHealthUpdateUsageDescription: Rayna can save each glass you log as Dietary Water in Apple Health.
         CKSharingSupported: true
         NSSupportsLiveActivities: true

@@ -2,8 +2,9 @@ import Foundation
 import HealthKit
 import RaynaCore
 
-/// Apple Health: reads today's running workouts to apply the run-day bonus automatically, and can
+/// Apple Health: reads today's heavy-exercise workouts to apply the exercise-day bonus, and can
 /// write each glass as Dietary Water. Garmin, Strava etc. sync into Apple Health, so they work too.
+/// Stored keys stay `runDay`, `runBonusML`, `healthRunDay` and `healthAutoRun`.
 final class HealthManager {
     static let shared = HealthManager()
     private let hs = HKHealthStore()
@@ -22,22 +23,33 @@ final class HealthManager {
         hs.requestAuthorization(toShare: share, read: read) { ok, _ in DispatchQueue.main.async { completion(ok) } }
     }
 
-    /// Run-day bonus for a day's running: +500 ml for any run, +250 ml per extra 30 min beyond an hour (max +1,000 ml).
+    /// Heavy sessions that count toward the exercise-day bonus. Walking and stretching do not.
+    private static let heavyExercise: [HKWorkoutActivityType] = [
+        .running, .cycling, .swimming,
+        .traditionalStrengthTraining, .functionalStrengthTraining, .coreTraining,
+        .highIntensityIntervalTraining, .rowing, .elliptical, .hiking,
+        .stairClimbing, .crossTraining, .mixedCardio, .kickboxing, .boxing, .jumpRope
+    ]
+
+    /// Exercise-day bonus from today's workout minutes: +500 ml for any session, +250 ml per extra 30 min beyond an hour (max +1,000 ml).
     static func bonus(forRunMinutes m: Double) -> Int {
         guard m > 0 else { return 0 }
         let extra = max(0, Int((m - 60) / 30)) * 250
         return min(1000, 500 + extra)
     }
 
-    /// Looks for today's runs and, if found, turns on run day with a duration-scaled bonus.
+    /// Looks for today's heavy-exercise workouts and, if found, turns on the exercise day with a duration-scaled bonus.
     func applyRunDay(store: RaynaStore = .shared, completion: @escaping (Bool) -> Void = { _ in }) {
         guard isAvailable, store.healthAutoRun, !store.extras.kidMode else { completion(false); return }
         let today = RaynaCopy.dayKey(for: Date())
         guard store.healthRunDay != today else { completion(false); return }
         let start = Calendar.current.startOfDay(for: Date())
+        let activity = NSCompoundPredicate(orPredicateWithSubpredicates: Self.heavyExercise.map {
+            HKQuery.predicateForWorkouts(with: $0)
+        })
         let pred = NSCompoundPredicate(andPredicateWithSubpredicates: [
             HKQuery.predicateForSamples(withStart: start, end: nil),
-            HKQuery.predicateForWorkouts(with: .running)
+            activity
         ])
         let q = HKSampleQuery(sampleType: .workoutType(), predicate: pred, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, _ in
             let minutes = (samples as? [HKWorkout] ?? []).reduce(0) { $0 + $1.duration / 60 }

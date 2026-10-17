@@ -361,7 +361,7 @@ struct ContentView: View {
 
     private var runDayToggle: some View {
         Toggle(isOn: model.binding(\.runDay)) {
-            Label(RaynaCopy.runDayLabel(bonusML: model.store.runBonusML), systemImage: "figure.run")
+            Label(RaynaCopy.runDayLabel(bonusML: model.store.runBonusML), systemImage: RaynaCopy.exerciseDaySymbol)
                 .font(.system(.body, design: .rounded, weight: .semibold))
         }
         .padding(.horizontal, 16).padding(.vertical, 10)

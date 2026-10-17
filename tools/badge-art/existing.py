@@ -33,4 +33,4 @@ def baby_ray(d,cx,cy,w=.15,h=.095,t=T,body=((.4,.82,.85),(.18,.6,.7)),tailc=(.2,
 def baby(d,t=T):
     bob=math.sin(t*2.2)*.012
     baby_ray(d,.8+math.sin(t*.7)*.02,.66+bob,t=t)
-EXISTING=[('bubbles','Bubble trail',bubbles),('headband','Run-day headband',headband),('medal','Race medal',medal),('baby','Baby ray buddy',baby)]
+EXISTING=[('bubbles','Bubble trail',bubbles),('headband','Workout headband',headband),('medal','Workout medal',medal),('baby','Baby ray buddy',baby)]

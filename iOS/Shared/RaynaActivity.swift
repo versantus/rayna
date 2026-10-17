@@ -2,7 +2,7 @@ import Foundation
 #if canImport(ActivityKit)
 import ActivityKit
 
-/// Live Activity for run/race days: today's water on the Lock Screen and in the Dynamic Island.
+/// Live Activity for exercise days: today's water on the Lock Screen and in the Dynamic Island.
 struct RaynaActivityAttributes: ActivityAttributes {
     struct ContentState: Codable, Hashable {
         var ml: Int

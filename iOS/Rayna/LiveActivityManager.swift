@@ -2,7 +2,7 @@ import Foundation
 import ActivityKit
 import RaynaCore
 
-/// Starts/updates/ends the run-day Live Activity (optional; toggle in Settings).
+/// Starts/updates/ends the exercise-day Live Activity (optional; toggle in Settings). The preference key stays `liveActivityRunDay`.
 enum LiveActivityManager {
     static var enabled: Bool {
         get { RaynaStore.shared.defaults.bool(forKey: "liveActivityRunDay") }
@@ -25,7 +25,7 @@ enum LiveActivityManager {
                     await a.end(ActivityContent(state: state, staleDate: nil), dismissalPolicy: .after(Date().addingTimeInterval(3600)))
                 }
             } else if state.progress < 1 {
-                _ = try? Activity.request(attributes: RaynaActivityAttributes(title: "Run day 🏃"),
+                _ = try? Activity.request(attributes: RaynaActivityAttributes(title: "Exercise day"),
                                           content: ActivityContent(state: state, staleDate: nil))
             }
         }

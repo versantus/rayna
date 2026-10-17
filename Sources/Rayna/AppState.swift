@@ -125,7 +125,7 @@ final class AppState: ObservableObject {
 
     // MARK: Derived
     var runBonusML: Int { let v = d.integer(forKey: "runBonusML"); return v > 0 ? v : 500 }
-    /// Kid mode has no run-day bonus, matching the iPhone.
+    /// Kid mode has no exercise-day bonus, matching the iPhone. The flag stays `runDay`.
     var effectiveGoal: Int { goalML + (runDay && !extras.kidMode ? runBonusML : 0) }
     var kidMode: Bool { extras.kidMode }
     var glasses: Int { glassML > 0 ? totalML / glassML : 0 }
