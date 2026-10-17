@@ -667,18 +667,47 @@ public final class PodService: ObservableObject {
             currentShare = share
             if let url = share.url { shareURL = url }
             pendingInvites = invites(from: share)
+            if displayName.isEmpty, let mine = share.currentUserParticipant.flatMap(Self.firstName) {
+                displayName = mine      // published with the next glass, or now via rename
+            }
         } else {
             currentShare = nil
             pendingInvites = []
         }
         members = recs.filter { $0.recordType == "Member" }.map { r in
-            PodMember(id: r["userID"] as? String ?? r.recordID.recordName, name: r["name"] as? String ?? "?",
+            let id = r["userID"] as? String ?? r.recordID.recordName
+            return PodMember(id: id, name: memberName(saved: r["name"] as? String, id: id),
                       glasses: PodTile.cloudInt(r["glasses"]) ?? 0, ml: PodTile.cloudInt(r["ml"]) ?? 0,
                       goal: PodTile.cloudInt(r["goal"]) ?? 2500, streak: PodTile.cloudInt(r["streak"]) ?? 0,
                       updated: r["updated"] as? Date ?? .distantPast,
                       isKid: (PodTile.cloudInt(r["isKid"]) ?? 0) == 1)
         }.sorted { PodTile.isCurrentUser(id: $0.id, myID: myID) ? true : (PodTile.isCurrentUser(id: $1.id, myID: myID) ? false : $0.name < $1.name) }
         onRoster?(members)
+    }
+
+    /// The name a member saved, or, for older records saved as "Me" before anyone was asked, their iCloud name
+    /// from the pod's share. Never shows someone else as "Me".
+    func memberName(saved: String?, id: String) -> String {
+        let name = (saved ?? "").trimmingCharacters(in: .whitespaces)
+        if !name.isEmpty, name != "Me", name != "?" { return name }
+        if PodTile.isCurrentUser(id: id, myID: myID) { return displayName.isEmpty ? "You" : displayName }
+        let person = currentShare?.participants.first { $0.userIdentity.userRecordID?.recordName == id }
+        return person.flatMap(Self.firstName) ?? "Friend"
+    }
+
+    static func firstName(_ p: CKShare.Participant) -> String? {
+        guard let n = p.userIdentity.nameComponents else { return nil }
+        let first = n.givenName ?? n.nickname
+        if let first, !first.isEmpty { return first }
+        let full = PersonNameComponentsFormatter.localizedString(from: n, style: .default, options: [])
+        return full.isEmpty ? nil : full
+    }
+
+    /// Change the name the rest of the pod sees, and publish it straight away.
+    public func rename(_ name: String) async {
+        displayName = name.trimmingCharacters(in: .whitespaces)
+        guard status == .inPod, let local = supplyLocal?() else { return }
+        await publish(glasses: local.glasses, ml: local.ml, goal: local.goal, streak: local.streak, isKid: local.isKid)
     }
 
     /// The share to hand to UICloudSharingController / NSSharingService, if we have fetched it.
@@ -804,22 +833,36 @@ public final class PodService: ObservableObject {
 
     // MARK: Push
 
-    /// Silent database subscription plus a zone subscription for RaynaPod, on the private or shared database.
+    /// Silent push when the pod changes (a nudge, a member's glass). The shared database only accepts database
+    /// subscriptions; asking it for a zone subscription as well failed the whole save, so people who joined a pod
+    /// never got pushed nudges. The owner's private database also gets the RaynaPod zone subscription, saved on its own.
     private func ensurePodSubscriptions() async {
         guard !podSubscribed, let z = zoneID else { return }
         let database = CKDatabaseSubscription(subscriptionID: ownerFlag ? RaynaSilentPush.privateDatabase : RaynaSilentPush.sharedDatabase)
         database.notificationInfo = RaynaSilentPush.info()
-        let zone = CKRecordZoneSubscription(zoneID: z, subscriptionID: ownerFlag ? RaynaSilentPush.podZonePrivate : RaynaSilentPush.podZoneShared)
-        zone.notificationInfo = RaynaSilentPush.info()
         do {
-            _ = try await db.modifySubscriptions(saving: [database, zone], deleting: [])
+            _ = try await db.modifySubscriptions(saving: [database], deleting: [])
             podSubscribed = true
         } catch {
             podSubscribed = false
         }
+        guard ownerFlag else { return }
+        let zone = CKRecordZoneSubscription(zoneID: z, subscriptionID: RaynaSilentPush.podZonePrivate)
+        zone.notificationInfo = RaynaSilentPush.info()
+        _ = try? await db.modifySubscriptions(saving: [zone], deleting: [])
     }
 
-    private func subscribe() async { await ensurePodSubscriptions() }
+    /// Nudges arrive as notifications, so ask when someone starts or joins a pod (not only after their first glass).
+    private func askToNotify() async {
+        #if canImport(UserNotifications)
+        _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
+        #endif
+    }
+
+    private func subscribe() async {
+        await ensurePodSubscriptions()
+        await askToNotify()
+    }
 
     /// Call from the app delegate's remote-notification handler.
     public func handlePush() async {
@@ -968,6 +1011,7 @@ public struct PodView: View {
                     }
                 }
                 tank
+                PodNameField(pod: pod)
                 Button(role: .destructive) { Task { await pod.leavePod() } } label: {
                     Label(pod.isOwner ? "End pod" : "Leave pod", systemImage: "xmark.circle")
                         .font(.body.weight(.semibold))
@@ -1128,5 +1172,23 @@ public struct PodView: View {
                 .accessibilityHint(pod.isOwner ? "Resend or cancel the invite" : "Hasn't joined yet")
             }
         }
+    }
+}
+
+/// "Your name in the pod": what the others see on your tile and in nudges. Saved when you press return.
+struct PodNameField: View {
+    @ObservedObject var pod: PodService
+    @State private var draft = ""
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Your name in the pod").font(.subheadline.weight(.semibold))
+            TextField("Your name", text: $draft)
+                .textFieldStyle(.roundedBorder)
+                .submitLabel(.done)
+                .onSubmit { Task { await pod.rename(draft) } }
+            Text("Friends see this on your tile and when you nudge them.").font(.footnote).foregroundStyle(.secondary)
+        }
+        .onAppear { draft = pod.displayName }
+        .padding(.top, 8)
     }
 }

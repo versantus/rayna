@@ -16,6 +16,8 @@ extension SeaSceneLayout {
         case .tide: return "moon"
         case .flood: return "grass-mid"
         case .podWave: return "ray-mint"
+        case .seabed: return "starfish"
+        case .meadow: return "grass-short"
         default: return nil
         }
     }

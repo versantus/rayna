@@ -274,21 +274,88 @@ public struct RaynaJourneyView: View {
     public var onShare: (() -> Void)?
     @State private var worn: Set<RaynaUnlock>
     @State private var swapToast: BadgeSwap?
+    @State private var tab = Tab.badges
+    enum Tab: Hashable { case badges, scenes }
     public init(extras: RaynaExtras, recap: RaynaRecap, streak: Int, onWear: ((Set<RaynaUnlock>) -> Void)? = nil, onShare: (() -> Void)? = nil) {
         self.extras = extras; self.recap = recap; self.streak = streak; self.onWear = onWear; self.onShare = onShare
         _worn = State(initialValue: extras.wornBadges)
+        #if DEBUG   // screenshots: RAYNA_JOURNEY_TAB=scenes
+        if ProcessInfo.processInfo.environment["RAYNA_JOURNEY_TAB"] == "scenes" { _tab = State(initialValue: .scenes) }
+        #endif
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            wearingStrip
-            let have = Set(extras.unlocked)
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
-                ForEach(RaynaUnlock.allCases) { u in
-                    badgeCard(u, unlocked: have.contains(u))
-                }
+            Picker("Show", selection: $tab) {
+                Text("Badges").tag(Tab.badges)
+                Text("Scenes").tag(Tab.scenes)
             }
-            .preference(key: BadgeSwapToastKey.self, value: swapToast)
+            .pickerStyle(.segmented)
+            if tab == .scenes {
+                scenes
+            } else {
+                badges
+            }
+        }
+        .task(id: swapToast.map { "\($0.from.id)-\($0.to.id)" }) {
+            guard swapToast != nil else { return }
+            try? await Task.sleep(nanoseconds: 1_600_000_000)
+            swapToast = nil
+        }
+    }
+
+    private func grid(_ items: [RaynaUnlock]) -> some View {
+        let have = Set(extras.unlocked)
+        return LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+            ForEach(items) { u in badgeCard(u, unlocked: have.contains(u)) }
+        }
+    }
+
+    /// Scenes: the one in the water now, then the free ones, then the ones you earn.
+    /// (A paid group can go here later as its own section.)
+    private var scenes: some View {
+        let all = RaynaUnlock.allCases.filter { $0.slot == .scene }
+        let current = worn.first { $0.slot == .scene }
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                Group {
+                    if let current { SeaSceneCard(scene: current) } else {
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 3])).foregroundStyle(.secondary)
+                    }
+                }
+                .frame(width: 110, height: 90)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("In the water").font(.system(.subheadline, design: .rounded, weight: .semibold)).foregroundStyle(.secondary)
+                    Text(current?.title ?? "No scene").font(.system(.headline, design: .rounded, weight: .bold))
+                    if let current {
+                        Button("Take it out") { var next = worn; next.remove(current); apply(next, swap: nil) }
+                            .font(.subheadline)
+                    } else {
+                        Text("Pick one below. It swims behind Rayna and rises with your water.").font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(12)
+            .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color.primary.opacity(0.06)))
+            sectionTitle("Free")
+            grid(all.filter(\.isFree))
+            sectionTitle("Earned")
+            grid(all.filter { !$0.isFree })
+        }
+        .preference(key: BadgeSwapToastKey.self, value: swapToast)
+    }
+
+    private func sectionTitle(_ text: String) -> some View {
+        Text(text).font(.system(.title3, design: .rounded, weight: .bold))
+    }
+
+    private var badges: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            wearingStrip
+            grid(RaynaUnlock.allCases.filter { $0.slot != .scene })
+                .preference(key: BadgeSwapToastKey.self, value: swapToast)
             if extras.kidMode {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Ray friends").font(.system(.title3, design: .rounded, weight: .bold))
@@ -305,11 +372,6 @@ public struct RaynaJourneyView: View {
                 }
             }
             recapCard
-        }
-        .task(id: swapToast.map { "\($0.from.id)-\($0.to.id)" }) {
-            guard swapToast != nil else { return }
-            try? await Task.sleep(nanoseconds: 1_600_000_000)
-            swapToast = nil
         }
     }
 
@@ -329,7 +391,7 @@ public struct RaynaJourneyView: View {
                     Text("Ray is wearing")
                 }
                 .font(.system(.subheadline, design: .rounded, weight: .semibold))
-                ForEach(BadgeSlot.allCases, id: \.self) { slotRow($0) }
+                ForEach(BadgeSlot.onBody, id: \.self) { slotRow($0) }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }

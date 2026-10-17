@@ -14,6 +14,8 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
         case exceedStreak(Int)
         case personalBest
         case podOver
+        /// Everyone has it from the start (the free scenes).
+        case free
     }
 
     case bubbles, headband, medal, baby
@@ -24,6 +26,11 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
     case personalBest
     /// Everyone in the pod beat their own goal today.
     case podWave
+    /// Free scenes. Added at the end so every older badge keeps its code in `wornSet`.
+    case seabed, meadow
+
+    /// Free from the start; never "newly earned", so never worn automatically.
+    public var isFree: Bool { rule == .free }
 
     public var id: String { rawValue }
     public var rule: Rule {
@@ -40,6 +47,7 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
         case .over30: return .exceedStreak(30)
         case .personalBest: return .personalBest
         case .podWave: return .podOver
+        case .seabed, .meadow: return .free
         }
     }
     /// Days threshold for streak-style badges. Zero for badges that are not a day count.
@@ -61,12 +69,14 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
         case .over30: return "crown.fill"
         case .personalBest: return "trophy.fill"
         case .podWave: return "person.3.fill"
+        case .seabed: return "star.fill"
+        case .meadow: return "leaf.fill"
         }
     }
     /// Full-frame water art (ripples, tide's moon and water, flood, the pod wave): the Scene slot.
     public var isSceneOverlay: Bool {
         switch self {
-        case .surge, .tide, .flood, .podWave: return true
+        case .surge, .tide, .flood, .podWave, .seabed, .meadow: return true
         default: return false
         }
     }
@@ -92,6 +102,8 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
         case .over30: return "Month of extra"
         case .personalBest: return "Personal best"
         case .podWave: return "Pod wave"
+        case .seabed: return "Seabed"
+        case .meadow: return "Seagrass meadow"
         }
     }
     public var emoji: String {
@@ -108,6 +120,8 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
         case .over30: return "👑"
         case .personalBest: return "🏆"
         case .podWave: return "🌊"
+        case .seabed: return "🐚"
+        case .meadow: return "🌿"
         }
     }
     public var blurb: String {
@@ -124,6 +138,8 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
         case .over30: return "Thirty days over goal. That's legendary."
         case .personalBest: return "Your biggest drinking day yet."
         case .podWave: return "Everyone in the pod beat their goal today."
+        case .seabed: return "Shells and a starfish on the sand."
+        case .meadow: return "A little seagrass meadow swaying under Rayna."
         }
     }
     public func lockedHint(streak: Int, bestStreak: Int) -> String {
@@ -137,7 +153,8 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
         case .personalBest:
             return "Drink more than any day so far"
         case .podOver:
-            return "Everyone in your pod beats their goal on the same day"
+            return "Everyone in your pod beats their goal on the same day"        case .free:
+            return "Free"
         }
     }
 }
@@ -185,8 +202,12 @@ public struct RaynaExtras {
         }
     }
     public var bestStreak: Int { get { d.integer(forKey: "bestStreak") } nonmutating set { d.set(newValue, forKey: "bestStreak") } }
+    /// Earned badges, with the free scenes first (they're everyone's, so never the "latest earned").
     public var unlocked: [RaynaUnlock] {
-        get { (d.stringArray(forKey: "unlocks") ?? []).compactMap(RaynaUnlock.init(rawValue:)) }
+        get {
+            let earned = (d.stringArray(forKey: "unlocks") ?? []).compactMap(RaynaUnlock.init(rawValue:)).filter { !$0.isFree }
+            return RaynaUnlock.allCases.filter(\.isFree) + earned
+        }
         nonmutating set { d.set(newValue.map(\.rawValue), forKey: "unlocks") }
     }
     /// `wornBadge` in the prefs payload. 0 wears the most recently earned badge, -1 wears nothing, otherwise a badge code.

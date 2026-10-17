@@ -25,7 +25,8 @@ extension RaynaUnlock {
         case .headband, .over30: return .head                 // headband, crown
         case .medal, .over7, .over3: return .chest            // medal, rosette, milestone
         case .bubbles, .baby, .personalBest: return .fin
-        case .surge, .tide, .flood, .podWave: return .scene   // ripples, moon and tide, flood, her pod
+        case .surge, .tide, .flood, .podWave: return .scene   // fish, moon and shells, kelp, baby rays
+        case .seabed, .meadow: return .scene                  // free scenes
         }
     }
 }

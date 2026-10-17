@@ -26,6 +26,8 @@ public struct SeaSceneItem: Equatable {
 /// The four scenes. Raw values are the badge ids (`RaynaUnlock.rawValue`), which is also what the Watch receives.
 public enum SeaSceneKind: String, CaseIterable {
     case surge, tide, flood, podWave
+    /// Free from the start.
+    case seabed, meadow
 }
 
 public enum SeaSceneLayout {
@@ -106,6 +108,25 @@ public enum SeaSceneLayout {
                 let s = tall(name, height: min(CGFloat(most) * u, depth * CGFloat(share)))
                 out.append(SeaSceneItem(sprite: name, center: CGPoint(x: CGFloat(x) * w, y: h + 4 - s.height / 2), size: s,
                                         shear: sin(t * 0.7 + Double(i) * 1.7) * 0.08))
+            }
+        case .seabed:  // free: shells and a starfish on the sand
+            let sand: [(String, Double, Double, Double)] = compact
+                ? [("shell-scallop", 0.08, 0.16, 0.0), ("starfish", 0.92, 0.17, 6.0)]
+                : [("shell-scallop", 0.1, 0.17, 0.0), ("shell-spiral", 0.27, 0.11, 0.0),
+                   ("starfish", 0.76, 0.18, 6.0), ("shell-scallop", 0.93, 0.12, 0.0)]
+            for (i, (name, x, width, wiggle)) in sand.enumerated() {
+                let s = sized(name, width: CGFloat(width) * u)
+                out.append(SeaSceneItem(sprite: name, center: CGPoint(x: CGFloat(x) * w, y: h - 6 - s.height / 2), size: s,
+                                        degrees: sin(t * 0.7 + Double(i)) * wiggle, flipped: i == 3))
+            }
+        case .meadow:  // free: a low seagrass meadow along the bottom (Flood tide is the tall kelp forest)
+            let clumps: [(String, Double, Double)] = compact
+                ? [("grass-short", 0.06, 0.2), ("grass-short", 0.94, 0.17)]
+                : [("grass-short", 0.06, 0.2), ("grass-short", 0.24, 0.15), ("grass-short", 0.76, 0.17), ("grass-short", 0.94, 0.21)]
+            for (i, (name, x, most)) in clumps.enumerated() {
+                let s = tall(name, height: min(CGFloat(most) * u, depth * 0.8))
+                out.append(SeaSceneItem(sprite: name, center: CGPoint(x: CGFloat(x) * w, y: h + 4 - s.height / 2), size: s,
+                                        shear: sin(t * 0.8 + Double(i) * 1.3) * 0.09, flipped: i % 2 == 1))
             }
         case .podWave: // baby rays drifting around her in slow loops
             guard swim else { return [] }

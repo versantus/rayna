@@ -515,9 +515,9 @@ final class FeatureTests: XCTestCase {
     func testUnlockForTestingAndAssetNames() {
         let x = extras()
         XCTAssertEqual(x.unlockForTesting([.surge, .podWave, .surge]), [.surge, .podWave])
-        XCTAssertEqual(x.unlocked, [.surge, .podWave])
+        XCTAssertEqual(x.unlocked, [.seabed, .meadow, .surge, .podWave], "free scenes first, then what was earned")
         let rest = x.unlockForTesting(RaynaExtras.badges(from: "all"))
-        XCTAssertEqual(rest.count, RaynaUnlock.allCases.count - 2)
+        XCTAssertEqual(rest.count, RaynaUnlock.allCases.count - 2 - 2, "free scenes are never newly earned")
         XCTAssertEqual(Set(x.unlocked), Set(RaynaUnlock.allCases))
         XCTAssertTrue(x.unlockForTesting(RaynaExtras.badges(from: "ALL")).isEmpty)
         XCTAssertEqual(RaynaExtras.badges(from: " surge, tide ,nope"), [.surge, .tide])
@@ -525,6 +525,24 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(RaynaUnlock.personalBest.compositeAssetName, "badge-personalBest")
         XCTAssertNil(RaynaUnlock.bubbles.overlayAssetName)
         XCTAssertNil(RaynaUnlock.headband.compositeAssetName)
+    }
+
+    func testFreeScenesAreThereFromTheStartButNotWornAutomatically() {
+        let x = extras()
+        XCTAssertEqual(x.unlocked, [.seabed, .meadow])
+        XCTAssertTrue(RaynaUnlock.seabed.isFree && RaynaUnlock.meadow.isFree)
+        XCTAssertEqual(RaynaUnlock.allCases.filter(\.isFree).map(\.slot), [.scene, .scene])
+        XCTAssertTrue(WornSet.autoWear([], fresh: []).isEmpty, "nothing put in the water by default")
+        x.wornBadges = [.meadow, .headband]
+        XCTAssertEqual(x.wornBadges, [.meadow], "headband isn't earned yet, the free meadow is")
+        XCTAssertEqual(x.noteIntake(ml: 1000, goal: 2500).filter(\.isFree), [], "never awarded")
+    }
+
+    func testOlderBadgesKeepTheirWornCodes() {
+        // wornSet bits are allCases positions, so new badges must only ever be appended.
+        let codes: [RaynaUnlock: Int] = [.bubbles: 1, .headband: 2, .medal: 3, .baby: 4, .surge: 5, .tide: 6, .flood: 7,
+                                         .over3: 8, .over7: 9, .over30: 10, .personalBest: 11, .podWave: 12]
+        for (badge, code) in codes { XCTAssertEqual(WornBadge.code(for: badge), code, badge.rawValue) }
     }
 
     func testNewUnlockNamesSyncAsProfileUnion() {
