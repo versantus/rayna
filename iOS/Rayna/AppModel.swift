@@ -85,16 +85,9 @@ final class AppModel: ObservableObject {
     /// Kid mode: cups, a smaller goal (1.5 L in 200 ml cups) and simpler words. Restores the grown-up goal when off.
     func setKidMode(_ on: Bool) {
         objectWillChange.send()
-        let x = store.extras
-        guard RaynaFeatures.kidMode, on != x.kidMode else { return }
-        if on {
-            x.adultGoalML = store.goalML; x.adultGlassML = store.glassML
-            store.glassML = 200; store.goalML = 1500
-        } else {
-            if x.adultGoalML > 0 { store.goalML = x.adultGoalML }
-            if x.adultGlassML > 0 { store.glassML = x.adultGlassML }
-        }
-        x.kidMode = on
+        guard let next = store.extras.applyKidMode(on, goalML: store.goalML, glassML: store.glassML) else { return }
+        store.goalML = next.goalML
+        store.glassML = next.glassML
         afterChange()
     }
 

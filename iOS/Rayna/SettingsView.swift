@@ -43,12 +43,7 @@ struct SettingsView: View {
                     Stepper(value: model.binding(\.goalML), in: 1000...5000, step: 250) {
                         Text("Goal: \(String(format: "%.2f L", Double(model.store.goalML) / 1000))")
                     }
-                    Picker("Glass size", selection: model.binding(\.glassML)) {
-                        ForEach(GlassSize.presets, id: \.self) { Text("\($0) ml").tag($0) }
-                        if !GlassSize.presets.contains(model.store.glassML) {
-                            Text("Custom · \(model.store.glassML) ml").tag(model.store.glassML)
-                        }
-                    }
+                    GlassSizePicker(glassML: model.binding(\.glassML))
                     GlassSizeCustomField(glassML: model.binding(\.glassML))
                     Toggle("Live Activity on run days", isOn: Binding(
                         get: { LiveActivityManager.enabled },
@@ -65,9 +60,7 @@ struct SettingsView: View {
                 }
                 Section {
                     Toggle("Reminders", isOn: model.binding(\.remindersOn))
-                    Picker("Every", selection: model.binding(\.intervalMin)) {
-                        ForEach([30, 45, 60, 90, 120], id: \.self) { Text("\($0) min").tag($0) }
-                    }
+                    ReminderIntervalPicker(minutes: model.binding(\.intervalMin))
                     .disabled(!model.store.remindersOn)
                     DatePicker("Quiet from", selection: timeBinding(\.quietStartMin), displayedComponents: .hourAndMinute)
                     DatePicker("Quiet until", selection: timeBinding(\.quietEndMin), displayedComponents: .hourAndMinute)

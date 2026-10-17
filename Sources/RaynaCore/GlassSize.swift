@@ -6,10 +6,6 @@ public enum GlassSize {
     public static let minML = 50
     public static let maxML = 2000
     public static let fallback = 250
-    /// Mac stepper, unchanged: 100–750 ml in steps of 50.
-    public static let stepMin = 100
-    public static let stepMax = 750
-    public static let step = 50
 
     public static func isValid(_ ml: Int) -> Bool { (minML...maxML).contains(ml) }
 
@@ -17,13 +13,6 @@ public enum GlassSize {
     public static func sanitize(_ ml: Int) -> Int {
         if ml <= 0 { return fallback }
         return min(maxML, max(minML, ml))
-    }
-
-    /// One click of the Mac stepper. A custom size outside 100–750 is left alone until a click moves it into that range.
-    public static func stepPreset(_ ml: Int, by delta: Int) -> Int {
-        if (stepMin...stepMax).contains(ml) { return min(stepMax, max(stepMin, ml + delta)) }
-        if ml > stepMax { return delta < 0 ? stepMax : ml }
-        return delta > 0 ? stepMin : ml
     }
 
     public static func validationMessage(for draft: String) -> String? {
@@ -34,18 +23,31 @@ public enum GlassSize {
     }
 }
 
-/// Mac stepper that does not snap a custom size back into range on its own.
-public struct MacGlassStepper: View {
+/// The same glass picker on iPhone and Mac: the presets, plus the current custom size when it is not a preset.
+public struct GlassSizePicker: View {
     @Binding var glassML: Int
     public init(glassML: Binding<Int>) { _glassML = glassML }
     public var body: some View {
-        Stepper(onIncrement: { glassML = GlassSize.stepPreset(glassML, by: GlassSize.step) },
-                onDecrement: { glassML = GlassSize.stepPreset(glassML, by: -GlassSize.step) }) {
-            EmptyView()
+        Picker("Glass size", selection: $glassML) {
+            ForEach(GlassSize.presets, id: \.self) { Text("\($0) ml").tag($0) }
+            if !GlassSize.presets.contains(glassML) {
+                Text("Custom · \(glassML) ml").tag(glassML)
+            }
         }
-        .labelsHidden()
-        .accessibilityLabel("Glass size")
-        .accessibilityValue("\(glassML) millilitres")
+    }
+}
+
+/// Same reminder spacing on iPhone and Mac.
+public struct ReminderIntervalPicker: View {
+    @Binding var minutes: Int
+    public init(minutes: Binding<Int>) { _minutes = minutes }
+    public var body: some View {
+        Picker("Every", selection: $minutes) {
+            ForEach(RaynaCopy.reminderMinutes, id: \.self) { Text("\($0) min").tag($0) }
+            if !RaynaCopy.reminderMinutes.contains(minutes) {
+                Text("\(minutes) min").tag(minutes)
+            }
+        }
     }
 }
 

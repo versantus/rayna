@@ -26,6 +26,9 @@ public enum RaynaCopy {
         quips.last(where: { progress >= $0.0 })?.1 ?? quips[0].1
     }
 
+    /// Reminder spacing on iPhone and Mac. A stored value outside this list still shows, so a custom interval is not snapped away.
+    public static let reminderMinutes = [30, 45, 60, 90, 120]
+
     public static let reminders = [
         "Sip o'clock! Half-marathon legs run on water, not wishes. 💧",
         "Psst. Your stingray is drying out. One glass?",
@@ -41,6 +44,34 @@ public enum RaynaCopy {
     ]
     public static var allReminders: [String] { reminders + moreReminders }
     public static let swapText = "Fizzy-drink swap? Trade your next can of pop for a glass of water. Rayna says thanks! 🥤➡️💧"
+
+    public static let swapButtonTitle = "I swapped a fizzy drink for water"
+
+    public static func swapDetail(streak: Int, total: Int) -> String {
+        streak > 0
+            ? "Swap streak: \(streak) evening\(streak == 1 ? "" : "s") · \(total) total"
+            : "Optional fizzy-drink challenge. Logs a glass too."
+    }
+
+    public static func amountTitle(ml: Int, glassML: Int, kidMode: Bool) -> String {
+        if kidMode { return "\(glassML > 0 ? ml / glassML : 0) cups" }
+        return String(format: "%.2f L", Double(ml) / 1000)
+    }
+
+    public static func amountSubtitle(ml: Int, goal: Int, glassML: Int, kidMode: Bool) -> String {
+        let pct = goal > 0 ? Int((min(Double(ml) / Double(goal), 1) * 100).rounded()) : 0
+        if kidMode {
+            let cups = Int((Double(goal) / Double(max(glassML, 1))).rounded(.up))
+            return "of \(cups) cups · \(pct)%"
+        }
+        return "of \(String(format: "%.1f", Double(goal) / 1000)) L · \(pct)%"
+    }
+
+    public static func addGlassLabel(glassML: Int, kidMode: Bool) -> String {
+        kidMode ? "+1 cup" : "+1 glass · \(glassML) ml"
+    }
+
+    public static func runDayLabel(bonusML: Int) -> String { "Run day (+\(bonusML) ml)" }
 
     public static func dayKey(for date: Date) -> String {
         let c = Calendar.current.dateComponents([.year, .month, .day], from: date)

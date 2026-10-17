@@ -14,7 +14,7 @@ final class FeatureTests: XCTestCase {
         return RaynaCopy.dayKey(for: date)
     }
 
-    func testGlassSizeValidationAndStepper() {
+    func testGlassSizeValidation() {
         XCTAssertTrue(GlassSize.isValid(50))
         XCTAssertTrue(GlassSize.isValid(2000))
         XCTAssertFalse(GlassSize.isValid(49))
@@ -27,11 +27,18 @@ final class FeatureTests: XCTestCase {
         XCTAssertNotNil(GlassSize.validationMessage(for: "20"))
         XCTAssertNotNil(GlassSize.validationMessage(for: "lots"))
         XCTAssertEqual(GlassSize.presets, [150, 200, 250, 330, 400, 500])
-        XCTAssertEqual(GlassSize.stepPreset(250, by: 50), 300)
-        XCTAssertEqual(GlassSize.stepPreset(100, by: -50), 100)
-        XCTAssertEqual(GlassSize.stepPreset(1800, by: 50), 1800)
-        XCTAssertEqual(GlassSize.stepPreset(1800, by: -50), 750)
-        XCTAssertEqual(GlassSize.stepPreset(40, by: 50), 100)
+        XCTAssertEqual(RaynaCopy.reminderMinutes, [30, 45, 60, 90, 120])
+        XCTAssertEqual(RaynaCopy.addGlassLabel(glassML: 330, kidMode: false), "+1 glass · 330 ml")
+        XCTAssertEqual(RaynaCopy.addGlassLabel(glassML: 200, kidMode: true), "+1 cup")
+        XCTAssertEqual(RaynaCopy.amountTitle(ml: 500, glassML: 250, kidMode: true), "2 cups")
+    }
+
+    func testKidModeStaysBehindTheSharedFlag() {
+        let x = extras()
+        XCTAssertFalse(RaynaFeatures.kidMode)
+        XCTAssertNil(x.applyKidMode(true, goalML: 2500, glassML: 330))
+        XCTAssertFalse(x.kidMode)
+        XCTAssertEqual(x.adultGoalML, 0)
     }
 
     func testCustomGlassSyncsAsExistingPref() {

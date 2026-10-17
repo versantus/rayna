@@ -144,9 +144,7 @@ struct WelcomeView: View {
                 BrandRow(symbol: "target", tint: RaynaBrand.blue, title: "Daily goal", detail: String(format: "%.2f L", Double(state.goalML) / 1000)) {
                     Stepper("", value: $state.goalML, in: 1000...5000, step: 250).labelsHidden()
                 }
-                BrandRow(symbol: "cup.and.saucer.fill", tint: .teal, title: "Glass size", detail: "\(state.glassML) ml") {
-                    MacGlassStepper(glassML: $state.glassML)
-                }
+                GlassSizePicker(glassML: $state.glassML)
                 GlassSizeCustomField(glassML: $state.glassML)
                 Divider()
                 BrandRow(symbol: "power", tint: .green, title: "Launch at login") {

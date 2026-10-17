@@ -19,6 +19,7 @@ final class AppState: ObservableObject {
         }
     }
     @Published var intervalMin: Int { didSet { d.set(intervalMin, forKey: "intervalMin"); NotificationManager.shared.resetSchedule() } }
+    @Published var remindersOn: Bool { didSet { d.set(remindersOn, forKey: "remindersOn"); NotificationManager.shared.resetSchedule() } }
     @Published var quietStartMin: Int { didSet { d.set(quietStartMin, forKey: "quietStartMin"); localChanged() } }
     @Published var quietEndMin: Int { didSet { d.set(quietEndMin, forKey: "quietEndMin"); localChanged() } }
     @Published var eveningSwap: Bool { didSet { d.set(eveningSwap, forKey: "eveningSwap"); localChanged() } }
@@ -39,10 +40,10 @@ final class AppState: ObservableObject {
     var recap: RaynaRecap { extras.recap(goalDays: goalDays, streak: streak) }
     func publishToPod() {
         guard PodService.isEntitled else { return }
-        let g = glassML > 0 ? totalML / glassML : 0, ml = totalML, goal = effectiveGoal, st = streak
+        let g = glasses, ml = totalML, goal = effectiveGoal, st = streak, kid = extras.kidMode
         Task { @MainActor in
             if PodService.shared.status == .unknown { await PodService.shared.refreshStatus() }
-            await PodService.shared.publish(glasses: g, ml: ml, goal: goal, streak: st)
+            await PodService.shared.publish(glasses: g, ml: ml, goal: goal, streak: st, isKid: kid)
         }
     }
 
@@ -50,7 +51,7 @@ final class AppState: ObservableObject {
         RaynaShareInfo(kind: kind, litres: Double(totalML) / 1000, goalL: Double(effectiveGoal) / 1000,
                        streak: streak, weekL: recap.litres, unlocks: accessories)
     }
-    var showSwap: Bool { extras.swapChallenge && RaynaExtras.isSwapTime() }
+    var showSwap: Bool { extras.swapChallenge && (RaynaExtras.isSwapTime() || ProcessInfo.processInfo.environment["RAYNA_SWAP"] == "1") }
 
     private var dayKey: String { didSet { d.set(dayKey, forKey: "dayKey") } }
     private var lastGoalDay: String { didSet { d.set(lastGoalDay, forKey: "lastGoalDay") } }
@@ -60,7 +61,7 @@ final class AppState: ObservableObject {
 
     private init() {
         d.register(defaults: [
-            "goalML": 2500, "glassML": 250, "intervalMin": 50,
+            "goalML": 2500, "glassML": 250, "intervalMin": 60, "remindersOn": true,
             "quietStartMin": 22 * 60, "quietEndMin": 7 * 60 + 30,
             "eveningSwap": true
         ])
@@ -72,7 +73,10 @@ final class AppState: ObservableObject {
         let cleanGlass = GlassSize.sanitize(rawGlass)
         if cleanGlass != rawGlass { d.set(cleanGlass, forKey: "glassML") }
         glassML = cleanGlass
-        intervalMin = min(60, max(45, d.integer(forKey: "intervalMin")))
+        let storedInterval = d.integer(forKey: "intervalMin")
+        intervalMin = storedInterval > 0 ? storedInterval : 60
+        if d.object(forKey: "remindersOn") == nil { d.set(true, forKey: "remindersOn") }
+        remindersOn = d.bool(forKey: "remindersOn")
         quietStartMin = d.integer(forKey: "quietStartMin")
         quietEndMin = d.integer(forKey: "quietEndMin")
         eveningSwap = d.bool(forKey: "eveningSwap")
@@ -120,7 +124,11 @@ final class AppState: ObservableObject {
     func localChanged() { if !reloading { MainActor.assumeIsolated { RaynaCloudSync.shared?.syncSoon() } } }
 
     // MARK: Derived
-    var effectiveGoal: Int { goalML + (runDay ? 500 : 0) }
+    var runBonusML: Int { let v = d.integer(forKey: "runBonusML"); return v > 0 ? v : 500 }
+    /// Kid mode has no run-day bonus, matching the iPhone.
+    var effectiveGoal: Int { goalML + (runDay && !extras.kidMode ? runBonusML : 0) }
+    var kidMode: Bool { extras.kidMode }
+    var glasses: Int { glassML > 0 ? totalML / glassML : 0 }
     var progress: Double { effectiveGoal > 0 ? min(Double(totalML) / Double(effectiveGoal), 1) : 0 }
     var lastLogged: Date? { log.last }
 
@@ -151,6 +159,16 @@ final class AppState: ObservableObject {
         if !log.isEmpty { log.removeLast() }
         extras.recordDay(totalML)
         if progress < 1 { celebrate = false }
+        publishToPod()
+    }
+
+    /// Kid mode: cups, a 1.5 L goal and simpler words. The feature flag gates it on both platforms.
+    func setKidMode(_ on: Bool) {
+        guard let next = extras.applyKidMode(on, goalML: goalML, glassML: glassML) else { return }
+        goalML = next.goalML
+        glassML = next.glassML
+        objectWillChange.send()
+        localChanged()
     }
 
     /// "I swapped a fizzy drink for water": a swap + a glass.
@@ -227,7 +245,7 @@ final class AppState: ObservableObject {
 
     // MARK: Quips (shared with iOS via RaynaCore)
     static let quips = RaynaCopy.quips
-    var quip: String { RaynaCopy.quip(for: progress) }
+    var quip: String { kidMode ? RaynaCopy.kidQuip(for: progress) : RaynaCopy.quip(for: progress) }
     static let reminders = RaynaCopy.reminders
     static let swapText = RaynaCopy.swapText
 }

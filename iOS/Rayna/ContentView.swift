@@ -203,7 +203,7 @@ struct ContentView: View {
             Text("Rayna").font(.system(.largeTitle, design: .rounded, weight: .heavy))
                 .foregroundStyle(Color("AccentColor"))
                 .accessibilityAddTraits(.isHeader)
-            StreakDots(streak: model.streak, store: model.store)
+            StreakDots(streak: model.streak, goalDays: model.store.goalDays)
         }
     }
 
@@ -270,14 +270,12 @@ struct ContentView: View {
 
     private var amount: some View {
         VStack(spacing: 2) {
-            Text(model.kidMode ? "\(model.store.glasses) cups" : String(format: "%.2f L", Double(model.totalML) / 1000))
+            Text(RaynaCopy.amountTitle(ml: model.totalML, glassML: model.store.glassML, kidMode: model.kidMode))
                 .font(.system(size: amountSize, weight: .heavy, design: .rounded))
                 .minimumScaleFactor(0.6).lineLimit(1)
                 .contentTransition(.numericText())
                 .animation(.snappy, value: model.totalML)
-            Text(model.kidMode
-                 ? "of \(Int((Double(model.goal) / Double(max(model.store.glassML, 1))).rounded(.up))) cups · \(Int((model.progress * 100).rounded()))%"
-                 : "of \(String(format: "%.1f", Double(model.goal) / 1000)) L · \(Int((model.progress * 100).rounded()))%")
+            Text(RaynaCopy.amountSubtitle(ml: model.totalML, goal: model.goal, glassML: model.store.glassML, kidMode: model.kidMode))
                 .font(.system(.headline, design: .rounded)).foregroundStyle(.secondary)
         }
         .foregroundStyle(ink)
@@ -286,7 +284,7 @@ struct ContentView: View {
     private var buttons: some View {
         HStack(spacing: 12) {
             Button { model.addGlass() } label: {
-                Label(model.kidMode ? "+1 cup" : "+1 glass · \(model.store.glassML) ml", systemImage: "drop.fill")
+                Label(RaynaCopy.addGlassLabel(glassML: model.store.glassML, kidMode: model.kidMode), systemImage: "drop.fill")
                     .font(.system(.title2, design: .rounded, weight: .bold))
                     .lineLimit(1).minimumScaleFactor(0.7)
                     .frame(maxWidth: .infinity).padding(.vertical, compact ? 12 : 16)
@@ -346,11 +344,9 @@ struct ContentView: View {
             HStack(spacing: 10) {
                 Text("🥤➡️💧").font(.title3)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(model.swapThanks ?? "I swapped a fizzy drink for water")
+                    Text(model.swapThanks ?? RaynaCopy.swapButtonTitle)
                         .font(.system(.subheadline, design: .rounded, weight: .bold))
-                    let st = model.extras.swapStreak()
-                    Text(st > 0 ? "Swap streak: \(st) evening\(st == 1 ? "" : "s") · \(model.extras.swapsTotal) total"
-                                : "Optional fizzy-drink challenge. Logs a glass too.")
+                    Text(RaynaCopy.swapDetail(streak: model.extras.swapStreak(), total: model.extras.swapsTotal))
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
@@ -365,34 +361,11 @@ struct ContentView: View {
 
     private var runDayToggle: some View {
         Toggle(isOn: model.binding(\.runDay)) {
-            Label("Run day (+\(model.store.runBonusML) ml)", systemImage: "figure.run")
+            Label(RaynaCopy.runDayLabel(bonusML: model.store.runBonusML), systemImage: "figure.run")
                 .font(.system(.body, design: .rounded, weight: .semibold))
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
         .background(.ultraThinMaterial, in: Capsule())
-    }
-}
-
-/// Last 7 days: filled dot = goal met.
-struct StreakDots: View {
-    var streak: Int
-    var store: RaynaStore
-    var body: some View {
-        let cal = Calendar.current
-        HStack(spacing: 5) {
-            ForEach((0..<7).reversed(), id: \.self) { back in
-                let day = cal.date(byAdding: .day, value: -back, to: Date()) ?? Date()
-                Circle()
-                    .fill(store.goalMet(on: day) ? Color("AccentColor") : Color.white.opacity(0.7))
-                    .overlay(Circle().stroke(Color("AccentColor").opacity(0.5), lineWidth: 1))
-                    .frame(width: 10, height: 10)
-            }
-            Text(streak > 0 ? "\(streak)-day streak 🔥" : "Start a streak!")
-                .font(.system(.footnote, design: .rounded, weight: .semibold)).foregroundStyle(.secondary)
-                .padding(.leading, 4)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(streak) day streak")
     }
 }
 

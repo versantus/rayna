@@ -219,6 +219,22 @@ public struct RaynaExtras {
     public var adultGoalML: Int { get { d.integer(forKey: "adultGoalML") } nonmutating set { d.set(newValue, forKey: "adultGoalML") } }
     public var adultGlassML: Int { get { d.integer(forKey: "adultGlassML") } nonmutating set { d.set(newValue, forKey: "adultGlassML") } }
 
+    /// Turns kid mode on or off. Returns the goal and glass to store, or nil when the feature flag is off or nothing changes.
+    /// Kid mode uses a 1.5 L goal in 200 ml cups and puts the grown-up sizes back afterwards.
+    public func applyKidMode(_ on: Bool, goalML: Int, glassML: Int) -> (goalML: Int, glassML: Int)? {
+        guard RaynaFeatures.kidMode, on != kidMode else { return nil }
+        if on {
+            adultGoalML = goalML
+            adultGlassML = glassML
+            kidMode = true
+            return (1500, 200)
+        }
+        let goal = adultGoalML > 0 ? adultGoalML : goalML
+        let glass = adultGlassML > 0 ? adultGlassML : glassML
+        kidMode = false
+        return (goal, glass)
+    }
+
     /// Evening swap-a-fizzy-drink challenge on/off.
     public var swapChallenge: Bool { get { d.bool(forKey: "swapChallenge") } nonmutating set { d.set(newValue, forKey: "swapChallenge") } }
     /// Day key -> number of drinks swapped for water.
