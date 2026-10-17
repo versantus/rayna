@@ -96,12 +96,14 @@ final class SeaSceneTests: XCTestCase {
         try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
         let pack = ProcessInfo.processInfo.environment["RAYNA_SCENE_PACK"] == "1"
         let list: [RaynaUnlock] = pack ? [.reef, .jellies, .treasure, .turtles] : scenes
-        let frames = pack ? 144 : 48     // pack: 12 s at 12 fps, to show the variety
-        for s in list {
+        let only = ProcessInfo.processInfo.environment["RAYNA_SCENE_ONLY"].flatMap(RaynaUnlock.init(rawValue:))
+        let fps = Double(ProcessInfo.processInfo.environment["RAYNA_SCENE_FPS"] ?? "12") ?? 12
+        let frames = pack ? Int(fps * 12) : 48     // pack: 12 s, to show the variety
+        for s in list where only == nil || only == s {
             for (n, p) in (pack ? [0.45, 0.85] : [0.15, 0.5, 0.9]).enumerated() {
                 for f in 0..<frames {
                     var scene = SeaScene(scene: s, progress: p)
-                    scene.frozenTime = Double(f) / 12
+                    scene.frozenTime = Double(f) / (pack ? fps : 12)
                     let r = ImageRenderer(content: scene.frame(width: 390, height: 760))
                     r.scale = 1
                     guard let cg = r.cgImage else { continue }

@@ -62,7 +62,7 @@ public enum SeaSceneLayout {
     static let loops: [String: (loop: String, frames: Int)] = [
         "clown-big": ("clown", 40), "clown-small": ("clown", 40), "tang-blue": ("tang-blue", 40), "tang-yellow": ("tang-yellow", 40),
         "jelly-pink": ("jelly-pink", 40), "jelly-lilac": ("jelly-lilac", 40), "jelly-aqua": ("jelly-aqua", 40),
-        "octopus": ("octopus", 40), "turtle": ("turtle", 40), "turtle-baby": ("turtle", 40), "seahorse": ("seahorse", 40),
+        "octopus": ("octopus", 40), "turtle": ("turtle", 123), "turtle-baby": ("turtle", 123), "seahorse": ("seahorse", 40),
         "fish-yellow": ("fish-yellow", 40), "fish-coral": ("fish-coral", 40), "fish-mint": ("fish-mint", 40), "fish-lilac": ("fish-lilac", 40),
         "ray-mint": ("ray-mint", 40), "ray-lilac": ("ray-lilac", 40), "ray-blue": ("ray-blue", 40),
     ]
@@ -376,14 +376,14 @@ public enum SeaSceneLayout {
             // mother and baby glide across together, with a slow swimming stroke
             let span = w + 0.7 * u, speed = u * 0.045
             let x = (CGFloat(t) * speed + w * 0.3).truncatingRemainder(dividingBy: span) - 0.3 * u
-            let stroke = s(t * 1.6)
-            var mum = sized("turtle", (compact ? 0.32 : 0.36) * u)
-            mum.height *= 1 + 0.04 * stroke
-            out.append(SeaSceneItem(sprite: "turtle", center: CGPoint(x: x, y: under(top + band * 0.35 + stroke * 6, mum)), size: mum, degrees: Double(stroke) * 3))
+            let stroke = s(t * 0.5)
+            // The swim cycle moves the flippers; the code only adds a slow, gentle rise and fall.
+            let mum = sized("turtle", (compact ? 0.32 : 0.36) * u)
+            out.append(SeaSceneItem(sprite: "turtle", center: CGPoint(x: x, y: under(top + band * 0.35 + stroke * 6, mum)), size: mum))
             if !compact || !shallow {
                 let baby = sized("turtle-baby", (compact ? 0.15 : 0.17) * u)
-                out.append(SeaSceneItem(sprite: "turtle-baby", center: CGPoint(x: x - mum.width * 0.75, y: under(top + band * 0.52 + s(t * 1.6 + 1) * 6, baby)),
-                                        size: baby, degrees: Double(s(t * 1.6 + 1)) * 4))
+                out.append(SeaSceneItem(sprite: "turtle-baby", center: CGPoint(x: x - mum.width * 0.75, y: under(top + band * 0.52 + s(t * 0.5 + 1) * 6, baby)),
+                                        size: baby))
             }
             let horse = sized("seahorse", (compact ? 0.08 : 0.09) * u)
             out.append(SeaSceneItem(sprite: "seahorse", center: CGPoint(x: w * 0.86 + s(t * 0.4) * 10, y: under(top + band * 0.62 + s(t * 1.2) * 14, horse)),
