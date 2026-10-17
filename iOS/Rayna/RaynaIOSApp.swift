@@ -146,7 +146,7 @@ enum PodInviteController {
     final class Delegate: NSObject, UICloudSharingControllerDelegate {
         static let shared = Delegate()
         func cloudSharingController(_ csc: UICloudSharingController, failedToSaveShareWithError error: Error) {
-            Task { @MainActor in PodService.shared.lastError = PodService.friendly(error) }
+            Task { @MainActor in PodService.shared.presentCloudError(error) }
         }
         func itemTitle(for csc: UICloudSharingController) -> String? { "Join my Rayna pod" }
         func cloudSharingControllerDidSaveShare(_ csc: UICloudSharingController) {

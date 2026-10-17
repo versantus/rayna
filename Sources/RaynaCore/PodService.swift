@@ -34,6 +34,36 @@ public struct PodMember: Identifiable, Equatable {
     public var todayProgress: Double { isToday ? progress : 0 }
 }
 
+/// Resumes the share-metadata continuation once, from CloudKit's background callbacks.
+private final class ShareMetadataGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var metadata: CKShare.Metadata?
+    private var error: Error?
+    private var done = false
+
+    func succeed(_ metadata: CKShare.Metadata) {
+        lock.lock(); self.metadata = metadata; lock.unlock()
+    }
+
+    func fail(_ error: Error) {
+        lock.lock()
+        if self.error == nil { self.error = error }
+        lock.unlock()
+    }
+
+    func finish(_ cont: CheckedContinuation<CKShare.Metadata, Error>, fallback: Result<CKShare.Metadata, Error>) {
+        lock.lock()
+        if done { lock.unlock(); return }
+        done = true
+        let metadata = self.metadata
+        let error = self.error
+        lock.unlock()
+        if let metadata { cont.resume(returning: metadata) }
+        else if let error { cont.resume(throwing: error) }
+        else { cont.resume(with: fallback) }
+    }
+}
+
 /// Pods: small friend groups shared over iCloud (CloudKit sharing; no accounts or servers).
 ///
 /// Layout: the pod owner keeps a custom zone "RaynaPod" in their private database holding a root
@@ -58,6 +88,10 @@ public final class PodService: ObservableObject {
     /// Today's on-device ml and goal for the local tile. Set before any CloudKit round-trip.
     @Published public private(set) var live: PodLive?
     @Published public var lastError: String?
+    /// Friendly note, such as opening your own invite. Not an error.
+    @Published public var notice: String?
+    /// Raw CloudKit text for the debug panel. Never shown as the user-facing error.
+    @Published public private(set) var debugDetail: String?
     @Published public private(set) var isOwner = false
     /// Set from Debug app launches. Release builds leave this false, so the sample roster never appears.
     @Published public var debugTools = false
@@ -128,8 +162,22 @@ public final class PodService: ObservableObject {
             await fetch()
         } catch {
             status = .unavailable("iCloud isn't reachable right now.")
-            lastError = error.localizedDescription
+            presentCloudError(error)
         }
+    }
+
+    /// User-facing CloudKit failure. The raw error is logged and, in a debug build, kept for the debug panel.
+    public func presentCloudError(_ error: Error) {
+        noteCloudFailure(error)
+        notice = nil
+        lastError = PodJoin.message(for: error)
+    }
+
+    private func noteCloudFailure(_ error: Error) {
+        #if DEBUG
+        print("Rayna pod: \(error)")
+        #endif
+        if debugTools { debugDetail = String(describing: error) }
     }
 
     // MARK: CloudKit helpers
@@ -224,23 +272,8 @@ public final class PodService: ObservableObject {
         isOwner = false; status = .noPod
     }
 
-    /// Friendly text for CloudKit errors.
-    public static func friendly(_ e: Error) -> String {
-        guard let ck = e as? CKError else { return "Something went wrong. Please try again." }
-        switch ck.code {
-        case .notAuthenticated: return "Sign in to iCloud (Settings → your name) to use pods."
-        case .networkUnavailable, .networkFailure, .serviceUnavailable, .requestRateLimited, .zoneBusy:
-            return "iCloud isn't reachable right now. Check your connection and try again."
-        case .quotaExceeded: return "Your iCloud storage is full, so the pod couldn't be saved."
-        case .permissionFailure: return "You don't have permission to change this pod."
-        case .unknownItem: return "Pods aren't set up on iCloud yet for this version. Please try again later."
-        case .zoneNotFound, .userDeletedZone: return "That pod no longer exists."
-        case .partialFailure:
-            if let first = ck.partialErrorsByItemID?.values.first { return friendly(first) }
-            return "Some pod changes couldn't be saved."
-        default: return "iCloud error: \(ck.localizedDescription)"
-        }
-    }
+    /// Friendly text for CloudKit errors. Never includes a URL or the raw system string.
+    public static func friendly(_ e: Error) -> String { PodJoin.message(for: e) }
 
     private var podTokenKey: String? { zoneOwner.map { "podZoneToken-\($0)" } }
 
@@ -280,6 +313,7 @@ public final class PodService: ObservableObject {
     /// Owner: creates the zone, the pod root record, a public read-write share and their member record.
     public func startPod(name: String) async {
         lastError = nil
+        notice = nil
         do {
             if myID.isEmpty { myID = try await container.userRecordID().recordName }
             if let local = supplyLocal?() {
@@ -295,37 +329,150 @@ public final class PodService: ObservableObject {
             }
         } catch {
             if ownerFlag && zoneOwner != nil && shareURL == nil { resetLocal() }
+            noteCloudFailure(error)
             lastError = "Couldn't start a pod. " + Self.friendly(error)
         }
     }
 
+    /// What opening an invite link did. Callers open the pod screen for every case except a hard failure.
+    public enum AcceptResult: Equatable { case joined, ownInvite, alreadyMember, failed }
+
     /// Participant: accept an invite (called from the app/scene delegate).
-    public func accept(_ metadata: CKShare.Metadata) async {
+    /// The owner's own link is not accepted. An invite this account already took opens the pod.
+    @discardableResult
+    public func accept(_ metadata: CKShare.Metadata) async -> AcceptResult {
         lastError = nil
+        notice = nil
+        let currentName = await currentUserRecordName()
+
+        var chosen = metadata
+        if let url = metadata.share.url {
+            do {
+                chosen = try await fetchShareMetadata(url)
+            } catch {
+                noteCloudFailure(error)
+                if PodJoin.isOwnerAccept(error) || isOwnInvite(metadata, currentName: currentName) {
+                    await showOwnInvite()
+                    return .ownInvite
+                }
+            }
+        }
+
+        if isOwnInvite(chosen, currentName: currentName) || isOwnInvite(metadata, currentName: currentName) {
+            await showOwnInvite()
+            return .ownInvite
+        }
+        if chosen.participantStatus == .removed || metadata.participantStatus == .removed {
+            lastError = "That invite has been cancelled, or the pod no longer exists."
+            return .failed
+        }
+        if chosen.participantStatus == .accepted || metadata.participantStatus == .accepted || samePod(chosen) {
+            await openExisting(chosen)
+            return .alreadyMember
+        }
+
         do {
-            _ = try await container.accept(metadata)
-            if myID.isEmpty { myID = try await container.userRecordID().recordName }
-            if let local = supplyLocal?() {
-                noteLocal(glasses: local.glasses, ml: local.ml, goal: local.goal, streak: local.streak, isKid: local.isKid)
-            }
-            // The shared zone appears in the participant's shared database under the owner's name.
-            zoneOwner = metadata.share.recordID.zoneID.ownerName
-            ownerFlag = false
-            isOwner = false
-            currentShare = metadata.share
-            shareURL = metadata.share.url
-            status = .inPod
-            await subscribe()
-            await fetch()
-            if let local = live {
-                await publish(glasses: local.glasses, ml: local.ml, goal: local.goal, streak: local.streak, isKid: local.isKid)
-            }
+            _ = try await container.accept(chosen)
+            await adopt(chosen, asOwner: false)
+            return .joined
         } catch {
-            lastError = "Couldn't join the pod. " + Self.friendly(error)
+            noteCloudFailure(error)
+            if PodJoin.isOwnerAccept(error) {
+                await showOwnInvite()
+                return .ownInvite
+            }
+            if PodJoin.isAlreadyParticipant(error) {
+                await openExisting(chosen)
+                return .alreadyMember
+            }
+            lastError = "Couldn't join the pod. " + PodJoin.message(for: error, joining: true)
+            return .failed
+        }
+    }
+
+    private func currentUserRecordName() async -> String {
+        if let name = try? await container.userRecordID().recordName, !name.isEmpty {
+            myID = name
+            return name
+        }
+        return myID
+    }
+
+    private func isOwnInvite(_ metadata: CKShare.Metadata, currentName: String) -> Bool {
+        PodJoin.isOwnInvite(role: metadata.participantRole,
+                            ownerRecordName: metadata.ownerIdentity.userRecordID?.recordName,
+                            currentRecordName: currentName)
+    }
+
+    private func samePod(_ metadata: CKShare.Metadata) -> Bool {
+        guard status == .inPod || zoneOwner != nil, let owner = zoneOwner else { return false }
+        return metadata.share.recordID.zoneID.ownerName == owner
+    }
+
+    private func showOwnInvite() async {
+        if status != .inPod { await refreshStatus() }
+        lastError = nil
+        notice = PodJoin.ownInvite
+    }
+
+    /// Already on this share: open it, don't accept it again.
+    private func openExisting(_ metadata: CKShare.Metadata) async {
+        if metadata.participantRole == .owner {
+            await showOwnInvite()
+            return
+        }
+        if status == .inPod, samePod(metadata) {
+            lastError = nil
+            notice = nil
+            await fetch()
+            return
+        }
+        await adopt(metadata, asOwner: false)
+    }
+
+    private func adopt(_ metadata: CKShare.Metadata, asOwner: Bool) async {
+        if myID.isEmpty { myID = await currentUserRecordName() }
+        if let local = supplyLocal?() {
+            noteLocal(glasses: local.glasses, ml: local.ml, goal: local.goal, streak: local.streak, isKid: local.isKid)
+        }
+        zoneOwner = metadata.share.recordID.zoneID.ownerName
+        ownerFlag = asOwner
+        isOwner = asOwner
+        currentShare = metadata.share
+        shareURL = metadata.share.url
+        if let url = metadata.share.url { d.set(url.absoluteString, forKey: "podShareURL") }
+        status = .inPod
+        await subscribe()
+        await fetch()
+        if let local = live {
+            await publish(glasses: local.glasses, ml: local.ml, goal: local.goal, streak: local.streak, isKid: local.isKid)
+        }
+    }
+
+    /// CKFetchShareMetadataOperation for the invite URL, before any accept.
+    private func fetchShareMetadata(_ url: URL) async throws -> CKShare.Metadata {
+        try await withCheckedThrowingContinuation { cont in
+            let op = CKFetchShareMetadataOperation(shareURLs: [url])
+            let gate = ShareMetadataGate()
+            op.perShareMetadataResultBlock = { _, result in
+                switch result {
+                case .success(let metadata): gate.succeed(metadata)
+                case .failure(let error): gate.fail(error)
+                }
+            }
+            op.fetchShareMetadataResultBlock = { result in
+                switch result {
+                case .failure(let error): gate.finish(cont, fallback: .failure(error))
+                case .success: gate.finish(cont, fallback: .failure(CKError(.unknownItem)))
+                }
+            }
+            container.add(op)
         }
     }
 
     public func leavePod() async {
+        notice = nil
+        lastError = nil
         if ownerFlag, let z = zoneID {
             _ = try? await container.privateCloudDatabase.modifyRecordZones(saving: [], deleting: [z])
         } else if let z = zoneID {
@@ -399,7 +546,10 @@ public final class PodService: ObservableObject {
                 try await self.saveMember(zone: zone, snap: latest)
             }
             await fetch()
-        } catch { lastError = Self.friendly(error) }
+        } catch {
+            noteCloudFailure(error)
+            lastError = Self.friendly(error)
+        }
     }
 
     /// Fetches the Member record so the save keeps its change tag, then writes today's numbers.
@@ -501,6 +651,7 @@ public final class PodService: ObservableObject {
             await updatePodStreak()
             await checkNudges(in: page.changed)
         } catch {
+            noteCloudFailure(error)
             lastError = Self.friendly(error)
         }
     }
@@ -574,6 +725,7 @@ public final class PodService: ObservableObject {
             try await save([share], in: db)
             await fetch()
         } catch {
+            noteCloudFailure(error)
             lastError = Self.friendly(error)
         }
     }
@@ -625,7 +777,7 @@ public final class PodService: ObservableObject {
             let k = "nudges-\(RaynaCopy.dayKey(for: Date()))-\(m.id)"
             d.set(d.integer(forKey: k) + 1, forKey: k)
             objectWillChange.send()
-        } catch { lastError = error.localizedDescription }
+        } catch { presentCloudError(error) }
     }
 
     /// Turns new nudges addressed to me into local notifications, then deletes them.
@@ -768,6 +920,13 @@ public struct PodView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 14) {
+            if let note = pod.notice {
+                Text(note)
+                    .font(.system(.footnote, design: .rounded))
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.accentColor.opacity(0.15), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
             if pod.debugTools && pod.fakePod && pod.status != .inPod {
                 Text("Sample pod — not saved to iCloud")
                     .font(.footnote).foregroundStyle(.secondary)
@@ -860,6 +1019,7 @@ public struct PodView: View {
                 Text(pod.participantDebugText)
                 Text(pod.lastPodFetch.map { "Last fetch \($0.formatted(date: .abbreviated, time: .standard))" } ?? "No fetch yet")
                 Text(pod.podSubscriptionText)
+                if let detail = pod.debugDetail { Text(detail) }
             }
             .font(.footnote.monospaced())
             .foregroundStyle(.secondary)

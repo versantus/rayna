@@ -1,3 +1,4 @@
+import CloudKit
 import XCTest
 @testable import RaynaCore
 
@@ -12,6 +13,54 @@ final class FeatureTests: XCTestCase {
     private func day(_ back: Int, from now: Date = Date()) -> String {
         let date = Calendar.current.date(byAdding: .day, value: -back, to: now)!
         return RaynaCopy.dayKey(for: date)
+    }
+
+    func testPodJoinHidesRawCloudKitErrors() {
+        XCTAssertTrue(PodJoin.isOwnInvite(role: .owner, ownerRecordName: "owner", currentRecordName: "someone"))
+        XCTAssertTrue(PodJoin.isOwnInvite(role: .privateUser, ownerRecordName: "me", currentRecordName: "me"))
+        XCTAssertFalse(PodJoin.isOwnInvite(role: .privateUser, ownerRecordName: "owner", currentRecordName: "friend"))
+        XCTAssertFalse(PodJoin.isOwnInvite(role: .privateUser, ownerRecordName: nil, currentRecordName: "friend"))
+
+        let url = "Error accepting share at URL https://www.icloud.com/share/abc123 : owner participant tried to accept share"
+        let owner = CKError(.serverRejectedRequest, userInfo: [NSLocalizedDescriptionKey: url])
+        XCTAssertTrue(PodJoin.isOwnerAccept(owner))
+        XCTAssertEqual(PodJoin.message(for: owner, joining: true), PodJoin.ownInvite)
+        assertSafe(PodJoin.message(for: owner, joining: true))
+
+        let wrapped = NSError(domain: CKErrorDomain, code: CKError.Code.partialFailure.rawValue, userInfo: [
+            NSUnderlyingErrorKey: owner
+        ])
+        XCTAssertTrue(PodJoin.isOwnerAccept(wrapped))
+        assertSafe(PodJoin.message(for: wrapped, joining: true))
+
+        let already = CKError(.serverRejectedRequest, userInfo: [
+            NSLocalizedDescriptionKey: "The participant is already accepted on https://www.icloud.com/share/abc123"
+        ])
+        XCTAssertTrue(PodJoin.isAlreadyParticipant(already))
+        XCTAssertEqual(PodJoin.message(for: already, joining: true), "You're already in this pod.")
+        assertSafe(PodJoin.message(for: already, joining: true))
+
+        assertSafe(PodJoin.message(for: CKError(.networkUnavailable), joining: true))
+        XCTAssertTrue(PodJoin.message(for: CKError(.networkUnavailable)).contains("internet"))
+        XCTAssertTrue(PodJoin.message(for: CKError(.notAuthenticated)).contains("Sign in to iCloud"))
+        XCTAssertTrue(PodJoin.message(for: CKError(.quotaExceeded)).contains("storage is full"))
+        XCTAssertEqual(PodJoin.message(for: CKError(.unknownItem), joining: true),
+                       "That invite has been cancelled, or the pod no longer exists.")
+        XCTAssertEqual(PodJoin.message(for: CKError(.zoneNotFound), joining: true), "That pod no longer exists.")
+        XCTAssertEqual(PodJoin.message(for: CKError(.userDeletedZone)), "That pod no longer exists.")
+
+        let leaked = CKError(.limitExceeded, userInfo: [
+            NSLocalizedDescriptionKey: "See https://www.icloud.com/share/secret-token"
+        ])
+        assertSafe(PodService.friendly(leaked))
+        XCTAssertFalse(PodService.friendly(leaked).contains("iCloud error"))
+    }
+
+    private func assertSafe(_ text: String, file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertFalse(text.contains("http"), file: file, line: line)
+        XCTAssertFalse(text.contains("icloud.com"), file: file, line: line)
+        XCTAssertFalse(text.contains("CKError"), file: file, line: line)
+        XCTAssertFalse(text.lowercased().contains("owner participant"), file: file, line: line)
     }
 
     func testGlassSizeValidation() {

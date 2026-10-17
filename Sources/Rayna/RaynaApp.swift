@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func application(_ application: NSApplication, userDidAcceptCloudKitShareWith metadata: CKShare.Metadata) {
         Task { @MainActor in
             await PodService.shared.accept(metadata)
+            PodWindowController.shared.show()
             AppState.shared.publishToPod()
         }
     }
@@ -150,6 +151,6 @@ final class MacPodShareDelegate: NSObject, NSSharingServiceDelegate {
     }
     func sharingService(_ sharingService: NSSharingService, didFailToShare items: [Any], error: Error) {
         service = nil
-        Task { @MainActor in PodService.shared.lastError = error.localizedDescription }
+        Task { @MainActor in PodService.shared.presentCloudError(error) }
     }
 }
