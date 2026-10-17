@@ -55,7 +55,7 @@ public enum RaynaFrames {
     public static var skin: RaynaSkin {
         get { lock.lock(); defer { lock.unlock() }; return currentSkin }
         set {
-            let s = RaynaFeatures.rayColours ? newValue : .classic
+            let s = RaynaFeatures.rayColours && newValue.isAvailable ? newValue : .classic
             lock.lock(); let changed = s != currentSkin
             if changed { currentSkin = s; cache = [:]; loading = [] }
             lock.unlock()

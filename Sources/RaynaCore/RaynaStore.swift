@@ -55,7 +55,10 @@ public final class RaynaStore {
     /// iPhone main screen. Missing or unknown is Immersive. The Mac panel ignores it.
     /// Rayna's colour, `raynaSkin` inside the existing RaynaPrefs payload. Classic when unset or not released.
     public var skin: RaynaSkin {
-        get { RaynaFeatures.rayColours ? (defaults.string(forKey: RaynaSkin.storageKey).flatMap(RaynaSkin.init(rawValue:)) ?? .classic) : .classic }
+        get {
+            let s = defaults.string(forKey: RaynaSkin.storageKey).flatMap(RaynaSkin.init(rawValue:)) ?? .classic
+            return RaynaFeatures.rayColours && s.isAvailable ? s : .classic
+        }
         set { defaults.set(newValue.rawValue, forKey: RaynaSkin.storageKey) }
     }
 

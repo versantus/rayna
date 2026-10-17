@@ -13,16 +13,22 @@ final class PackTests: XCTestCase {
 
     func testThePackIsHiddenUntilReleased() {
         RaynaFeatures.labs = false
-        XCTAssertFalse(RaynaFeatures.scenePack || RaynaFeatures.rayColours)
+        XCTAssertFalse(RaynaFeatures.scenePack || RaynaFeatures.paidColours)
+        XCTAssertTrue(RaynaFeatures.rayColours, "the free colours are released")
         let x = extras()
         XCTAssertTrue(x.unlocked.filter(\.isPremium).isEmpty)
         x.wornBadges = [.reef]
         XCTAssertTrue(x.wornBadges.isEmpty, "can't wear a pack scene before release")
         RaynaFrames.skin = .lilac
-        XCTAssertEqual(RaynaFrames.skin, .classic, "colours are off until release")
+        XCTAssertEqual(RaynaFrames.skin, .classic, "paid colours are off until the pack is released")
+        RaynaFrames.skin = .coral
+        XCTAssertEqual(RaynaFrames.skin, .coral, "free colours work for everyone")
+        RaynaFrames.skin = .mint
+        XCTAssertEqual(RaynaFrames.skin, .mint)
     }
 
     func testLabsPreviewsThePack() {
+        XCTAssertTrue(RaynaFeatures.labsAllowed, "Debug builds (tests) allow Labs")
         RaynaFeatures.labs = true
         let x = extras()
         XCTAssertEqual(Set(x.unlocked.filter(\.isPremium)), [.reef, .jellies, .treasure, .turtles])

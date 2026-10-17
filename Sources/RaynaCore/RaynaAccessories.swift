@@ -285,7 +285,11 @@ public struct RaynaJourneyView: View {
         _worn = State(initialValue: extras.wornBadges)
         _skin = State(initialValue: skin)
         #if DEBUG   // screenshots: RAYNA_JOURNEY_TAB=scenes
-        if ProcessInfo.processInfo.environment["RAYNA_JOURNEY_TAB"] == "scenes" { _tab = State(initialValue: .scenes) }
+        switch ProcessInfo.processInfo.environment["RAYNA_JOURNEY_TAB"] {
+        case "scenes": _tab = State(initialValue: .scenes)
+        case "colours": _tab = State(initialValue: .colours)
+        default: break
+        }
         #endif
     }
 
@@ -360,10 +364,14 @@ public struct RaynaJourneyView: View {
     /// Rayna's colours: the free ones, then the pack's. Each card is her still in that colour.
     private var colours: some View {
         VStack(alignment: .leading, spacing: 14) {
-            sectionTitle("Free")
-            colourGrid(RaynaSkin.allCases.filter(\.isFree))
-            sectionTitle("Scene & colour pack")
-            colourGrid(RaynaSkin.allCases.filter { !$0.isFree })
+            if RaynaFeatures.paidColours {
+                sectionTitle("Free")
+                colourGrid(RaynaSkin.allCases.filter(\.isFree))
+                sectionTitle("Scene & colour pack")
+                colourGrid(RaynaSkin.allCases.filter { !$0.isFree })
+            } else {
+                colourGrid(RaynaSkin.allCases.filter(\.isFree))
+            }
         }
     }
 

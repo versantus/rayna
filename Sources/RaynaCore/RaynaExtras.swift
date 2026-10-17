@@ -517,16 +517,30 @@ public struct RayVisitorsLayer: View {
 public enum RaynaFeatures {
     public static let kidMode = false
 
-    /// Not released yet: the premium scene pack (Coral Reef, Moon Jellies, Sunken Treasure, Turtle Bay) and Rayna's
-    /// colours (free and paid). Off for everyone unless Labs is switched on, and Labs is only offered in Debug and
-    /// TestFlight builds. To release, change these to `true`.
+    /// Rayna's colours are released: the free ones (turquoise, Coral, Mint) for everyone.
+    public static let rayColours = true
+    /// Not released yet, until the pack can be bought: the premium scenes (Coral Reef, Moon Jellies, Sunken Treasure,
+    /// Turtle Bay) and the paid colours (Sunshine, Lilac, Ocean, Midnight). Off unless Labs is switched on, and Labs is
+    /// only offered in Debug and TestFlight builds. To release, change these to `true` (with the purchase in place).
     public static var scenePack: Bool { labs }
-    public static var rayColours: Bool { labs }
+    public static var paidColours: Bool { labs }
 
     /// Settings → Labs (Debug and TestFlight only). Lives in the App Group so the widget follows it.
     public static let labsKey = "labsPreview"
+    /// Only counts in Debug and TestFlight builds: an App Store install ignores a switch left on from testing.
     public static var labs: Bool {
-        get { (UserDefaults(suiteName: RaynaStore.appGroup) ?? .standard).bool(forKey: labsKey) }
+        get { labsAllowed && (UserDefaults(suiteName: RaynaStore.appGroup) ?? .standard).bool(forKey: labsKey) }
         set { (UserDefaults(suiteName: RaynaStore.appGroup) ?? .standard).set(newValue, forKey: labsKey) }
+    }
+    /// Set at launch: true in Debug builds and TestFlight installs. Stored in the App Group so the widget agrees.
+    public static var labsAllowed: Bool {
+        get {
+            #if DEBUG
+            return true
+            #else
+            return (UserDefaults(suiteName: RaynaStore.appGroup) ?? .standard).bool(forKey: "labsAllowed")
+            #endif
+        }
+        set { (UserDefaults(suiteName: RaynaStore.appGroup) ?? .standard).set(newValue, forKey: "labsAllowed") }
     }
 }

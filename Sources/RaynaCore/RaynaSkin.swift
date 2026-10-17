@@ -20,6 +20,9 @@ public enum RaynaSkin: String, CaseIterable, Identifiable {
     /// Free colours (with the classic turquoise). The rest come with the scene & colour pack.
     public var isFree: Bool { self == .classic || self == .coral || self == .mint }
 
+    /// Can be worn now: free colours always, paid ones only once the pack is released.
+    public var isAvailable: Bool { isFree || RaynaFeatures.paidColours }
+
     public var title: String {
         switch self {
         case .classic: return "Turquoise"

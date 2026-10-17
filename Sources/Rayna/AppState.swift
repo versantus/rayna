@@ -43,7 +43,10 @@ final class AppState: ObservableObject {
     var recap: RaynaRecap { extras.recap(goalDays: goalDays, streak: streak) }
     /// Rayna's colour (`raynaSkin`, synced with the iPhone). Classic until colours are released.
     var skin: RaynaSkin {
-        get { RaynaFeatures.rayColours ? (d.string(forKey: RaynaSkin.storageKey).flatMap(RaynaSkin.init(rawValue:)) ?? .classic) : .classic }
+        get {
+            let s = d.string(forKey: RaynaSkin.storageKey).flatMap(RaynaSkin.init(rawValue:)) ?? .classic
+            return RaynaFeatures.rayColours && s.isAvailable ? s : .classic
+        }
         set { d.set(newValue.rawValue, forKey: RaynaSkin.storageKey); RaynaFrames.skin = newValue; objectWillChange.send(); localChanged() }
     }
     func publishToPod() {

@@ -12,7 +12,11 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         #if DEBUG
         MainActor.assumeIsolated { PodService.shared.debugTools = true }
         #endif
-        Task { @MainActor in PodService.shared.testerTools = await PodService.isTestFlight() }
+        Task { @MainActor in
+            let tester = await PodService.isTestFlight()
+            PodService.shared.testerTools = tester
+            RaynaFeatures.labsAllowed = tester      // App Store installs never see Labs, even if left on
+        }
         UNUserNotificationCenter.current().delegate = self
         RaynaFrames.preloadForLaunch(progress: RaynaStore.shared.progress)
         DispatchQueue.global(qos: .utility).async { ReminderScheduler.registerCategories() }
