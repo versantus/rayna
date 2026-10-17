@@ -59,13 +59,36 @@ public struct SyncStamped: Codable, Equatable {
     public init(_ value: Int, at: Date) { self.value = value; self.at = at }
 }
 
+public struct SyncText: Codable, Equatable {
+    public var value: String
+    public var at: Date
+    public init(_ value: String, at: Date) { self.value = value; self.at = at }
+}
+
 public struct SyncSettings: Codable, Equatable {
     public var values: [String: SyncStamped] = [:]
+    /// String prefs such as `mainLayout`, still inside the RaynaPrefs payload. Missing on older records.
+    public var text: [String: SyncText] = [:]
     public init() {}
     public func merged(with o: SyncSettings) -> SyncSettings {
         var m = self
         m.values.merge(o.values) { a, b in (b.at > a.at || (b.at == a.at && b.value > a.value)) ? b : a }
+        m.text.merge(o.text) { a, b in (b.at > a.at || (b.at == a.at && b.value > a.value)) ? b : a }
         return m
+    }
+
+    private enum CodingKeys: String, CodingKey { case values, text }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        values = try c.decodeIfPresent([String: SyncStamped].self, forKey: .values) ?? [:]
+        text = try c.decodeIfPresent([String: SyncText].self, forKey: .text) ?? [:]
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(values, forKey: .values)
+        if !text.isEmpty { try c.encode(text, forKey: .text) }
     }
 }
 
@@ -153,17 +176,19 @@ public struct SyncLocalSnapshot: Equatable {
     public var unlocks: [String]
     public var goalDays: [String]
     public var factsUnlocked: Int
+    /// String settings such as `mainLayout`. Absent keys are left alone, so a default is not uploaded.
+    public var text: [String: String] = [:]
     /// False when the local store hasn't rolled over to `today` yet (its today fields are stale/empty).
     public var todayValid = true
 
     public init(today: String, todayML: Int = 0, log: [Date] = [], runDay: Bool = false, runBonusML: Int = 0,
                 history: [String: Int] = [:], swaps: [String: Int] = [:], settings: [String: Int] = [:],
                 streak: Int = 0, lastGoalDay: String = "", bestStreak: Int = 0, unlocks: [String] = [],
-                goalDays: [String] = [], factsUnlocked: Int = 0) {
+                goalDays: [String] = [], factsUnlocked: Int = 0, text: [String: String] = [:]) {
         self.today = today; self.todayML = todayML; self.log = log; self.runDay = runDay; self.runBonusML = runBonusML
         self.history = history; self.swaps = swaps; self.settings = settings; self.streak = streak
         self.lastGoalDay = lastGoalDay; self.bestStreak = bestStreak; self.unlocks = unlocks
-        self.goalDays = goalDays; self.factsUnlocked = factsUnlocked
+        self.goalDays = goalDays; self.factsUnlocked = factsUnlocked; self.text = text
     }
 }
 
@@ -218,6 +243,9 @@ public extension SyncLedger {
         for (k, v) in s.settings where settings.values[k]?.value != v {
             settings.values[k] = SyncStamped(v, at: now); settingsDirty = true
         }
+        for (k, v) in s.text where settings.text[k]?.value != v {
+            settings.text[k] = SyncText(v, at: now); settingsDirty = true
+        }
         // Profile
         var p = SyncProfile()
         p.streak = s.streak; p.lastGoalDay = s.lastGoalDay; p.bestStreak = s.bestStreak
@@ -247,7 +275,10 @@ public extension SyncLedger {
         }
         if s.todayML > 0 || h[local.today] != nil { h[local.today] = s.todayML }
         s.history = h; s.swaps = sw
-        for (k, v) in settings.values where s.settings[k] != nil { s.settings[k] = v.value }
+        for (k, v) in settings.values where s.settings[k] != nil || k == "exerciseExtraOn" { s.settings[k] = v.value }
+        var texts = s.text
+        for (k, v) in settings.text { texts[k] = v.value }
+        s.text = texts
         s.lastGoalDay = max(local.lastGoalDay, profile.lastGoalDay)
         s.streak = profile.lastGoalDay >= local.lastGoalDay ? max(profile.streak, profile.lastGoalDay == local.lastGoalDay ? local.streak : 0) : local.streak
         s.bestStreak = max(local.bestStreak, profile.bestStreak)

@@ -20,6 +20,14 @@ public struct SyncLocalDefaults {
             let v = d.integer(forKey: k)
             settings[k] = k == "glassML" ? GlassSize.sanitize(v) : v
         }
+        // Only sync the switch once this device has stored it. A missing key means "on" and must not upload as off.
+        if d.object(forKey: "exerciseExtraOn") != nil {
+            settings["exerciseExtraOn"] = d.bool(forKey: "exerciseExtraOn") ? 1 : 0
+        }
+        var text: [String: String] = [:]
+        if let raw = d.string(forKey: MainLayout.storageKey), MainLayout(rawValue: raw) != nil {
+            text[MainLayout.storageKey] = raw
+        }
         var s = SyncLocalSnapshot(
             today: today,
             todayML: isToday ? d.integer(forKey: "totalML") : 0,
@@ -34,7 +42,8 @@ public struct SyncLocalDefaults {
             bestStreak: d.integer(forKey: "bestStreak"),
             unlocks: d.stringArray(forKey: "unlocks") ?? [],
             goalDays: d.stringArray(forKey: "goalDays") ?? [],
-            factsUnlocked: d.integer(forKey: "factsUnlocked"))
+            factsUnlocked: d.integer(forKey: "factsUnlocked"),
+            text: text)
         s.todayValid = isToday
         return s
     }
@@ -54,10 +63,11 @@ public struct SyncLocalDefaults {
         }
         if s.swaps != old.swaps { d.set(s.swaps, forKey: "swaps") }
         for (k, v) in s.settings where old.settings[k] != v {
-            if Self.boolSettings.contains(k) { d.set(v != 0, forKey: k) }
+            if Self.boolSettings.contains(k) || k == "exerciseExtraOn" { d.set(v != 0, forKey: k) }
             else if k == "glassML" { d.set(GlassSize.sanitize(v), forKey: k) }
             else { d.set(v, forKey: k) }
         }
+        for (k, v) in s.text where old.text[k] != v { d.set(v, forKey: k) }
         if s.streak != old.streak { d.set(s.streak, forKey: "streak") }
         if s.lastGoalDay != old.lastGoalDay { d.set(s.lastGoalDay, forKey: "lastGoalDay") }
         if s.bestStreak != old.bestStreak { d.set(s.bestStreak, forKey: "bestStreak") }

@@ -47,7 +47,19 @@ public final class RaynaStore {
     public var healthRunDay: String { get { defaults.string(forKey: "healthRunDay") ?? "" } set { defaults.set(newValue, forKey: "healthRunDay") } }
     public var healthAutoRun: Bool { get { defaults.bool(forKey: "healthAutoRun") } set { defaults.set(newValue, forKey: "healthAutoRun") } }
     public var healthWriteWater: Bool { get { defaults.bool(forKey: "healthWriteWater") } set { defaults.set(newValue, forKey: "healthWriteWater") } }
-    public var effectiveGoal: Int { goalML + (runDay && !extras.kidMode ? runBonusML : 0) }   // no exercise day in kid mode
+    /// Master switch for the exercise-day bonus. Missing means on, so older installs keep the bonus.
+    public var exerciseExtraOn: Bool {
+        get { defaults.object(forKey: "exerciseExtraOn") == nil ? true : defaults.bool(forKey: "exerciseExtraOn") }
+        set { defaults.set(newValue, forKey: "exerciseExtraOn"); checkGoal() }
+    }
+    /// iPhone main screen. Missing or unknown is Immersive. The Mac panel ignores it.
+    public var mainLayout: MainLayout {
+        get { MainLayout.decode(defaults.string(forKey: MainLayout.storageKey)) }
+        set { defaults.set(newValue.rawValue, forKey: MainLayout.storageKey) }
+    }
+    public var effectiveGoal: Int {
+        ExerciseDay.goal(base: goalML, extraOn: exerciseExtraOn, exerciseDay: runDay, bonus: runBonusML, kidMode: extras.kidMode)
+    }
     public var progress: Double { effectiveGoal > 0 ? min(Double(totalML) / Double(effectiveGoal), 1) : 0 }
     public var glasses: Int { glassML > 0 ? totalML / glassML : 0 }
     public var quip: String {
