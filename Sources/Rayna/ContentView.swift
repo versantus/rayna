@@ -396,11 +396,11 @@ final class JourneyWindowController {
         let view = ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 BrandHeader(title: "Badges", subtitle: "\(unlocked) of \(total) · weekly recap below.", progress: state.progress)
-                RaynaJourneyView(extras: state.extras, recap: state.recap, streak: state.streak, onWear: { set in
+                RaynaJourneyView(extras: state.extras, recap: state.recap, streak: state.streak, skin: state.skin, onWear: { set in
                     state.extras.wornBadges = set
                     state.objectWillChange.send()
                     state.localChanged()
-                }) {
+                }, onSkin: { state.skin = $0 }) {
                     ShareWindowController.shared.show(info: state.shareInfo(state.streak >= 3 ? .streak(state.streak) : .recap))
                 }
                 Spacer(minLength: 60)

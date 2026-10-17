@@ -100,6 +100,20 @@ struct SettingsView: View {
                         Text("Syncs today's water, your history and settings between your iPhone, Apple Watch and Mac through your private iCloud.")
                     }
                 }
+                if PodService.shared.debugTools || PodService.shared.testerTools {
+                    Section {
+                        Toggle("Preview the scene & colour pack", isOn: Binding(get: { RaynaFeatures.labs }, set: { on in
+                            model.objectWillChange.send()
+                            RaynaFeatures.labs = on
+                            if !on, model.extras.wornBadges.contains(where: \.isPremium) {
+                                model.extras.wornBadges = model.extras.wornBadges.filter { !$0.isPremium }
+                            }
+                            model.afterChange()
+                        }))
+                    } header: { Text("Labs") } footer: {
+                        Text("Testing only (this switch isn't in App Store builds). Shows the unreleased scenes and Rayna's colours, all unlocked.")
+                    }
+                }
                 #if DEBUG
                 Section {
                     Button("Unlock all badges") { model.unlockBadgesForTesting() }

@@ -17,7 +17,7 @@ final class WatchSync: NSObject, WCSessionDelegate {
         let s = RaynaStore.shared
         let scene = s.extras.wornBadges.first { $0.slot == .scene }?.rawValue ?? ""
         return [WatchKeys.ml: s.totalML, WatchKeys.goal: s.effectiveGoal, WatchKeys.glassML: s.glassML, WatchKeys.streak: s.streak,
-                WatchKeys.scene: scene]
+                WatchKeys.scene: scene, WatchKeys.skin: s.skin.rawValue]
     }
 
     /// What the watch was last given. The payload is a handful of numbers (~100 bytes); the saving is in not sending

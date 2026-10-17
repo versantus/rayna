@@ -386,11 +386,11 @@ struct JourneySheet: View {
     var body: some View {
         NavigationStack {
                 ScrollView {
-                    RaynaJourneyView(extras: model.extras, recap: model.store.recap, streak: model.streak, onWear: { set in
+                    RaynaJourneyView(extras: model.extras, recap: model.store.recap, streak: model.streak, skin: model.store.skin, onWear: { set in
                         model.objectWillChange.send()
                         model.extras.wornBadges = set
                         model.afterChange()
-                    }) {
+                    }, onSkin: { model.setSkin($0) }) {
                         dismiss()
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { model.offerShare(model.streak >= 3 ? .streak(model.streak) : .recap) }
                     }

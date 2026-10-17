@@ -272,13 +272,18 @@ public struct RaynaJourneyView: View {
     public var streak: Int
     public var onWear: ((Set<RaynaUnlock>) -> Void)?
     public var onShare: (() -> Void)?
+    /// Rayna's colours (only when RaynaFeatures.rayColours).
+    public var onSkin: ((RaynaSkin) -> Void)?
     @State private var worn: Set<RaynaUnlock>
+    @State private var skin: RaynaSkin
     @State private var swapToast: BadgeSwap?
     @State private var tab = Tab.badges
-    enum Tab: Hashable { case badges, scenes }
-    public init(extras: RaynaExtras, recap: RaynaRecap, streak: Int, onWear: ((Set<RaynaUnlock>) -> Void)? = nil, onShare: (() -> Void)? = nil) {
-        self.extras = extras; self.recap = recap; self.streak = streak; self.onWear = onWear; self.onShare = onShare
+    enum Tab: Hashable { case badges, scenes, colours }
+    public init(extras: RaynaExtras, recap: RaynaRecap, streak: Int, skin: RaynaSkin = .classic,
+                onWear: ((Set<RaynaUnlock>) -> Void)? = nil, onSkin: ((RaynaSkin) -> Void)? = nil, onShare: (() -> Void)? = nil) {
+        self.extras = extras; self.recap = recap; self.streak = streak; self.onWear = onWear; self.onSkin = onSkin; self.onShare = onShare
         _worn = State(initialValue: extras.wornBadges)
+        _skin = State(initialValue: skin)
         #if DEBUG   // screenshots: RAYNA_JOURNEY_TAB=scenes
         if ProcessInfo.processInfo.environment["RAYNA_JOURNEY_TAB"] == "scenes" { _tab = State(initialValue: .scenes) }
         #endif
@@ -289,12 +294,13 @@ public struct RaynaJourneyView: View {
             Picker("Show", selection: $tab) {
                 Text("Badges").tag(Tab.badges)
                 Text("Scenes").tag(Tab.scenes)
+                if RaynaFeatures.rayColours { Text("Colours").tag(Tab.colours) }
             }
             .pickerStyle(.segmented)
-            if tab == .scenes {
-                scenes
-            } else {
-                badges
+            switch tab {
+            case .scenes: scenes
+            case .colours: colours
+            case .badges: badges
             }
         }
         .task(id: swapToast.map { "\($0.from.id)-\($0.to.id)" }) {
@@ -342,9 +348,48 @@ public struct RaynaJourneyView: View {
             sectionTitle("Free")
             grid(all.filter(\.isFree))
             sectionTitle("Earned")
-            grid(all.filter { !$0.isFree })
+            grid(all.filter { !$0.isFree && !$0.isPremium })
+            if RaynaFeatures.scenePack {
+                sectionTitle("Scene & colour pack")
+                grid(all.filter(\.isPremium))
+            }
         }
         .preference(key: BadgeSwapToastKey.self, value: swapToast)
+    }
+
+    /// Rayna's colours: the free ones, then the pack's. Each card is her still in that colour.
+    private var colours: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            sectionTitle("Free")
+            colourGrid(RaynaSkin.allCases.filter(\.isFree))
+            sectionTitle("Scene & colour pack")
+            colourGrid(RaynaSkin.allCases.filter { !$0.isFree })
+        }
+    }
+
+    private func colourGrid(_ skins: [RaynaSkin]) -> some View {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+            ForEach(skins) { s in
+                Button {
+                    skin = s
+                    onSkin?(s)
+                } label: {
+                    VStack(spacing: 6) {
+                        SkinSwatch(skin: s).frame(height: 84)
+                        Text(s.title).font(.system(.caption, design: .rounded, weight: .semibold))
+                    }
+                    .padding(8)
+                    .frame(maxWidth: .infinity)
+                    .background(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(s == skin ? Color.accentColor.opacity(0.16) : Color.primary.opacity(0.06)))
+                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(s == skin ? Color.accentColor : .clear, lineWidth: 1.5))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(s.title) Rayna")
+                .accessibilityAddTraits(s == skin ? [.isButton, .isSelected] : .isButton)
+            }
+        }
     }
 
     private func sectionTitle(_ text: String) -> some View {
@@ -704,3 +749,23 @@ public struct RaynaUnlockBanner: View {
         .padding()
     }
 }
+
+/// Rayna's still in one colour, for the colour picker.
+struct SkinSwatch: View {
+    var skin: RaynaSkin
+    @State private var image: CGImage?
+    var body: some View {
+        Group {
+            if let image { Image(decorative: image, scale: 1).resizable().scaledToFit() } else { Color.clear }
+        }
+        .task(id: skin) {
+            guard let root = RaynaFrames.root,
+                  let src = CGImageSourceCreateWithURL(root.appendingPathComponent("stills/band2.png") as CFURL, nil),
+                  let raw = CGImageSourceCreateImageAtIndex(src, 0, nil) else { return }
+            let s = skin
+            image = await Task.detached { SkinPainter.paint(raw, s) }.value
+        }
+        .accessibilityHidden(true)
+    }
+}
+

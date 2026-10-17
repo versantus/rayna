@@ -32,6 +32,9 @@ public struct SyncLocalDefaults {
         if let raw = d.string(forKey: MainLayout.storageKey), MainLayout(rawValue: raw) != nil {
             text[MainLayout.storageKey] = raw
         }
+        if let raw = d.string(forKey: RaynaSkin.storageKey), RaynaSkin(rawValue: raw) != nil {
+            text[RaynaSkin.storageKey] = raw
+        }
         var s = SyncLocalSnapshot(
             today: today,
             todayML: isToday ? d.integer(forKey: "totalML") : 0,

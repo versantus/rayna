@@ -51,6 +51,18 @@ public enum RaynaFrames {
     /// Frames decode here, one clip at a time, never on the main thread.
     private static let queue = DispatchQueue(label: "co.versantus.rayna.frames", qos: .userInitiated)
 
+    /// Rayna's colour. Frames are painted as they decode; changing it drops the cache so clips repaint.
+    public static var skin: RaynaSkin {
+        get { lock.lock(); defer { lock.unlock() }; return currentSkin }
+        set {
+            let s = RaynaFeatures.rayColours ? newValue : .classic
+            lock.lock(); let changed = s != currentSkin
+            if changed { currentSkin = s; cache = [:]; loading = [] }
+            lock.unlock()
+        }
+    }
+    private static var currentSkin = RaynaSkin.classic
+
     /// Finds `Rayna_RaynaCore.bundle` wherever the host put it (Xcode app/appex, SwiftPM .app, swift run).
     /// Cheap locations first; only scans loaded bundles as a last resort.
     static let root: URL? = {
@@ -87,16 +99,18 @@ public enum RaynaFrames {
     private static func loadAsync(_ dir: String) {
         lock.lock()
         if cache[dir] != nil || loading.contains(dir) { lock.unlock(); return }
-        loading.insert(dir); lock.unlock()
+        loading.insert(dir); let skin = currentSkin; lock.unlock()
         queue.async {
             var imgs: [CGImage] = []
             if let root {
                 let d = root.appendingPathComponent(dir)
                 let files = ((try? FileManager.default.contentsOfDirectory(atPath: d.path)) ?? [])
                     .filter { $0.hasSuffix(".png") }.sorted()
-                imgs = files.compactMap { decode(d.appendingPathComponent($0)) }
+                imgs = files.compactMap { decode(d.appendingPathComponent($0)) }.map { SkinPainter.paint($0, skin) }
             }
-            lock.lock(); cache[dir] = imgs; loading.remove(dir); lock.unlock()
+            lock.lock()
+            if skin == currentSkin { cache[dir] = imgs }   // the colour changed while decoding: drop these
+            loading.remove(dir); lock.unlock()
         }
     }
 
@@ -112,7 +126,8 @@ public enum RaynaFrames {
     public static func still(_ band: RaynaBand) -> CGImage? {
         let key = "stills/" + band.file
         if let c = cached(key) { return c.first }
-        guard let root, let img = decode(root.appendingPathComponent("stills/\(band.file).png")) else { return nil }
+        guard let root, let raw = decode(root.appendingPathComponent("stills/\(band.file).png")) else { return nil }
+        let img = SkinPainter.paint(raw, skin)
         lock.lock(); cache[key] = [img]; lock.unlock()
         return img
     }

@@ -517,9 +517,10 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(x.unlockForTesting([.surge, .podWave, .surge]), [.surge, .podWave])
         XCTAssertEqual(x.unlocked, [.seabed, .meadow, .surge, .podWave], "free scenes first, then what was earned")
         let rest = x.unlockForTesting(RaynaExtras.badges(from: "all"))
-        XCTAssertEqual(rest.count, RaynaUnlock.allCases.count - 2 - 2, "free scenes are never newly earned")
-        XCTAssertEqual(Set(x.unlocked), Set(RaynaUnlock.allCases))
-        XCTAssertTrue(x.unlockForTesting(RaynaExtras.badges(from: "ALL")).isEmpty)
+        XCTAssertEqual(rest.filter { !$0.isPremium }.count, RaynaUnlock.allCases.filter { !$0.isPremium }.count - 2 - 2,
+                       "free scenes are never newly earned")
+        XCTAssertEqual(Set(x.unlocked), Set(RaynaUnlock.allCases.filter { !$0.isPremium }), "the pack isn't owned while it's unreleased")
+        XCTAssertTrue(x.unlockForTesting(RaynaExtras.badges(from: "ALL")).allSatisfy(\.isPremium))
         XCTAssertEqual(RaynaExtras.badges(from: " surge, tide ,nope"), [.surge, .tide])
         XCTAssertEqual(RaynaUnlock.surge.overlayAssetName, "badge-surge-overlay")
         XCTAssertEqual(RaynaUnlock.personalBest.compositeAssetName, "badge-personalBest")

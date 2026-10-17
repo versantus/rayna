@@ -53,6 +53,12 @@ public final class RaynaStore {
         set { defaults.set(newValue, forKey: "exerciseExtraOn"); checkGoal() }
     }
     /// iPhone main screen. Missing or unknown is Immersive. The Mac panel ignores it.
+    /// Rayna's colour, `raynaSkin` inside the existing RaynaPrefs payload. Classic when unset or not released.
+    public var skin: RaynaSkin {
+        get { RaynaFeatures.rayColours ? (defaults.string(forKey: RaynaSkin.storageKey).flatMap(RaynaSkin.init(rawValue:)) ?? .classic) : .classic }
+        set { defaults.set(newValue.rawValue, forKey: RaynaSkin.storageKey) }
+    }
+
     public var mainLayout: MainLayout {
         get { MainLayout.decode(defaults.string(forKey: MainLayout.storageKey)) }
         set { defaults.set(newValue.rawValue, forKey: MainLayout.storageKey) }

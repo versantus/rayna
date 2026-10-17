@@ -27,6 +27,7 @@ extension RaynaUnlock {
         case .bubbles, .baby, .personalBest: return .fin
         case .surge, .tide, .flood, .podWave: return .scene   // fish, moon and shells, kelp, baby rays
         case .seabed, .meadow: return .scene                  // free scenes
+        case .reef, .jellies, .treasure, .turtles: return .scene   // the scene & colour pack
         }
     }
 }

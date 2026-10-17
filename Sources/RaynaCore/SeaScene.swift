@@ -78,23 +78,7 @@ public struct SeaScene: View {
     }
 
     private func draw(_ item: SeaSceneItem, in ctx: inout GraphicsContext) {
-        guard let cg = SeaSprites.image(item.sprite) else { return }
-        var c = ctx
-        if item.glow > 0 {
-            let r = max(item.size.width, item.size.height) * 0.85
-            c.fill(Path(ellipseIn: CGRect(x: item.center.x - r, y: item.center.y - r, width: 2 * r, height: 2 * r)),
-                   with: .radialGradient(Gradient(colors: [Color(red: 1, green: 0.96, blue: 0.8).opacity(item.glow), .clear]),
-                                         center: item.center, startRadius: r * 0.4, endRadius: r))
-        }
-        if item.underwater { c.addFilter(.colorMultiply(Color(red: 0.86, green: 0.95, blue: 1))) }
-        // Sway about the bottom-centre, turn about the centre.
-        c.translateBy(x: item.center.x, y: item.center.y + item.size.height / 2)
-        if item.shear != 0 { c.concatenate(CGAffineTransform(a: 1, b: 0, c: -item.shear, d: 1, tx: 0, ty: 0)) }
-        c.translateBy(x: 0, y: -item.size.height / 2)
-        c.rotate(by: .degrees(item.degrees))
-        if item.flipped { c.scaleBy(x: -1, y: 1) }
-        c.draw(Image(decorative: cg, scale: 1),
-               in: CGRect(x: -item.size.width / 2, y: -item.size.height / 2, width: item.size.width, height: item.size.height))
+        SeaSceneDraw.draw(item, in: ctx) { name in SeaSprites.image(name).map { Image(decorative: $0, scale: 1) } }
     }
 }
 

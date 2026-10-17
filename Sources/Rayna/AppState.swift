@@ -41,6 +41,11 @@ final class AppState: ObservableObject {
     /// The badges on the live ray and the share card. At most one in each slot.
     var accessories: Set<RaynaUnlock> { extras.wornBadges }
     var recap: RaynaRecap { extras.recap(goalDays: goalDays, streak: streak) }
+    /// Rayna's colour (`raynaSkin`, synced with the iPhone). Classic until colours are released.
+    var skin: RaynaSkin {
+        get { RaynaFeatures.rayColours ? (d.string(forKey: RaynaSkin.storageKey).flatMap(RaynaSkin.init(rawValue:)) ?? .classic) : .classic }
+        set { d.set(newValue.rawValue, forKey: RaynaSkin.storageKey); RaynaFrames.skin = newValue; objectWillChange.send(); localChanged() }
+    }
     func publishToPod() {
         guard PodService.isEntitled else { return }
         let g = glasses, ml = totalML, goal = effectiveGoal, st = streak, kid = extras.kidMode
@@ -105,6 +110,7 @@ final class AppState: ObservableObject {
         }
         RunLoop.main.add(t, forMode: .common)
         timer = t
+        RaynaFrames.skin = skin
     }
 
     /// Re-read synced keys after iCloud sync wrote another device's changes into the defaults.
@@ -127,6 +133,7 @@ final class AppState: ObservableObject {
         // Synced glasses can complete the goal without a local +1, so record the goal day/streak here too
         // (otherwise the streak could read 0 days on a device that never saw its own glass hit the goal).
         checkGoal()
+        RaynaFrames.skin = skin
         objectWillChange.send()
     }
     /// True while applying synced values (so it doesn't count as a local edit).

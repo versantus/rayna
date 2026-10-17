@@ -27,6 +27,7 @@ struct Provider: TimelineProvider {
     private func entry() -> RaynaEntry {
         let s = RaynaStore.shared
         s.rolloverIfNeeded()
+        RaynaFrames.skin = s.skin
         return RaynaEntry(date: Date(), progress: s.progress, totalML: s.totalML, goal: s.effectiveGoal, quip: s.quip)
     }
 }

@@ -14,6 +14,10 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
     @Published var wiggle = 0
     /// The scene worn on the phone ("" for none): fish, grass, moon and shells, or baby rays in the watch sea.
     @Published var scene = ""
+    /// Rayna's colour from the phone ("classic" or a colour name).
+    @Published var skin = "classic"
+    /// band0…band4, or band<n>-<colour> when a colour is chosen.
+    func band(_ n: Int) -> String { skin.isEmpty || skin == "classic" ? "band\(n)" : "band\(n)-\(skin)" }
     /// True from opening until the phone has answered (or a few seconds pass), so an old number never looks final.
     @Published var updating = false
     /// Glasses and undos tapped before the phone heard about them. Sent on activation.
@@ -38,11 +42,12 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
         glassML = d.integer(forKey: WatchKeys.glassML) == 0 ? 250 : d.integer(forKey: WatchKeys.glassML)
         streak = d.integer(forKey: WatchKeys.streak)
         scene = d.string(forKey: WatchKeys.scene) ?? ""
+        skin = d.string(forKey: WatchKeys.skin) ?? "classic"
     }
 
     private func save() {
         d.set(ml, forKey: WatchKeys.ml); d.set(goal, forKey: WatchKeys.goal); d.set(glassML, forKey: WatchKeys.glassML)
-        d.set(streak, forKey: WatchKeys.streak); d.set(Self.today, forKey: WatchKeys.day); d.set(scene, forKey: WatchKeys.scene)
+        d.set(streak, forKey: WatchKeys.streak); d.set(Self.today, forKey: WatchKeys.day); d.set(scene, forKey: WatchKeys.scene); d.set(skin, forKey: WatchKeys.skin)
         WidgetCenter.shared.reloadAllTimelines()
     }
 
@@ -99,6 +104,7 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
         if let v = ctx[WatchKeys.glassML] as? Int { glassML = v }
         if let v = ctx[WatchKeys.streak] as? Int { streak = v }
         if let v = ctx[WatchKeys.scene] as? String { scene = v }
+        if let v = ctx[WatchKeys.skin] as? String { skin = v }
         updating = false
         save()
     }
@@ -144,7 +150,7 @@ struct WatchHome: View {
             ZStack {
                 WatchSea(progress: model.progress, scene: SeaSceneKind(rawValue: model.scene), still: dimmed)
                     .ignoresSafeArea()
-                Image("band\(raynaBand(model.progress))").resizable().scaledToFit()
+                Image(model.band(raynaBand(model.progress))).resizable().scaledToFit()
                     .frame(width: side, height: side)
                     .rotationEffect(.degrees(tilt))
                     .position(x: geo.size.width / 2, y: geo.size.height * 0.46)
@@ -243,22 +249,8 @@ struct WatchSea: View {
         .accessibilityHidden(true)
     }
 
-    /// Same drawing as the iPhone's SeaScene: sway about the root, turn about the centre, a little bluer underwater.
+    /// The iPhone's drawing (SeaSceneDraw.swift is compiled into the Watch app too), with the Watch's own sprites.
     private func draw(_ item: SeaSceneItem, in ctx: GraphicsContext) {
-        var c = ctx
-        if item.glow > 0 {
-            let r = max(item.size.width, item.size.height) * 0.85
-            c.fill(Path(ellipseIn: CGRect(x: item.center.x - r, y: item.center.y - r, width: 2 * r, height: 2 * r)),
-                   with: .radialGradient(Gradient(colors: [Color(red: 1, green: 0.96, blue: 0.8).opacity(item.glow), .clear]),
-                                         center: item.center, startRadius: r * 0.4, endRadius: r))
-        }
-        if item.underwater { c.addFilter(.colorMultiply(Color(red: 0.86, green: 0.95, blue: 1))) }
-        c.translateBy(x: item.center.x, y: item.center.y + item.size.height / 2)
-        if item.shear != 0 { c.concatenate(CGAffineTransform(a: 1, b: 0, c: -item.shear, d: 1, tx: 0, ty: 0)) }
-        c.translateBy(x: 0, y: -item.size.height / 2)
-        c.rotate(by: .degrees(item.degrees))
-        if item.flipped { c.scaleBy(x: -1, y: 1) }
-        c.draw(Image("scene-\(item.sprite)"),
-               in: CGRect(x: -item.size.width / 2, y: -item.size.height / 2, width: item.size.width, height: item.size.height))
+        SeaSceneDraw.draw(item, in: ctx) { Image("scene-\($0)") }
     }
 }

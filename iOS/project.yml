@@ -105,6 +105,7 @@ targets:
       - RaynaWatch
       - WatchShared
       - path: ../Sources/RaynaCore/SeaSceneLayout.swift
+      - path: ../Sources/RaynaCore/SeaSceneDraw.swift
     dependencies:
       - target: RaynaWatchWidget
     entitlements:

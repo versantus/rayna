@@ -16,6 +16,8 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
         case podOver
         /// Everyone has it from the start (the free scenes).
         case free
+        /// The scene & colour pack (not released: RaynaFeatures.scenePack).
+        case premium
     }
 
     case bubbles, headband, medal, baby
@@ -28,6 +30,10 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
     case podWave
     /// Free scenes. Added at the end so every older badge keeps its code in `wornSet`.
     case seabed, meadow
+    /// The scene & colour pack. Hidden unless RaynaFeatures.scenePack.
+    case reef, jellies, treasure, turtles
+
+    public var isPremium: Bool { rule == .premium }
 
     /// Free from the start; never "newly earned", so never worn automatically.
     public var isFree: Bool { rule == .free }
@@ -48,6 +54,7 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
         case .personalBest: return .personalBest
         case .podWave: return .podOver
         case .seabed, .meadow: return .free
+        case .reef, .jellies, .treasure, .turtles: return .premium
         }
     }
     /// Days threshold for streak-style badges. Zero for badges that are not a day count.
@@ -71,12 +78,16 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
         case .podWave: return "person.3.fill"
         case .seabed: return "star.fill"
         case .meadow: return "leaf.fill"
+        case .reef: return "fish.fill"
+        case .jellies: return "moon.stars.fill"
+        case .treasure: return "sparkles"
+        case .turtles: return "tortoise.fill"
         }
     }
     /// Full-frame water art (ripples, tide's moon and water, flood, the pod wave): the Scene slot.
     public var isSceneOverlay: Bool {
         switch self {
-        case .surge, .tide, .flood, .podWave, .seabed, .meadow: return true
+        case .surge, .tide, .flood, .podWave, .seabed, .meadow, .reef, .jellies, .treasure, .turtles: return true
         default: return false
         }
     }
@@ -104,6 +115,10 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
         case .podWave: return "Pod wave"
         case .seabed: return "Seabed"
         case .meadow: return "Seagrass meadow"
+        case .reef: return "Coral Reef"
+        case .jellies: return "Moon Jellies"
+        case .treasure: return "Sunken Treasure"
+        case .turtles: return "Turtle Bay"
         }
     }
     public var emoji: String {
@@ -122,6 +137,10 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
         case .podWave: return "🌊"
         case .seabed: return "🐚"
         case .meadow: return "🌿"
+        case .reef: return "🐠"
+        case .jellies: return "🪼"
+        case .treasure: return "💰"
+        case .turtles: return "🐢"
         }
     }
     public var blurb: String {
@@ -140,6 +159,10 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
         case .podWave: return "Everyone in the pod beat their goal today."
         case .seabed: return "Shells and a starfish on the sand."
         case .meadow: return "A little seagrass meadow swaying under Rayna."
+        case .reef: return "A bright coral reef full of clownfish and tangs."
+        case .jellies: return "Glowing moon jellies drifting through dusky water."
+        case .treasure: return "A shipwreck, a treasure chest and a shy octopus."
+        case .turtles: return "Sea turtles gliding through a sunny lagoon."
         }
     }
     public func lockedHint(streak: Int, bestStreak: Int) -> String {
@@ -155,6 +178,8 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
         case .podOver:
             return "Everyone in your pod beats their goal on the same day"        case .free:
             return "Free"
+        case .premium:
+            return "Scene & colour pack"
         }
     }
 }
@@ -205,8 +230,11 @@ public struct RaynaExtras {
     /// Earned badges, with the free scenes first (they're everyone's, so never the "latest earned").
     public var unlocked: [RaynaUnlock] {
         get {
-            let earned = (d.stringArray(forKey: "unlocks") ?? []).compactMap(RaynaUnlock.init(rawValue:)).filter { !$0.isFree }
-            return RaynaUnlock.allCases.filter(\.isFree) + earned
+            let earned = (d.stringArray(forKey: "unlocks") ?? []).compactMap(RaynaUnlock.init(rawValue:))
+                .filter { !$0.isFree && !$0.isPremium }
+            // Until purchases exist, the Labs preview owns the pack; with the flag off it doesn't exist.
+            let pack = RaynaFeatures.scenePack ? RaynaUnlock.allCases.filter(\.isPremium) : []
+            return RaynaUnlock.allCases.filter(\.isFree) + earned + pack
         }
         nonmutating set { d.set(newValue.map(\.rawValue), forKey: "unlocks") }
     }
@@ -488,4 +516,17 @@ public struct RayVisitorsLayer: View {
 /// Feature flags. Kid mode (and family-pod kid marking) is built but hidden until Nik turns it on.
 public enum RaynaFeatures {
     public static let kidMode = false
+
+    /// Not released yet: the premium scene pack (Coral Reef, Moon Jellies, Sunken Treasure, Turtle Bay) and Rayna's
+    /// colours (free and paid). Off for everyone unless Labs is switched on, and Labs is only offered in Debug and
+    /// TestFlight builds. To release, change these to `true`.
+    public static var scenePack: Bool { labs }
+    public static var rayColours: Bool { labs }
+
+    /// Settings → Labs (Debug and TestFlight only). Lives in the App Group so the widget follows it.
+    public static let labsKey = "labsPreview"
+    public static var labs: Bool {
+        get { (UserDefaults(suiteName: RaynaStore.appGroup) ?? .standard).bool(forKey: labsKey) }
+        set { (UserDefaults(suiteName: RaynaStore.appGroup) ?? .standard).set(newValue, forKey: labsKey) }
+    }
 }

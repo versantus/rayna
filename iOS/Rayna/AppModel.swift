@@ -56,6 +56,8 @@ final class AppModel: ObservableObject {
             if unlockBanner == nil, env["RAYNA_BANNER"] != "0" { unlockBanner = fresh.last }   // RAYNA_BANNER=0: screenshots without the card
         }
         if let l = env["RAYNA_LAYOUT"].flatMap(MainLayout.init(rawValue:)) { store.mainLayout = l }   // immersive | hero | balanced
+        if env["RAYNA_LABS"] == "1" { RaynaFeatures.labs = true }   // screenshots of the unreleased pack
+        if let s = env["RAYNA_SKIN"].flatMap(RaynaSkin.init(rawValue:)) { store.skin = s }
         if let who = env["RAYNA_NUDGE"] {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { PodService.shared.debugReceiveNudge(from: who) }
         }
@@ -68,10 +70,22 @@ final class AppModel: ObservableObject {
         if env["RAYNA_POD"] == "card" { Task { @MainActor in PodService.shared.loadDemo() } }
         if env["RAYNA_SHARE"] == "goal" { DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.offerShare(.goal) } }
         if store.rolloverIfNeeded() { publishToPod() }
+        applySkin()
+    }
+
+    /// Rayna's colour for every view (and the widget, via the shared store). Classic until colours are released.
+    func applySkin() { RaynaFrames.skin = store.skin }
+
+    func setSkin(_ skin: RaynaSkin) {
+        objectWillChange.send()
+        store.skin = skin
+        applySkin()
+        afterChange()
     }
 
     func refresh(wiggle: Bool = false) {
         store.rolloverIfNeeded()
+        applySkin()
         if !demoMode {
             HealthManager.shared.applyRunDay(store: store) { applied in
                 if applied { self.objectWillChange.send(); self.afterChange(); self.checkUnlocks() }
@@ -195,6 +209,7 @@ final class AppModel: ObservableObject {
     }
 
     func afterChange() {
+        applySkin()
         Task { @MainActor in RaynaCloudSync.shared?.syncSoon() }
         publishToPod()
         WatchSync.shared.push()

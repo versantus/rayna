@@ -42,6 +42,7 @@
 		B70A92F429895BDB58AAB7F7 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D577DCB2A0A7A80F9AE672 /* ContentView.swift */; };
 		B749AC9B30305583EC443673 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6206752303AB1904950CB09D /* Assets.xcassets */; };
 		C18A18768CAC57BE984B6544 /* RaynaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFCCA9E99CEAC13B12DEE0F3 /* RaynaApp.swift */; };
+		C82EA0D6312AFF58307235C4 /* SeaSceneDraw.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5417246629C13B55C508693 /* SeaSceneDraw.swift */; };
 		CA72939AD8507F29B1AE1494 /* NudgeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2D359B1E8091AA30A83B7FB /* NudgeController.swift */; };
 		CC6D08889460F753827FDE02 /* WatchShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = D901844C361FC73AB5ACBC69 /* WatchShared.swift */; };
 		CFAD8179630905514B7EC447 /* AddGlassIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4562E3D0679E16F0A1F3B5CF /* AddGlassIntent.swift */; };
@@ -158,6 +159,7 @@
 		DDCACE7D0A62C6F7C1D48B42 /* HealthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthManager.swift; sourceTree = "<group>"; };
 		E194E1E0606D36D7D4B4B3E7 /* RaynaActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaynaActivity.swift; sourceTree = "<group>"; };
 		E304D665590360E7CFAFA116 /* RaynaWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaynaWidget.swift; sourceTree = "<group>"; };
+		E5417246629C13B55C508693 /* SeaSceneDraw.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeaSceneDraw.swift; sourceTree = "<group>"; };
 		E5C66D3B9392F1E27BFEB757 /* MainScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainScreen.swift; sourceTree = "<group>"; };
 		EA56E768A9B470A7DC7832DA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -334,6 +336,7 @@
 		E0EF28DFCBBBF4648FBF716C /* RaynaCore */ = {
 			isa = PBXGroup;
 			children = (
+				E5417246629C13B55C508693 /* SeaSceneDraw.swift */,
 				54E6F6A42086A9FC74F4098A /* SeaSceneLayout.swift */,
 			);
 			path = RaynaCore;
@@ -608,6 +611,7 @@
 			files = (
 				7104A2840A24B4C19C1CAD21 /* RaynaStage.swift in Sources */,
 				61A3BC3D1E2B007A4A3F4346 /* RaynaWatchApp.swift in Sources */,
+				C82EA0D6312AFF58307235C4 /* SeaSceneDraw.swift in Sources */,
 				05FB807666F452F1B0375FAC /* SeaSceneLayout.swift in Sources */,
 				297778288ABBB7F1F71C2A05 /* WatchShared.swift in Sources */,
 			);
