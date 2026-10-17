@@ -40,9 +40,11 @@ final class HealthManager {
 
     /// Looks for today's heavy-exercise workouts and, if found, turns on the exercise day with a duration-scaled bonus.
     func applyRunDay(store: RaynaStore = .shared, completion: @escaping (Bool) -> Void = { _ in }) {
-        guard isAvailable, store.healthAutoRun, !store.extras.kidMode else { completion(false); return }
         let today = RaynaCopy.dayKey(for: Date())
-        guard store.healthRunDay != today else { completion(false); return }
+        // Authorisation is requested only when the user turns auto-detect on, never from here.
+        guard isAvailable, ExerciseDay.shouldAutoApply(
+            extraOn: store.exerciseExtraOn, autoDetect: store.healthAutoRun, kidMode: store.extras.kidMode,
+            alreadyAppliedDay: store.healthRunDay, today: today, hasHeavyToday: true) else { completion(false); return }
         let start = Calendar.current.startOfDay(for: Date())
         let activity = NSCompoundPredicate(orPredicateWithSubpredicates: Self.heavyExercise.map {
             HKQuery.predicateForWorkouts(with: $0)
@@ -52,8 +54,11 @@ final class HealthManager {
             activity
         ])
         let q = HKSampleQuery(sampleType: .workoutType(), predicate: pred, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, _ in
-            let minutes = (samples as? [HKWorkout] ?? []).reduce(0) { $0 + $1.duration / 60 }
+            let workouts = (samples as? [HKWorkout] ?? [])
+            let sessions = workouts.map { ExerciseDay.Session(at: $0.endDate, heavy: true) }
+            let minutes = workouts.reduce(0) { $0 + $1.duration / 60 }
             DispatchQueue.main.async {
+                guard ExerciseDay.hasHeavyWorkoutToday(sessions, now: Date()) else { completion(false); return }
                 let b = HealthManager.bonus(forRunMinutes: minutes)
                 guard b > 0 else { completion(false); return }
                 store.healthRunDay = today

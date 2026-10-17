@@ -23,25 +23,27 @@ struct ContentView: View {
                                 : [Color(red: 0.88, green: 0.96, blue: 1.0), Color(red: 0.62, green: 0.84, blue: 0.98)],
                            startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea()
-            WaterBackground(progress: model.progress)
-                .ignoresSafeArea()
-
-            if model.kidMode { RayVisitorsLayer(visitors: RayVisitor.visiting(streak: model.streak)).ignoresSafeArea() }
-
-            // Adaptive: wide + regular width (iPad, unfolded foldables, large windows) = two columns;
-            // otherwise the phone column. All state lives in the model, so fold/unfold or rotation
-            // just re-lays out the same state.
             GeometryReader { geo in
-                if hSize == .regular && geo.size.width >= 700 && !typeSize.isAccessibilitySize {
+                let wide = hSize == .regular && geo.size.width >= 700 && !typeSize.isAccessibilitySize
+                // Immersive is the ocean itself. Hero and Balanced keep the water inside their card.
+                // iPad uses the two-column layout and keeps the full-screen water.
+                if wide || model.store.mainLayout == .immersive {
+                    WaterBackground(progress: model.progress).ignoresSafeArea()
+                }
+                if model.kidMode { RayVisitorsLayer(visitors: RayVisitor.visiting(streak: model.streak)).ignoresSafeArea() }
+                if wide {
                     twoColumn(width: geo.size.width)
                 } else {
-                    // Fits on one screen when it can (SE → Pro Max); scrolls at large accessibility text sizes.
-                    ViewThatFits(in: .vertical) {
-                        mainColumn(scrolling: false)
-                        ScrollView { mainColumn(scrolling: true) }
-                            .scrollBounceBehavior(.basedOnSize)
+                    if typeSize.isAccessibilitySize {
+                        ScrollView { PhoneHome(scrolling: true) }.scrollBounceBehavior(.basedOnSize)
+                    } else {
+                        ViewThatFits(in: .vertical) {
+                            PhoneHome(scrolling: false)
+                            ScrollView { PhoneHome(scrolling: true) }
+                                .scrollBounceBehavior(.basedOnSize)
+                        }
                     }
-                    .frame(maxWidth: 600)   // readable width when a regular-width window is still narrow
+                    .frame(maxWidth: 600)
                     .frame(maxWidth: .infinity)
                 }
             }
@@ -117,7 +119,6 @@ struct ContentView: View {
             amount.padding(.top, 8)
             buttons
             glassSizeRow
-            if !model.kidMode { runDayToggle }
             if pod.status == .inPod && !pod.visibleMembers.isEmpty { podCard }
             if model.showSwap { swapCard }
             journeyCard
@@ -146,51 +147,6 @@ struct ContentView: View {
         .buttonStyle(.plain)
         .foregroundStyle(ink)
         .accessibilityHint("Opens your weekly recap and collection")
-    }
-
-    @ViewBuilder
-    private func mainColumn(scrolling: Bool) -> some View {
-        VStack(spacing: compact ? 6 : 8) {
-            header
-            quipBubble
-            rayStage(scrolling: scrolling)
-            amount
-            if pod.status == .inPod && !pod.visibleMembers.isEmpty { podCard }
-            if model.showSwap { swapCard }
-            buttons
-            glassSizeRow
-            if !model.kidMode { runDayToggle }
-        }
-        .padding(.horizontal, 16)
-        .padding(.bottom, compact ? 4 : 6)
-    }
-
-    /// The ray fills the gap under the quip. On a normal phone she takes the leftover height, up to 90% of the width.
-    /// At very large type the column scrolls and she stays a square at that same width, so nothing is clipped.
-    @ViewBuilder
-    private func rayStage(scrolling: Bool) -> some View {
-        if scrolling {
-            Color.clear
-                .aspectRatio(1, contentMode: .fit)
-                .overlay {
-                    GeometryReader { geo in
-                        stagedRay(side: RaynaStage.side(width: geo.size.width, height: geo.size.height))
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
-                }
-        } else {
-            GeometryReader { geo in
-                stagedRay(side: RaynaStage.side(width: geo.size.width, height: geo.size.height))
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-            }
-            .frame(minHeight: compact ? 150 : 200)
-            .layoutPriority(1)
-        }
-    }
-
-    private func stagedRay(side: CGFloat) -> some View {
-        RaynaView(progress: model.progress, wiggleAt: model.wiggleAt, flipAt: model.flipAt, size: side,
-                  accessories: model.accessories)
     }
 
     private var headerButtons: some View {
@@ -384,14 +340,6 @@ struct ContentView: View {
         .accessibilityHint("Logs a swapped fizzy drink and a glass of water")
     }
 
-    private var runDayToggle: some View {
-        Toggle(isOn: model.binding(\.runDay)) {
-            Label(RaynaCopy.runDayLabel(bonusML: model.store.runBonusML), systemImage: RaynaCopy.exerciseDaySymbol)
-                .font(.system(.body, design: .rounded, weight: .semibold))
-        }
-        .padding(.horizontal, 14).padding(.vertical, compact ? 4 : 6)
-        .background(.ultraThinMaterial, in: Capsule())
-    }
 }
 
 struct JourneySheet: View {
