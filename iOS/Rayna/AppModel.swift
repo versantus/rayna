@@ -82,7 +82,7 @@ final class AppModel: ObservableObject {
     var progress: Double { store.progress }
     var totalML: Int { store.totalML }
     var goal: Int { store.effectiveGoal }
-    var quip: String { kidMode ? RaynaCopy.kidQuip(for: progress) : store.quip }
+    var quip: String { store.quip }
     var kidMode: Bool { store.extras.kidMode }
 
     /// Kid mode: cups, a smaller goal (1.5 L in 200 ml cups) and simpler words. Restores the grown-up goal when off.

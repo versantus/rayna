@@ -50,7 +50,9 @@ public final class RaynaStore {
     public var effectiveGoal: Int { goalML + (runDay && !extras.kidMode ? runBonusML : 0) }   // no exercise day in kid mode
     public var progress: Double { effectiveGoal > 0 ? min(Double(totalML) / Double(effectiveGoal), 1) : 0 }
     public var glasses: Int { glassML > 0 ? totalML / glassML : 0 }
-    public var quip: String { RaynaCopy.quip(for: progress) }
+    public var quip: String {
+        RaynaCopy.quip(for: progress, exerciseDay: runDay && !extras.kidMode, salt: totalML, kidMode: extras.kidMode)
+    }
     public var lastLogged: Date? { log.last }
     public func isQuiet(at date: Date) -> Bool { RaynaCopy.isQuiet(date, start: quietStartMin, end: quietEndMin) }
     public func goalMet(on date: Date) -> Bool { goalDays.contains(RaynaCopy.dayKey(for: date)) }

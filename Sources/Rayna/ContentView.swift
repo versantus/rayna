@@ -310,7 +310,7 @@ struct SettingsView: View {
                     BrandRow(symbol: "app.badge", tint: .red, title: "System notifications too") {
                         Toggle("", isOn: $state.systemNotifications).labelsHidden().toggleStyle(.switch)
                     }
-                    Button { NudgeController.shared.show(text: RaynaCopy.allReminders.randomElement() ?? "Sip o'clock!", isSwap: false) } label: {
+                    Button { NudgeController.shared.show(text: RaynaCopy.nextReminder(), isSwap: false) } label: {
                         Label("Preview nudge", systemImage: "play.circle.fill")
                     }
                     Text("Rayna nudges you during waking hours only. Tap “Drank one 💧” on a notification to log a glass without opening the app.")

@@ -253,8 +253,9 @@ final class AppState: ObservableObject {
     }
 
     // MARK: Quips (shared with iOS via RaynaCore)
-    static let quips = RaynaCopy.quips
-    var quip: String { kidMode ? RaynaCopy.kidQuip(for: progress) : RaynaCopy.quip(for: progress) }
-    static let reminders = RaynaCopy.reminders
+    var quip: String {
+        RaynaCopy.quip(for: progress, exerciseDay: runDay && !kidMode, salt: totalML, kidMode: kidMode)
+    }
+    static var reminders: [String] { RaynaCopy.reminders }
     static let swapText = RaynaCopy.swapText
 }

@@ -34,7 +34,6 @@ public enum ReminderScheduler {
     public static func plan(store: RaynaStore, now: Date) -> [UNNotificationRequest] {
         let cal = Calendar.current
         let interval = TimeInterval(max(15, store.intervalMin) * 60)
-        let lines = RaynaCopy.allReminders
         var out: [UNNotificationRequest] = []
         // First reminder one interval after the last glass (or after now).
         var t = max(now, store.lastLogged ?? now).addingTimeInterval(interval)
@@ -49,7 +48,7 @@ public enum ReminderScheduler {
             }
             let c = UNMutableNotificationContent()
             c.title = "Rayna 💧"
-            c.body = lines[(n + cal.component(.day, from: t)) % lines.count]
+            c.body = RaynaCopy.nextReminder(at: t)
             c.sound = .default
             c.categoryIdentifier = category
             c.threadIdentifier = "rayna"
@@ -78,7 +77,7 @@ public enum ReminderScheduler {
     public static func snooze(minutes: Int = 15) {
         let c = UNMutableNotificationContent()
         c.title = "Rayna 💧"
-        c.body = "Okay, 15 minutes is up! I've been very patient. One glass? 🥺"
+        c.body = RaynaCopy.nextReminder()
         c.sound = .default
         c.categoryIdentifier = category
         let trig = UNTimeIntervalNotificationTrigger(timeInterval: TimeInterval(minutes * 60), repeats: false)

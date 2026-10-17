@@ -59,7 +59,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         if s.isQuiet(at: now) { return }
         if s.progress >= 1 { return }
         if let last = s.lastLogged, now.timeIntervalSince(last) < 20 * 60 { return }
-        post(title: "Rayna 💧", body: RaynaCopy.allReminders.randomElement() ?? "Sip o'clock!", actions: true)
+        post(title: "Rayna 💧", body: RaynaCopy.nextReminder(at: now), actions: true)
     }
 
     private func post(title: String, body: String, actions: Bool) {

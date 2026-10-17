@@ -208,6 +208,123 @@ final class FeatureTests: XCTestCase {
         XCTAssertFalse(PodAchievement.everyoneBeatGoal(fakes))
     }
 
+    func testQuipCatalogCountsBannedWordsAndShuffle() {
+        let expected = ["start", "ripple", "glide", "halfway", "rising", "almost", "goal", "reminder", "exercise", "kid"]
+        XCTAssertEqual(Set(QuipCatalog.categories.map(\.id)), Set(expected))
+        XCTAssertGreaterThanOrEqual(QuipCatalog.totalCount, 250)
+        XCTAssertTrue(QuipCatalog.allKidSafe)
+        var seen = Set<String>()
+        let banned: Set<String> = [
+            "calves", "calf", "race", "races", "racing", "marathon", "sprint", "sprints",
+            "jog", "jogging", "jogger", "runner", "running", "runs", "run",
+            "beer", "wine", "wines", "pint", "pints", "alcohol", "alcoholic", "drunk",
+            "cocktail", "booze", "lager", "cider", "champagne", "vodka", "whiskey", "whisky", "pub",
+            "sexy", "naughty", "flirt", "innuendo",
+            "fat", "skinny", "obese", "chubby", "flabby", "calorie", "calories", "diet", "diets",
+            "detox", "cleanse", "fasting", "slim", "slimming",
+            "cure", "cures", "diagnose", "diagnosis", "disease", "diabetes", "prescription",
+            "illness", "symptom", "symptoms", "medical", "medicine",
+            "guilt", "guilty", "shame", "shaming", "hangover",
+            "weight", "weigh", "thigh", "thighs", "belly", "butt",
+            "damn", "hell", "crap"
+        ]
+        for cat in QuipCatalog.categories {
+            XCTAssertGreaterThanOrEqual(cat.lines.count, 30, cat.id)
+            XCTAssertEqual(Set(cat.lines.compactMap(\.time)), Set(["morning", "afternoon", "evening", "night"]), cat.id)
+            XCTAssertTrue(cat.lines.contains { $0.time == nil }, cat.id)
+            var own = Set<String>()
+            for line in cat.lines {
+                XCTAssertTrue(own.insert(line.text).inserted, "\(cat.id) repeats \(line.text)")
+                XCTAssertTrue(seen.insert(line.text).inserted, line.text)
+                XCTAssertTrue(line.kidSafe)
+                XCTAssertGreaterThanOrEqual(line.text.count, 12, line.text)
+                XCTAssertLessThanOrEqual(line.text.count, 100, line.text)
+                let words = line.text.lowercased().split { !$0.isLetter }.map(String.init)
+                XCTAssertTrue(banned.isDisjoint(with: words), "\(line.text) uses \(banned.intersection(words))")
+            }
+        }
+        let exercise = QuipCatalog.lines(id: "exercise").map(\.text).joined(separator: " ").lowercased()
+        for word in ["exercise", "workout", "moving", "playing", "swimming"] {
+            XCTAssertTrue(exercise.contains(word), word)
+        }
+
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(secondsFromGMT: 0)!
+        func at(_ hour: Int) -> Date {
+            cal.date(from: DateComponents(year: 2026, month: 6, day: 15, hour: hour))!
+        }
+        XCTAssertEqual(QuipCatalog.dayPart(for: at(5), calendar: cal), "morning")
+        XCTAssertEqual(QuipCatalog.dayPart(for: at(11), calendar: cal), "morning")
+        XCTAssertEqual(QuipCatalog.dayPart(for: at(12), calendar: cal), "afternoon")
+        XCTAssertEqual(QuipCatalog.dayPart(for: at(16), calendar: cal), "afternoon")
+        XCTAssertEqual(QuipCatalog.dayPart(for: at(17), calendar: cal), "evening")
+        XCTAssertEqual(QuipCatalog.dayPart(for: at(20), calendar: cal), "evening")
+        XCTAssertEqual(QuipCatalog.dayPart(for: at(21), calendar: cal), "night")
+        XCTAssertEqual(QuipCatalog.dayPart(for: at(4), calendar: cal), "night")
+
+        XCTAssertEqual(QuipCatalog.situation(for: 0, kidMode: false, exerciseDay: false), "start")
+        XCTAssertEqual(QuipCatalog.situation(for: 0.14, kidMode: false, exerciseDay: false), "start")
+        XCTAssertEqual(QuipCatalog.situation(for: 0.15, kidMode: false, exerciseDay: false), "ripple")
+        XCTAssertEqual(QuipCatalog.situation(for: 0.35, kidMode: false, exerciseDay: false), "glide")
+        XCTAssertEqual(QuipCatalog.situation(for: 0.55, kidMode: false, exerciseDay: false), "halfway")
+        XCTAssertEqual(QuipCatalog.situation(for: 0.75, kidMode: false, exerciseDay: false), "rising")
+        XCTAssertEqual(QuipCatalog.situation(for: 0.9, kidMode: false, exerciseDay: false), "almost")
+        XCTAssertEqual(QuipCatalog.situation(for: 0.99, kidMode: false, exerciseDay: false), "almost")
+        XCTAssertEqual(QuipCatalog.situation(for: 1, kidMode: false, exerciseDay: true), "goal")
+        XCTAssertEqual(QuipCatalog.situation(for: 0.4, kidMode: false, exerciseDay: true), "exercise")
+        XCTAssertEqual(QuipCatalog.situation(for: 0.4, kidMode: true, exerciseDay: true), "glide")
+
+        let morning = Set(QuipCatalog.pool(id: "start", at: at(9), kidMode: false, calendar: cal))
+        let nightLine = QuipCatalog.lines(id: "start").first { $0.time == "night" }!
+        let anyLine = QuipCatalog.lines(id: "start").first { $0.time == nil }!
+        let morningLine = QuipCatalog.lines(id: "start").first { $0.time == "morning" }!
+        XCTAssertFalse(morning.contains(nightLine.text))
+        XCTAssertTrue(morning.contains(anyLine.text))
+        XCTAssertTrue(morning.contains(morningLine.text))
+
+        let adult = QuipCatalog.pool(id: "glide", at: at(9), kidMode: false, calendar: cal)
+        let kid = QuipCatalog.pool(id: "glide", at: at(9), kidMode: true, calendar: cal)
+        XCTAssertTrue(adult.allSatisfy { kid.contains($0) })
+        XCTAssertTrue(QuipCatalog.pool(id: "kid", at: at(9), kidMode: false, calendar: cal).allSatisfy { kid.contains($0) })
+
+        final class Seed { var state: UInt64 = 1 }
+        let seed = Seed()
+        let sample = (1...30).map { "Line \($0)" }
+        let bag = QuipShuffleBag(lines: sample) {
+            seed.state = seed.state &* 6364136223846793005 &+ 1
+            return seed.state
+        }
+        var previous = ""
+        for _ in 0..<3 {
+            var cycle = Set<String>()
+            for _ in sample {
+                let next = bag.next()
+                XCTAssertNotEqual(next, previous)
+                XCTAssertTrue(cycle.insert(next).inserted)
+                previous = next
+            }
+        }
+
+        QuipPicker.shared.reset()
+        let first = RaynaCopy.quip(for: 0.4, at: at(9), salt: 100, calendar: cal)
+        XCTAssertEqual(first, RaynaCopy.quip(for: 0.4, at: at(9), salt: 100, calendar: cal))
+        XCTAssertNotEqual(first, RaynaCopy.quip(for: 0.4, at: at(9), salt: 101, calendar: cal))
+        XCTAssertTrue(adult.contains(first))
+        let exerciseLine = RaynaCopy.quip(for: 0.4, at: at(9), exerciseDay: true, salt: 3, calendar: cal)
+        XCTAssertTrue(QuipCatalog.pool(id: "exercise", at: at(9), kidMode: false, calendar: cal).contains(exerciseLine))
+        let goalLine = RaynaCopy.quip(for: 1, at: at(9), exerciseDay: true, salt: 4, calendar: cal)
+        XCTAssertTrue(QuipCatalog.pool(id: "goal", at: at(9), kidMode: false, calendar: cal).contains(goalLine))
+        let kidLine = RaynaCopy.kidQuip(for: 0.4, at: at(9), salt: 7, calendar: cal)
+        XCTAssertTrue(kid.contains(kidLine))
+        previous = ""
+        for _ in 0..<40 {
+            let reminder = RaynaCopy.nextReminder(at: at(10), calendar: cal)
+            XCTAssertNotEqual(reminder, previous)
+            XCTAssertTrue(QuipCatalog.lines(id: "reminder").map(\.text).contains(reminder))
+            previous = reminder
+        }
+    }
+
     func testUnlockForTestingAndAssetNames() {
         let x = extras()
         XCTAssertEqual(x.unlockForTesting([.surge, .podWave, .surge]), [.surge, .podWave])
