@@ -287,9 +287,9 @@ public enum SeaSceneLayout {
             bubbles(from: w * 0.2, 4, every: 7, seed: 0); bubbles(from: w * 0.78, 3, every: 9, seed: 3)
             guard swim else { break }
             let f: CGFloat = compact ? 0.8 : 1
-            meander("clown-big", width: 0.15 * u * f, centreX: w * 0.35, range: w * 0.22, lane: 0.72, speed: 0.31, phase: 0)
-            meander("clown-small", width: 0.11 * u * f, centreX: w * 0.35, range: w * 0.22, lane: 0.8, speed: 0.31, phase: -0.45)   // follows the big one
-            cross("tang-blue", width: 0.2 * u * f, lane: 0.42, speed: u * 0.07, phase: 0.2)
+            meander("clown-big", width: 0.15 * u * f, centreX: w * 0.35, range: w * 0.22, lane: 0.72, speed: 0.2, phase: 0)
+            meander("clown-small", width: 0.11 * u * f, centreX: w * 0.35, range: w * 0.22, lane: 0.8, speed: 0.2, phase: -0.45)   // follows the big one
+            meander("tang-blue", width: 0.2 * u * f, centreX: w * 0.5, range: w * 0.32, lane: 0.42, speed: 0.08, phase: 0.2)   // a slow cruise, turning at each side
             if !compact {
                 meander("tang-yellow", width: 0.16 * u, centreX: w * 0.68, range: w * 0.2, lane: 0.25, speed: 0.23, phase: 2)
                 // now and then, two little fish dart across fast
