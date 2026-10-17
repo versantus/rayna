@@ -91,6 +91,13 @@ struct SettingsView: View {
                         Text("Syncs today's water, your history and settings between your iPhone, Apple Watch and Mac through your private iCloud.")
                     }
                 }
+                #if DEBUG
+                Section {
+                    Button("Unlock all badges") { model.unlockBadgesForTesting() }
+                } header: { Text("Debug") } footer: {
+                    Text("Debug builds only. Launch with RAYNA_BADGES=all, or a comma-separated list: surge, tide, flood, over3, over7, over30, personalBest, podWave.")
+                }
+                #endif
                 Section {
                     Link("Privacy policy", destination: URL(string: "https://rayna-water.netlify.app/privacy.html")!)
                     Link("Rayna for Mac", destination: URL(string: "https://rayna-water.netlify.app")!)

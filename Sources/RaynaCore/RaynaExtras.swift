@@ -3,8 +3,9 @@ import Foundation
 
 // MARK: - Unlocks ("Rayna evolves")
 
-/// Unlocks. Streak badges are drawn in code (see RaynaAccessories). Over-achiever badges use an SF Symbol
-/// stand-in until bespoke art exists; the list of that art is in docs/V1.1-NOTES.md.
+/// Unlocks. Streak badges are drawn in code (see RaynaAccessories). Over-achiever badges use
+/// imagesets `badge-<id>` (band3 with the badge baked in) and `badge-<id>-overlay` (badge art alone).
+/// `symbolName` is the fallback when that asset is missing.
 public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
     /// How a badge is earned. Streak badges are the only ones `noteStreak` awards.
     public enum Rule: Equatable {
@@ -48,7 +49,7 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
         default: return 0
         }
     }
-    /// SF Symbol stand-in. Nil for the original drawn accessories.
+    /// SF Symbol used only when the badge imageset is missing. Nil for the original drawn accessories.
     public var symbolName: String? {
         switch self {
         case .bubbles, .headband, .medal, .baby: return nil
@@ -61,6 +62,14 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
         case .personalBest: return "trophy.fill"
         case .podWave: return "person.3.fill"
         }
+    }
+    /// Badge art alone, transparent, same square as Rayna. Nil for code-drawn streak accessories.
+    public var overlayAssetName: String? {
+        symbolName == nil ? nil : "badge-\(rawValue)-overlay"
+    }
+    /// Band3 still with the badge baked in. Nil for code-drawn streak accessories.
+    public var compositeAssetName: String? {
+        symbolName == nil ? nil : "badge-\(rawValue)"
     }
     public var title: String {
         switch self {
@@ -296,6 +305,22 @@ public struct RaynaExtras {
         let today = RaynaCopy.dayKey(for: now)
         let prev = history.filter { $0.key != today }.values.max() ?? 0
         return prev > 0 && ml > prev
+    }
+
+    /// Inserts badges the same way a real award does. Returns only the ones that were new.
+    /// Debug builds call this from `RAYNA_BADGES` and the Unlock all badges button. Tests call it too.
+    @discardableResult
+    public func unlockForTesting(_ badges: [RaynaUnlock]) -> [RaynaUnlock] {
+        award(badges)
+    }
+
+    /// `all`, or a comma-separated list of `RaynaUnlock` raw values. Unknown tokens are skipped.
+    public static func badges(from spec: String) -> [RaynaUnlock] {
+        let trimmed = spec.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.compare("all", options: .caseInsensitive) == .orderedSame { return RaynaUnlock.allCases }
+        return trimmed.split(separator: ",").compactMap {
+            RaynaUnlock(rawValue: $0.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
     }
 
     @discardableResult

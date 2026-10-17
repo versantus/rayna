@@ -48,6 +48,11 @@ final class AppModel: ObservableObject {
         if env["RAYNA_KID"] == "1" { setKidMode(true); store.seedDemo(glasses: Int(env["RAYNA_DEMO"] ?? "4") ?? 4, streak: Int(env["RAYNA_STREAK"] ?? "8") ?? 8) }
         if env["RAYNA_KID"] == "0" { setKidMode(false); if let g = demo { store.seedDemo(glasses: g, streak: Int(env["RAYNA_STREAK"] ?? "5") ?? 5) } }
         #if DEBUG   // screenshot hooks; never in release builds
+        if let spec = env["RAYNA_BADGES"], !spec.isEmpty {
+            let fresh = store.extras.unlockForTesting(RaynaExtras.badges(from: spec))
+            store.extras.pendingUnlocks = []
+            if unlockBanner == nil { unlockBanner = fresh.last }
+        }
         if let n = env["RAYNA_FACTS"].flatMap(Int.init) { store.extras.factsUnlocked = n }
         if let n = env["RAYNA_FACT"].flatMap(Int.init), n < store.extras.factsUnlocked {   // demo only, never locked facts
             bubbleFact = RayFacts.all[n] }
@@ -107,6 +112,16 @@ final class AppModel: ObservableObject {
                        streak: store.streak, weekL: store.recap.litres, unlocks: accessories)
     }
     func offerShare(_ kind: RaynaShareKind) { share = shareInfo(kind) }
+
+    #if DEBUG
+    /// Inserts badges into the collection. `spec` is `all` or comma-separated ids such as `surge,podWave`.
+    func unlockBadgesForTesting(_ spec: String = "all") {
+        let fresh = store.extras.unlockForTesting(RaynaExtras.badges(from: spec))
+        store.extras.pendingUnlocks = []
+        objectWillChange.send()
+        if unlockBanner == nil { unlockBanner = fresh.last }
+    }
+    #endif
 
     func checkUnlocks() {
         guard unlockBanner == nil else { return }

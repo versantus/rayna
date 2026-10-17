@@ -9,3 +9,4 @@ xcuserdata/
 builds/
 .netlify/
 node_modules/
+tools/badge-art/out/

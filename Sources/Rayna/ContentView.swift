@@ -246,12 +246,17 @@ struct SettingsView: View {
                     Button { WelcomeWindowController.shared.show(state: state) } label: {
                         Label("Show welcome…", systemImage: "hand.wave.fill")
                     }
+                    #if DEBUG
+                    Button { state.unlockBadgesForTesting() } label: {
+                        Label("Unlock all badges", systemImage: "rosette")
+                    }
+                    #endif
                 }
             }
             Spacer(minLength: 60)
         }
         .padding(.horizontal, 22).padding(.top, 34)
-        .frame(width: 700, height: 680)
+        .frame(width: 700, height: 720)
         .raynaBackdrop(waveHeight: 70)
     }
 }

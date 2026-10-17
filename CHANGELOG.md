@@ -5,7 +5,7 @@ All notable changes to Rayna (macOS menu-bar app + iOS app). macOS versions are 
 ## Unreleased
 - Pod screen shows pending CKShare invites as faded tiles (name or "Invited", "Waiting to join"). The owner can resend the share sheet or cancel the invite after a confirmation. No new CloudKit fields.
 - Custom glass size: presets stay, and a typed size from 50 to 2,000 ml is saved in `glassML` (already synced on `RaynaPrefs`). +1 glass on iPhone, Mac and Watch uses it.
-- Over-achiever badges: 125/150/200% of a day's goal, 3/7/30-day streaks of beating the goal, a personal-best day, and a pod-wide day where everyone beats their goal. SF Symbol stand-ins until bespoke art; see docs/V1.1-NOTES.md.
+- Over-achiever badges: 125/150/200% of a day's goal, 3/7/30-day streaks of beating the goal, a personal-best day, and a pod-wide day where everyone beats their goal. Final art is in the iOS and Mac asset catalogs (`badge-<id>` and `badge-<id>-overlay`); SF Symbols remain only when an asset is missing. Drawing scripts live in `tools/badge-art/`. Debug builds can unlock them with `RAYNA_BADGES` or Settings → Unlock all badges.
 
 ## Unreleased (iOS 1.0 build 3)
 - Optional ocean sounds (Settings → Sounds, on by default): splash on +1 glass, bubbles on wiggle, harp glissando on the goal spin. Real recorded CC0 audio since build 5 (4 random splash variants, bubbles, harp-glissando goal chime by oggraphics since build 6; ~55 KB, credits in Sources/RaynaCore/Resources/Sounds/CREDITS.md). iOS uses the `.ambient` audio session, so sounds mix with other audio and obey the silent switch. Also on macOS.

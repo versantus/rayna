@@ -82,6 +82,13 @@ final class AppState: ObservableObject {
         lastGoalDay = d.string(forKey: "lastGoalDay") ?? ""
         lastSwapDay = d.string(forKey: "lastSwapDay") ?? ""
         launchAtLogin = SMAppService.mainApp.status == .enabled
+        #if DEBUG
+        if let spec = ProcessInfo.processInfo.environment["RAYNA_BADGES"], !spec.isEmpty {
+            let fresh = extras.unlockForTesting(RaynaExtras.badges(from: spec))
+            extras.pendingUnlocks = []
+            unlockBanner = fresh.last
+        }
+        #endif
         rolloverIfNeeded()
         let t = Timer(timeInterval: 30, repeats: true) { [weak self] _ in
             self?.rolloverIfNeeded()
@@ -163,6 +170,16 @@ final class AppState: ObservableObject {
         }
         launchAtLogin = SMAppService.mainApp.status == .enabled
     }
+
+    #if DEBUG
+    /// Inserts badges into the collection. `spec` is `all` or comma-separated ids such as `surge,podWave`.
+    func unlockBadgesForTesting(_ spec: String = "all") {
+        let fresh = extras.unlockForTesting(RaynaExtras.badges(from: spec))
+        extras.pendingUnlocks = []
+        objectWillChange.send()
+        if unlockBanner == nil { unlockBanner = fresh.last }
+    }
+    #endif
 
     private func checkGoal() {
         if progress >= 1 {

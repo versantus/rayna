@@ -1,7 +1,30 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
+
+/// Looks up a badge imageset in the app's asset catalog. Nil when the catalog does not contain it
+/// (the menu-bar binary built with ./build.sh, or a Watch/widget target), so callers can keep the SF Symbol.
+enum BadgeArt {
+    static func image(named name: String) -> Image? {
+        #if canImport(UIKit)
+        guard UIImage(named: name) != nil else { return nil }
+        return Image(name)
+        #elseif canImport(AppKit)
+        guard NSImage(named: NSImage.Name(name)) != nil else { return nil }
+        return Image(name)
+        #else
+        return nil
+        #endif
+    }
+}
 
 /// Code-drawn unlock accessories, laid over Rayna's frames in the same square (unit) space.
 /// Positions match the Higgsfield framing: disc top ≈ 0.09, eyes ≈ 0.18, disc widest ≈ 0.35, tail tip ≈ 0.92.
+/// Over-achiever badges use the transparent overlay imageset in that same square. A single missing asset
+/// falls back to its SF Symbol.
 public struct RaynaAccessories: View {
     public var unlocks: Set<RaynaUnlock>
     public var date: Date
@@ -10,8 +33,15 @@ public struct RaynaAccessories: View {
     public var body: some View {
         ZStack {
             drawn
-            // One badge at a time (collection cell, celebration). The live ray keeps the drawn streak set only.
-            if unlocks.count == 1, let name = unlocks.first?.symbolName {
+            ForEach(overlayUnlocks) { unlock in
+                if let name = unlock.overlayAssetName, let image = BadgeArt.image(named: name) {
+                    image
+                        .resizable()
+                        .scaledToFit()
+                        .accessibilityHidden(true)
+                }
+            }
+            if showsSymbolFallback, let name = unlocks.first?.symbolName {
                 Image(systemName: name)
                     .font(.system(size: 22, weight: .bold))
                     .symbolRenderingMode(.hierarchical)
@@ -24,6 +54,17 @@ public struct RaynaAccessories: View {
             }
         }
         .allowsHitTesting(false)
+    }
+
+    /// Over-achiever badges, stable order, so several can sit on the live ray in their own places.
+    private var overlayUnlocks: [RaynaUnlock] {
+        unlocks.filter { $0.overlayAssetName != nil }.sorted { $0.rawValue < $1.rawValue }
+    }
+
+    /// Corner symbol only for a single badge whose overlay imageset is not in this target.
+    private var showsSymbolFallback: Bool {
+        guard unlocks.count == 1, let only = unlocks.first, let name = only.overlayAssetName else { return false }
+        return BadgeArt.image(named: name) == nil
     }
 
     private var drawn: some View {
@@ -145,8 +186,16 @@ public struct RaynaJourneyView: View {
                     let got = have.contains(u)
                     VStack(spacing: 6) {
                         ZStack {
-                            RaynaStill(progress: 0.8).opacity(got ? 1 : 0.25).saturation(got ? 1 : 0)
-                            RaynaAccessories(unlocks: [u]).opacity(got ? 1 : 0.35)
+                            if let name = u.compositeAssetName, let image = BadgeArt.image(named: name) {
+                                image
+                                    .resizable()
+                                    .scaledToFit()
+                                    .opacity(got ? 1 : 0.25)
+                                    .saturation(got ? 1 : 0)
+                            } else {
+                                RaynaStill(progress: 0.8).opacity(got ? 1 : 0.25).saturation(got ? 1 : 0)
+                                RaynaAccessories(unlocks: [u]).opacity(got ? 1 : 0.35)
+                            }
                         }
                         .frame(height: 96)
                         Text("\(u.emoji) \(u.title)").font(.system(.subheadline, design: .rounded, weight: .semibold))

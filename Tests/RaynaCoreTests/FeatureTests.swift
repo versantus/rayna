@@ -120,6 +120,21 @@ final class FeatureTests: XCTestCase {
         XCTAssertTrue(x.notePodOverAchieved(true).isEmpty)
     }
 
+    func testUnlockForTestingAndAssetNames() {
+        let x = extras()
+        XCTAssertEqual(x.unlockForTesting([.surge, .podWave, .surge]), [.surge, .podWave])
+        XCTAssertEqual(x.unlocked, [.surge, .podWave])
+        let rest = x.unlockForTesting(RaynaExtras.badges(from: "all"))
+        XCTAssertEqual(rest.count, RaynaUnlock.allCases.count - 2)
+        XCTAssertEqual(Set(x.unlocked), Set(RaynaUnlock.allCases))
+        XCTAssertTrue(x.unlockForTesting(RaynaExtras.badges(from: "ALL")).isEmpty)
+        XCTAssertEqual(RaynaExtras.badges(from: " surge, tide ,nope"), [.surge, .tide])
+        XCTAssertEqual(RaynaUnlock.surge.overlayAssetName, "badge-surge-overlay")
+        XCTAssertEqual(RaynaUnlock.personalBest.compositeAssetName, "badge-personalBest")
+        XCTAssertNil(RaynaUnlock.bubbles.overlayAssetName)
+        XCTAssertNil(RaynaUnlock.headband.compositeAssetName)
+    }
+
     func testNewUnlockNamesSyncAsProfileUnion() {
         var a = SyncProfile(); a.unlocks = ["bubbles", "surge"]
         var b = SyncProfile(); b.unlocks = ["podWave"]
