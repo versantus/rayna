@@ -42,7 +42,6 @@ final class AppState: ObservableObject {
         guard PodService.isEntitled else { return }
         let g = glasses, ml = totalML, goal = effectiveGoal, st = streak, kid = extras.kidMode
         Task { @MainActor in
-            if PodService.shared.status == .unknown { await PodService.shared.refreshStatus() }
             await PodService.shared.publish(glasses: g, ml: ml, goal: goal, streak: st, isKid: kid)
         }
     }
@@ -93,9 +92,10 @@ final class AppState: ObservableObject {
             unlockBanner = fresh.last
         }
         #endif
-        rolloverIfNeeded()
+        if rolloverIfNeeded() { publishToPod() }
         let t = Timer(timeInterval: 30, repeats: true) { [weak self] _ in
-            self?.rolloverIfNeeded()
+            guard let self, self.rolloverIfNeeded() else { return }
+            self.publishToPod()
         }
         RunLoop.main.add(t, forMode: .common)
         timer = t
@@ -153,8 +153,11 @@ final class AppState: ObservableObject {
     }
 
     func undo() {
-        rolloverIfNeeded()
-        guard totalML > 0 else { return }
+        let rolled = rolloverIfNeeded()
+        guard totalML > 0 else {
+            if rolled { publishToPod() }
+            return
+        }
         totalML = max(0, totalML - glassML)
         if !log.isEmpty { log.removeLast() }
         extras.recordDay(totalML)
@@ -224,18 +227,23 @@ final class AppState: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.unlockBanner = u }
     }
 
-    func rolloverIfNeeded() {
+    @discardableResult
+    func rolloverIfNeeded() -> Bool {
         let today = AppState.key(for: Date())
+        var rolled = false
         if dayKey != today {
             dayKey = today
             totalML = 0
             log = []
             runDay = false
             celebrate = false
+            rolled = true
         }
         if lastGoalDay != today && lastGoalDay != AppState.yesterdayKey && streak != 0 {
             streak = 0
+            rolled = true
         }
+        return rolled
     }
 
     // MARK: Quiet hours

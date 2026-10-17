@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidBecomeActive(_ notification: Notification) {
         Task { @MainActor in await RaynaCloudSync.shared?.catchUp() }
+        AppState.shared.publishToPod()
     }
 
     func application(_ application: NSApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
@@ -37,6 +38,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.registerForRemoteNotifications()
         Task { await RaynaCloudSync.shared?.catchUp() }
         NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { _ in
+            AppState.shared.rolloverIfNeeded()
+            AppState.shared.publishToPod()
             Task { @MainActor in await RaynaCloudSync.shared?.catchUp() }
         }
         RaynaFrames.preloadForLaunch(progress: AppState.shared.progress)
@@ -110,6 +113,10 @@ enum MacPodInvite {
     static func install() {
         let pod = PodService.shared
         pod.presentShare = { @MainActor share in present(share) }
+        pod.supplyLocal = { @MainActor in
+            let s = AppState.shared
+            return PodLive(glasses: s.glasses, ml: s.totalML, goal: s.effectiveGoal, streak: s.streak, isKid: s.extras.kidMode)
+        }
         pod.onRoster = { @MainActor members in
             let state = AppState.shared
             let fresh = state.extras.notePodOverAchieved(PodAchievement.everyoneBeatGoal(members))

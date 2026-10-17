@@ -317,8 +317,9 @@ struct ContentView: View {
                         .font(.system(.subheadline, design: .rounded, weight: .bold)).lineLimit(2)
                     HStack(spacing: 6) {
                         ForEach(pod.members.prefix(6)) { m in
-                            ProgressView(value: m.todayProgress)
-                                .tint(m.todayProgress >= 1 ? .green : Color("AccentColor"))
+                            let shown = pod.displayed(m)
+                            ProgressView(value: shown.todayProgress)
+                                .tint(shown.todayProgress >= 1 ? .green : Color("AccentColor"))
                                 .frame(maxWidth: 44)
                                 .accessibilityHidden(true)
                         }
@@ -335,7 +336,10 @@ struct ContentView: View {
         .buttonStyle(.plain)
         .foregroundStyle(ink)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Your pod, \(pod.podName). " + pod.members.map { "\($0.name) \(Int($0.todayProgress * 100)) percent" }.joined(separator: ", "))
+        .accessibilityLabel("Your pod, \(pod.podName). " + pod.members.map { m in
+            let shown = pod.displayed(m)
+            return "\(shown.name) \(RaynaCopy.percent(ml: shown.isToday ? shown.ml : 0, goal: shown.goal)) percent"
+        }.joined(separator: ", "))
         .accessibilityHint("Opens the pod screen")
     }
 

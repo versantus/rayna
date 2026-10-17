@@ -145,8 +145,9 @@ struct ContentView: View {
                         .lineLimit(2)
                     HStack(spacing: 6) {
                         ForEach(pod.members.prefix(6)) { m in
-                            ProgressView(value: m.todayProgress)
-                                .tint(m.todayProgress >= 1 ? .green : .accentColor)
+                            let shown = pod.displayed(m)
+                            ProgressView(value: shown.todayProgress)
+                                .tint(shown.todayProgress >= 1 ? .green : .accentColor)
                                 .frame(maxWidth: 36)
                         }
                     }
@@ -416,7 +417,10 @@ final class PodWindowController {
             window?.contentViewController = NSHostingController(rootView: root)
         }
         RaynaBrand.present(window)
-        Task { await PodService.shared.refreshStatus() }
+        let s = AppState.shared
+        Task { @MainActor in
+            await PodService.shared.openPod(glasses: s.glasses, ml: s.totalML, goal: s.effectiveGoal, streak: s.streak, isKid: s.extras.kidMode)
+        }
     }
 }
 

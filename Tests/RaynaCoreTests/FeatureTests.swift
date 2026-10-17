@@ -145,6 +145,38 @@ final class FeatureTests: XCTestCase {
         XCTAssertTrue(x.notePodOverAchieved(true).isEmpty)
     }
 
+    func testLocalPodTileUsesTodaysMillilitres() {
+        let stale = PodMember(id: "me", name: "Bob", glasses: 0, ml: 0, goal: 2500, streak: 0, updated: .distantPast)
+        let live = PodLive(glasses: 4, ml: 1000, goal: 3200, streak: 3, isKid: false)
+        let now = Date()
+        let me = PodTile.shown(stale, myID: "me", live: live, now: now)
+        XCTAssertEqual(stale.ml, 0)
+        XCTAssertEqual(me.ml, 1000)
+        XCTAssertEqual(me.goal, 3200)
+        XCTAssertEqual(me.glasses, 4)
+        XCTAssertEqual(me.todayProgress, 1000.0 / 3200.0, accuracy: 0.0001)
+        XCTAssertEqual(RaynaCopy.podTileLabel(me), "1.00 L · 31%")
+        XCTAssertEqual(RaynaCopy.percent(ml: 1000, goal: 3200), 31)
+
+        let byRecordName = PodTile.shown(
+            PodMember(id: "member-me", name: "Bob", glasses: 0, ml: 0, goal: 2500, streak: 0, updated: .distantPast),
+            myID: "me", live: live, now: now)
+        XCTAssertEqual(RaynaCopy.podTileLabel(byRecordName), "1.00 L · 31%")
+
+        let other = PodTile.shown(stale, myID: "someone-else", live: live, now: now)
+        XCTAssertEqual(other.ml, 0)
+        XCTAssertEqual(other.todayProgress, 0, accuracy: 0.0001)
+        XCTAssertEqual(RaynaCopy.podTileLabel(other), "0.00 L · 0%")
+
+        let friend = PodMember(id: "sam", name: "Sam", glasses: 0, ml: 1000, goal: 3200, streak: 1, updated: now)
+        XCTAssertEqual(friend.todayProgress, 1000.0 / 3200.0, accuracy: 0.0001)
+        XCTAssertEqual(RaynaCopy.podTileLabel(friend), "1.00 L · 31%")
+        XCTAssertEqual(PodTile.cloudInt(NSNumber(value: Int64(1000))), 1000)
+        XCTAssertEqual(PodTile.cloudInt(Double(1000)), 1000)
+        XCTAssertEqual(PodTile.cloudInt(Int64(1000)), 1000)
+        XCTAssertNil(PodTile.cloudInt("1000"))
+    }
+
     func testUnlockForTestingAndAssetNames() {
         let x = extras()
         XCTAssertEqual(x.unlockForTesting([.surge, .podWave, .surge]), [.surge, .podWave])

@@ -58,6 +58,52 @@ public enum PodInviteList {
     }
 }
 
+/// Today's on-device numbers. The local tile paints these before CloudKit answers.
+public struct PodLive: Equatable {
+    public var glasses: Int
+    public var ml: Int
+    public var goal: Int
+    public var streak: Int
+    public var isKid: Bool
+    public init(glasses: Int, ml: Int, goal: Int, streak: Int, isKid: Bool) {
+        self.glasses = glasses
+        self.ml = ml
+        self.goal = goal
+        self.streak = streak
+        self.isKid = isKid
+    }
+}
+
+/// Pod tile display, with no CloudKit. The local person's tile uses `PodLive`; everyone else uses the Member record.
+public enum PodTile {
+    /// CloudKit INT64 often comes back as NSNumber or Double. `as? Int` then yields 0 and an empty tank.
+    public static func cloudInt(_ value: Any?) -> Int? {
+        if let n = value as? Int { return n }
+        if let n = value as? NSNumber { return n.intValue }
+        if let n = value as? Double { return Int(n.rounded()) }
+        return nil
+    }
+
+    /// True for the user-record id and for a Member record named `member-<id>` when the userID field is missing.
+    public static func isCurrentUser(id: String, myID: String) -> Bool {
+        guard !myID.isEmpty else { return false }
+        return id == myID || id == "member-\(myID)"
+    }
+
+    /// Copies live ml, goal, glasses and streak onto the local member and marks the tile as updated today.
+    public static func shown(_ member: PodMember, myID: String, live: PodLive?, now: Date = Date()) -> PodMember {
+        guard isCurrentUser(id: member.id, myID: myID), let live else { return member }
+        var copy = member
+        copy.glasses = live.glasses
+        copy.ml = live.ml
+        copy.goal = live.goal
+        copy.streak = live.streak
+        copy.isKid = live.isKid
+        copy.updated = now
+        return copy
+    }
+}
+
 /// Pod-wide over-achievement. Uses raw ml and goal; the tank's displayed progress is capped at 100%.
 public enum PodAchievement {
     public static func everyoneBeatGoal(_ members: [PodMember]) -> Bool {

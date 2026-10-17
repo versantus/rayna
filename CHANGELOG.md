@@ -3,6 +3,7 @@
 All notable changes to Rayna (macOS menu-bar app + iOS app). macOS versions are listed; the iOS app ships as 1.0 (unreleased).
 
 ## Unreleased
+- Your own pod tile follows this device's log. It shows today's litres and percent, the same way as the main screen (`1.00 L · 31%`), and the tank fills as soon as you add or undo a glass. Each log, undo and new day writes `ml`, `goal` and `updated` on the existing Member record so the rest of the pod can see it. No new CloudKit fields.
 - Pod screen shows pending CKShare invites as faded tiles (name or "Invited", "Waiting to join"). The owner can resend the share sheet or cancel the invite after a confirmation. No new CloudKit fields.
 - Custom glass size: presets stay, and a typed size from 50 to 2,000 ml is saved in `glassML` (already synced on `RaynaPrefs`). +1 glass on iPhone, Mac and Watch uses it. The picker adds a Custom row; the millilitre field appears only while Custom is selected, and a saved size that is not a preset opens on Custom.
 - Exercise day: the +500 ml boost is labelled "Exercise day (+500 ml)" (longer copy says "heavy exercise day"), with a dumbbell instead of a running figure. Badge names are Workout headband and Workout medal. Stored keys (`runDay`, `runBonusML`, `healthRunDay`, `healthAutoRun`, `liveActivityRunDay`) and unlock ids (`headband`, `medal`) are unchanged. Apple Health counts heavy-exercise workouts, not only runs. Fixes #6.

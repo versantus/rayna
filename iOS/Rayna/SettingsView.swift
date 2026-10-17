@@ -134,6 +134,10 @@ struct PodScreen: View {
     var body: some View {
         ScrollView { PodView().padding() }
             .navigationTitle("Pod")
-            .task { if !model.demoMode { await PodService.shared.refreshStatus() } }
+            .task {
+                guard !model.demoMode else { return }
+                let s = model.store
+                await PodService.shared.openPod(glasses: s.glasses, ml: s.totalML, goal: s.effectiveGoal, streak: s.streak, isKid: s.extras.kidMode)
+            }
     }
 }

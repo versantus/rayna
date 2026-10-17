@@ -109,6 +109,10 @@ enum PodInviteController {
     static func install() {
         let pod = PodService.shared
         pod.presentShare = { @MainActor share in present(share) }
+        pod.supplyLocal = { @MainActor in
+            let s = RaynaStore.shared
+            return PodLive(glasses: s.glasses, ml: s.totalML, goal: s.effectiveGoal, streak: s.streak, isKid: s.extras.kidMode)
+        }
         pod.onRoster = { @MainActor members in
             let fresh = RaynaStore.shared.extras.notePodOverAchieved(PodAchievement.everyoneBeatGoal(members))
             guard !fresh.isEmpty else { return }

@@ -58,13 +58,28 @@ public enum RaynaCopy {
         return String(format: "%.2f L", Double(ml) / 1000)
     }
 
+    public static func percent(ml: Int, goal: Int) -> Int {
+        goal > 0 ? Int((min(Double(ml) / Double(goal), 1) * 100).rounded()) : 0
+    }
+
     public static func amountSubtitle(ml: Int, goal: Int, glassML: Int, kidMode: Bool) -> String {
-        let pct = goal > 0 ? Int((min(Double(ml) / Double(goal), 1) * 100).rounded()) : 0
+        let pct = percent(ml: ml, goal: goal)
         if kidMode {
             let cups = Int((Double(goal) / Double(max(glassML, 1))).rounded(.up))
             return "of \(cups) cups · \(pct)%"
         }
         return "of \(String(format: "%.1f", Double(goal) / 1000)) L · \(pct)%"
+    }
+
+    /// Pod tile caption. Same litres and percent as the main screen (`1.00 L · 31%`).
+    /// A member who has not synced today shows `0.00 L · 0%`. Kid mode, when enabled, keeps cups.
+    public static func podTileLabel(_ member: PodMember) -> String {
+        let ml = member.isToday ? member.ml : 0
+        let pct = member.isToday ? percent(ml: member.ml, goal: member.goal) : 0
+        if member.isKid && RaynaFeatures.kidMode {
+            return "\(member.isToday ? member.glasses : 0) cups · \(pct)%"
+        }
+        return String(format: "%.2f L · %d%%", Double(ml) / 1000, pct)
     }
 
     public static func addGlassLabel(glassML: Int, kidMode: Bool) -> String {

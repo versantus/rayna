@@ -8,6 +8,15 @@ import SwiftUI
 import UserNotifications
 #endif
 
+/// One publish of today's numbers. The newest snapshot wins when taps overlap.
+private struct PodSnapshot: Equatable {
+    var glasses: Int
+    var ml: Int
+    var goal: Int
+    var streak: Int
+    var isKid: Bool
+}
+
 /// One member's shared numbers.
 public struct PodMember: Identifiable, Equatable {
     public let id: String
@@ -46,6 +55,8 @@ public final class PodService: ObservableObject {
     @Published public private(set) var podStreak = 0
     @Published public private(set) var shareURL: URL?
     @Published public private(set) var myID = ""
+    /// Today's on-device ml and goal for the local tile. Set before any CloudKit round-trip.
+    @Published public private(set) var live: PodLive?
     @Published public var lastError: String?
     @Published public private(set) var isOwner = false
     /// Named invites that have not been accepted yet. Accepted people show up as member tiles instead.
@@ -54,11 +65,15 @@ public final class PodService: ObservableObject {
     public var presentShare: (@MainActor (CKShare) -> Void)?
     /// Called after a roster refresh so the app can award the pod-wide badge from local prefs.
     public var onRoster: (@MainActor ([PodMember]) -> Void)?
+    /// Today's local log, so Start pod can write real ml instead of the seeded zeros.
+    public var supplyLocal: (@MainActor () -> PodLive)?
     private var currentShare: CKShare?
     /// Records already seen in this zone, so a push can apply a change-token delta instead of rereading history.
     private var recordCache: [CKRecord.ID: CKRecord] = [:]
     private var fetching = false
     private var fetchAgain = false
+    private var publishing = false
+    private var queuedPublish: PodSnapshot?
     private var podSubscribed = false
 
     private let d = UserDefaults.standard
@@ -259,11 +274,17 @@ public final class PodService: ObservableObject {
         lastError = nil
         do {
             if myID.isEmpty { myID = try await container.userRecordID().recordName }
+            if let local = supplyLocal?() {
+                noteLocal(glasses: local.glasses, ml: local.ml, goal: local.goal, streak: local.streak, isKid: local.isKid)
+            }
             try await createOwnerPod(name: name)
             isOwner = true
             status = .inPod
             await subscribe()
             await fetch()
+            if let local = live {
+                await publish(glasses: local.glasses, ml: local.ml, goal: local.goal, streak: local.streak, isKid: local.isKid)
+            }
         } catch {
             if ownerFlag && zoneOwner != nil && shareURL == nil { resetLocal() }
             lastError = "Couldn't start a pod. " + Self.friendly(error)
@@ -276,6 +297,9 @@ public final class PodService: ObservableObject {
         do {
             _ = try await container.accept(metadata)
             if myID.isEmpty { myID = try await container.userRecordID().recordName }
+            if let local = supplyLocal?() {
+                noteLocal(glasses: local.glasses, ml: local.ml, goal: local.goal, streak: local.streak, isKid: local.isKid)
+            }
             // The shared zone appears in the participant's shared database under the owner's name.
             zoneOwner = metadata.share.recordID.zoneID.ownerName
             ownerFlag = false
@@ -285,6 +309,9 @@ public final class PodService: ObservableObject {
             status = .inPod
             await subscribe()
             await fetch()
+            if let local = live {
+                await publish(glasses: local.glasses, ml: local.ml, goal: local.goal, streak: local.streak, isKid: local.isKid)
+            }
         } catch {
             lastError = "Couldn't join the pod. " + Self.friendly(error)
         }
@@ -309,16 +336,106 @@ public final class PodService: ObservableObject {
     /// Whether this device is in kid mode (published so family pods can show it).
     private var meIsKid = false
 
+    /// Paints the open pod tile from the local log. Call this before any network wait.
+    public func noteLocal(glasses: Int, ml: Int, goal: Int, streak: Int, isKid: Bool) {
+        let kid = isKid && RaynaFeatures.kidMode
+        meIsKid = kid
+        live = PodLive(glasses: glasses, ml: ml, goal: goal, streak: streak, isKid: kid)
+    }
+
+    /// Member as drawn. The local user always shows `live`, including right after +1 or undo.
+    public func displayed(_ member: PodMember, now: Date = Date()) -> PodMember {
+        PodTile.shown(member, myID: myID, live: live, now: now)
+    }
+
+    public func isCurrentUser(_ id: String) -> Bool {
+        PodTile.isCurrentUser(id: id, myID: myID)
+    }
+
+    /// Pod screen opened: paint the local tile, refresh iCloud status, then write today's Member record.
+    public func openPod(glasses: Int, ml: Int, goal: Int, streak: Int, isKid: Bool) async {
+        if case .inPod = status, zoneID == nil { return }
+        noteLocal(glasses: glasses, ml: ml, goal: goal, streak: streak, isKid: isKid)
+        if status != .inPod { await refreshStatus() }
+        await publish(glasses: glasses, ml: ml, goal: goal, streak: streak, isKid: isKid)
+    }
+
+    /// Writes ml, goal, glasses, streak and `updated` (the day) onto the existing Member record.
+    /// A demo pod has no zone and is left alone. Latest tap wins if several publishes overlap.
     public func publish(glasses: Int, ml: Int, goal: Int, streak: Int, isKid: Bool = false) async {
-        meIsKid = isKid && RaynaFeatures.kidMode
+        if case .inPod = status, zoneID == nil { return }
+        noteLocal(glasses: glasses, ml: ml, goal: goal, streak: streak, isKid: isKid)
+        queuedPublish = PodSnapshot(glasses: glasses, ml: ml, goal: goal, streak: streak, isKid: meIsKid)
+        if publishing { return }
+        publishing = true
+        defer { publishing = false }
+        while let next = takeQueuedPublish() {
+            await writeMember(next)
+        }
+    }
+
+    private func takeQueuedPublish() -> PodSnapshot? {
+        let snap = queuedPublish
+        queuedPublish = nil
+        return snap
+    }
+
+    private func writeMember(_ offered: PodSnapshot) async {
+        if status == .unknown { await refreshStatus() }
+        let snap = takeQueuedPublish() ?? offered
         guard status == .inPod, zoneID != nil, !myID.isEmpty else { return }
         do {
             try await withZoneRecovery {
-                guard let z = self.zoneID else { return }
-                try await self.save([self.memberRecord(zone: z, glasses: glasses, ml: ml, goal: goal, streak: streak)], in: self.db)
+                guard let zone = self.zoneID else { return }
+                let latest = self.takeQueuedPublish() ?? snap
+                try await self.saveMember(zone: zone, snap: latest)
             }
             await fetch()
         } catch { lastError = Self.friendly(error) }
+    }
+
+    /// Fetches the Member record so the save keeps its change tag, then writes today's numbers.
+    private func saveMember(zone z: CKRecordZone.ID, snap: PodSnapshot) async throws {
+        let id = CKRecord.ID(recordName: "member-\(myID)", zoneID: z)
+        let base: CKRecord
+        if let cached = recordCache[id] {
+            base = cached
+        } else if let existing = try? await db.record(for: id) {
+            base = existing
+        } else {
+            let created = CKRecord(recordType: "Member", recordID: id)
+            created.setParent(CKRecord.ID(recordName: "pod", zoneID: z))
+            base = created
+        }
+        fill(base, snap: snap)
+        do {
+            try await save([base], in: db, policy: .changedKeys)
+        } catch let error as CKError where error.code == .serverRecordChanged || error.code == .partialFailure {
+            guard let server = serverRecord(from: error) else { throw error }
+            fill(server, snap: snap)
+            try await save([server], in: db, policy: .changedKeys)
+        }
+    }
+
+    private func fill(_ record: CKRecord, snap: PodSnapshot) {
+        record["userID"] = myID as CKRecordValue
+        record["name"] = (displayName.isEmpty ? "Me" : displayName) as CKRecordValue
+        record["glasses"] = snap.glasses as CKRecordValue
+        record["ml"] = snap.ml as CKRecordValue
+        record["goal"] = snap.goal as CKRecordValue
+        record["streak"] = snap.streak as CKRecordValue
+        record["updated"] = Date() as CKRecordValue
+        record["isKid"] = (snap.isKid ? 1 : 0) as CKRecordValue
+    }
+
+    private func serverRecord(from error: CKError) -> CKRecord? {
+        if let record = error.userInfo[CKRecordChangedErrorServerRecordKey] as? CKRecord { return record }
+        if let parts = error.partialErrorsByItemID?.values {
+            for part in parts {
+                if let inner = part as? CKError, let record = serverRecord(from: inner) { return record }
+            }
+        }
+        return nil
     }
 
     /// Foreground, menu-bar open, and wake. A demo pod has no zone, so it is left alone.
@@ -384,7 +501,7 @@ public final class PodService: ObservableObject {
         if let pod = recs.first(where: { $0.recordType == "Pod" }) {
             podName = pod["name"] as? String ?? "Pod"
             d.set(podName, forKey: "podName")
-            podStreak = pod["podStreak"] as? Int ?? 0
+            podStreak = PodTile.cloudInt(pod["podStreak"]) ?? 0
         }
         if let share = recs.first(where: { $0 is CKShare }) as? CKShare {
             currentShare = share
@@ -396,10 +513,11 @@ public final class PodService: ObservableObject {
         }
         members = recs.filter { $0.recordType == "Member" }.map { r in
             PodMember(id: r["userID"] as? String ?? r.recordID.recordName, name: r["name"] as? String ?? "?",
-                      glasses: r["glasses"] as? Int ?? 0, ml: r["ml"] as? Int ?? 0, goal: r["goal"] as? Int ?? 2500,
-                      streak: r["streak"] as? Int ?? 0, updated: r["updated"] as? Date ?? .distantPast,
-                      isKid: (r["isKid"] as? Int ?? 0) == 1)
-        }.sorted { $0.id == myID ? true : ($1.id == myID ? false : $0.name < $1.name) }
+                      glasses: PodTile.cloudInt(r["glasses"]) ?? 0, ml: PodTile.cloudInt(r["ml"]) ?? 0,
+                      goal: PodTile.cloudInt(r["goal"]) ?? 2500, streak: PodTile.cloudInt(r["streak"]) ?? 0,
+                      updated: r["updated"] as? Date ?? .distantPast,
+                      isKid: (PodTile.cloudInt(r["isKid"]) ?? 0) == 1)
+        }.sorted { PodTile.isCurrentUser(id: $0.id, myID: myID) ? true : (PodTile.isCurrentUser(id: $1.id, myID: myID) ? false : $0.name < $1.name) }
         onRoster?(members)
     }
 
@@ -469,7 +587,7 @@ public final class PodService: ObservableObject {
         let today = RaynaCopy.dayKey(for: Date())
         let last = pod["podStreakDay"] as? String ?? ""
         guard last != today else { return }
-        let n = (last == RaynaCopy.yesterdayKey()) ? (pod["podStreak"] as? Int ?? 0) + 1 : 1
+        let n = (last == RaynaCopy.yesterdayKey()) ? (PodTile.cloudInt(pod["podStreak"]) ?? 0) + 1 : 1
         pod["podStreak"] = n as CKRecordValue
         pod["podStreakDay"] = today as CKRecordValue
         if (try? await db.modifyRecords(saving: [pod], deleting: [], savePolicy: .changedKeys)) != nil { podStreak = n }
@@ -672,9 +790,10 @@ public struct PodView: View {
         // Adaptive grid: 2 big tanks per row on iPhone, more on iPad.
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12, alignment: .top)], alignment: .center, spacing: 16) {
             ForEach(pod.members) { m in
+                let shown = pod.displayed(m)
                 VStack(spacing: 6) {
                     GeometryReader { g in
-                        let p = m.todayProgress
+                        let p = shown.todayProgress
                         ZStack(alignment: .bottom) {
                             RoundedRectangle(cornerRadius: 18).fill(Color(red: 0.85, green: 0.94, blue: 1))
                             LinearGradient(colors: [Color(red: 0.4, green: 0.8, blue: 0.95), Color(red: 0.1, green: 0.45, blue: 0.8)],
@@ -692,15 +811,15 @@ public struct PodView: View {
                     }
                     .frame(height: 190)
                     .clipShape(RoundedRectangle(cornerRadius: 18))
-                    Text((m.isKid && RaynaFeatures.kidMode ? "🧒 " : "") + (m.id == pod.myID ? "\(m.name) (you)" : m.name))
+                    Text((shown.isKid && RaynaFeatures.kidMode ? "🧒 " : "") + (pod.isCurrentUser(shown.id) ? "\(shown.name) (you)" : shown.name))
                         .font(.system(.body, design: .rounded, weight: .bold)).lineLimit(2).multilineTextAlignment(.center)
-                    Text(m.isKid && RaynaFeatures.kidMode ? "\(m.glasses) cups · \(Int(m.todayProgress * 100))%" : "\(m.glasses) 🥛 · \(Int(m.todayProgress * 100))%").font(.subheadline).foregroundStyle(.secondary)
-                    if m.id != pod.myID {
-                        let left = pod.nudgesLeft(for: m.id)
-                        Button { Task { await pod.nudge(m) } } label: {
+                    Text(RaynaCopy.podTileLabel(shown)).font(.subheadline).foregroundStyle(.secondary)
+                    if !pod.isCurrentUser(shown.id) {
+                        let left = pod.nudgesLeft(for: shown.id)
+                        Button { Task { await pod.nudge(shown) } } label: {
                             Text(left > 0 ? "Nudge 👋" : "Nudged").font(.subheadline.weight(.semibold)).frame(maxWidth: .infinity, minHeight: 36)
                         }
-                        .buttonStyle(.bordered).frame(minHeight: 44).disabled(left == 0 || m.todayProgress >= 1)
+                        .buttonStyle(.bordered).frame(minHeight: 44).disabled(left == 0 || shown.todayProgress >= 1)
                     }
                 }
                 .accessibilityElement(children: .contain)

@@ -42,7 +42,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
     private func tick() {
         let s = AppState.shared
-        s.rolloverIfNeeded()
+        if s.rolloverIfNeeded() { s.publishToPod() }
         guard s.remindersOn else { return }
         let now = Date()
 

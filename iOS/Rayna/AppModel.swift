@@ -62,7 +62,7 @@ final class AppModel: ObservableObject {
         #endif
         if env["RAYNA_POD"] == "card" { Task { @MainActor in PodService.shared.loadDemo() } }
         if env["RAYNA_SHARE"] == "goal" { DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.offerShare(.goal) } }
-        store.rolloverIfNeeded()
+        if store.rolloverIfNeeded() { publishToPod() }
     }
 
     func refresh(wiggle: Bool = false) {
@@ -75,6 +75,7 @@ final class AppModel: ObservableObject {
         checkUnlocks()
         if wiggle { wiggleAt = Date(); if !demoMode { RaynaSounds.shared.play(.bubbles) } }
         objectWillChange.send()
+        publishToPod()
     }
 
     // MARK: Reads

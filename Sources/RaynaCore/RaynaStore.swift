@@ -98,18 +98,24 @@ public final class RaynaStore {
     @discardableResult
     public func reconcileGoal(now: Date = Date()) -> Bool { checkGoal(now: now) }
 
-    public func rolloverIfNeeded(now: Date = Date()) {
+    /// Zeros the day when the calendar day changes. True when ml or the streak changed, so the pod can be told.
+    @discardableResult
+    public func rolloverIfNeeded(now: Date = Date()) -> Bool {
         let today = RaynaCopy.dayKey(for: now)
+        var rolled = false
         if dayKey != today {
             dayKey = today
             totalML = 0
             log = []
             defaults.set(false, forKey: "runDay")
             defaults.set(500, forKey: "runBonusML")
+            rolled = true
         }
         if lastGoalDay != today && lastGoalDay != RaynaCopy.yesterdayKey(from: now) && streak != 0 {
             streak = 0
+            rolled = true
         }
+        return rolled
     }
 
     /// Seeds a pleasant demo day (used for App Store screenshots via the `-RaynaDemo <glasses>` launch argument).
