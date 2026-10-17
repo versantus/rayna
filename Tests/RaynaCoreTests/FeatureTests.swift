@@ -328,6 +328,69 @@ final class FeatureTests: XCTestCase {
         XCTAssertFalse(PodAchievement.everyoneBeatGoal(fakes))
     }
 
+    func testWearUpToThreeBadges() {
+        let slots = Dictionary(grouping: RaynaUnlock.allCases, by: \.slot)
+        XCTAssertEqual(Set(slots.keys), Set(BadgeSlot.allCases))
+        XCTAssertEqual(slots.values.flatMap { $0 }.count, RaynaUnlock.allCases.count)
+        XCTAssertEqual(RaynaUnlock.headband.slot, .head)
+        XCTAssertEqual(RaynaUnlock.over30.slot, .head)
+        XCTAssertEqual(RaynaUnlock.medal.slot, .chest)
+        XCTAssertEqual(RaynaUnlock.over7.slot, .chest)
+        XCTAssertEqual(RaynaUnlock.personalBest.slot, .fin)
+        XCTAssertEqual(RaynaUnlock.podWave.slot, .fin)
+        XCTAssertEqual(WornSet.normalized(Set(RaynaUnlock.allCases)).count, BadgeSlot.allCases.count)
+
+        var wearing: Set<RaynaUnlock> = [.headband, .medal]
+        let swapped = WornSet.toggling(wearing, .over30)
+        XCTAssertEqual(swapped.replaced, .headband)
+        XCTAssertEqual(swapped.set, [.over30, .medal])
+        let removed = WornSet.toggling(swapped.set, .medal)
+        XCTAssertNil(removed.replaced)
+        XCTAssertEqual(removed.set, [.over30])
+        wearing = [.headband]
+        XCTAssertEqual(WornSet.autoWear(wearing, fresh: [.over30, .medal]), [.headband, .medal])
+        XCTAssertEqual(WornSet.autoWear([.medal], fresh: [.over7]), [.medal])
+
+        XCTAssertEqual(WornSet.migrated(from: WornBadge.code(for: .medal), unlocked: [.bubbles, .medal]), [.medal])
+        XCTAssertEqual(WornSet.migrated(from: WornBadge.none, unlocked: [.medal]), [])
+        XCTAssertEqual(WornSet.migrated(from: WornBadge.automatic, unlocked: [.bubbles, .headband]), [.headband])
+        let bits = WornSet.bits([.headband, .medal, .personalBest])
+        XCTAssertEqual(WornSet.badges(from: bits), [.headband, .medal, .personalBest])
+
+        let name = "rayna-worn-set"
+        let defaults = UserDefaults(suiteName: name)!
+        defaults.removePersistentDomain(forName: name)
+        let extras = RaynaExtras(defaults: defaults)
+        defaults.set(WornBadge.code(for: .headband), forKey: WornBadge.prefsKey)
+        extras.unlocked = [.headband, .medal]
+        XCTAssertEqual(extras.wornBadges, [.headband])
+        XCTAssertNil(defaults.object(forKey: WornSet.prefsKey))
+        let fresh = extras.unlockForTesting([.personalBest, .over30])
+        XCTAssertEqual(fresh, [.personalBest, .over30])
+        XCTAssertEqual(extras.wornBadges, [.headband, .personalBest])
+        XCTAssertNotNil(defaults.object(forKey: WornSet.prefsKey))
+
+        var older = SyncSettings()
+        older.values[WornSet.prefsKey] = SyncStamped(WornSet.bits([.headband]), at: Date(timeIntervalSince1970: 10))
+        var newer = SyncSettings()
+        newer.values[WornSet.prefsKey] = SyncStamped(WornSet.bits([.medal]), at: Date(timeIntervalSince1970: 30))
+        XCTAssertEqual(older.merged(with: newer).values[WornSet.prefsKey]?.value, WornSet.bits([.medal]))
+        let encoded = try? JSONEncoder().encode(newer)
+        let round = encoded.flatMap { try? JSONDecoder().decode(SyncSettings.self, from: $0) }
+        XCTAssertEqual(round?.values[WornSet.prefsKey]?.value, WornSet.bits([.medal]))
+        let bare = try? JSONDecoder().decode(SyncSettings.self, from: Data("{\"values\":{}}".utf8))
+        XCTAssertNil(bare?.values[WornSet.prefsKey])
+        XCTAssertTrue(SyncLocalDefaults.intSettings.contains(WornSet.prefsKey))
+
+        let syncName = "rayna-worn-sync"
+        let syncDefaults = UserDefaults(suiteName: syncName)!
+        syncDefaults.removePersistentDomain(forName: syncName)
+        let missing = SyncLocalDefaults(syncDefaults).read()
+        XCTAssertNil(missing.settings[WornSet.prefsKey])
+        syncDefaults.set(WornSet.bits([.medal]), forKey: WornSet.prefsKey)
+        XCTAssertEqual(SyncLocalDefaults(syncDefaults).read().settings[WornSet.prefsKey], WornSet.bits([.medal]))
+    }
+
     func testQuipCatalogCountsBannedWordsAndShuffle() {
         let expected = ["start", "ripple", "glide", "halfway", "rising", "almost", "goal", "reminder", "exercise", "kid"]
         XCTAssertEqual(Set(QuipCatalog.categories.map(\.id)), Set(expected))

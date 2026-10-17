@@ -194,8 +194,24 @@ public struct RaynaExtras {
         get { d.object(forKey: WornBadge.prefsKey) == nil ? WornBadge.automatic : d.integer(forKey: WornBadge.prefsKey) }
         nonmutating set { d.set(newValue, forKey: WornBadge.prefsKey) }
     }
-    /// The one overlay on the live ray and the share card.
+    /// The one overlay the previous build showed. The live ray uses `wornBadges`.
     public var wornBadge: RaynaUnlock? { WornBadge.worn(code: wornBadgeCode, unlocked: unlocked) }
+    /// Up to one badge in each slot. A missing `wornSet` is the old single `wornBadge`, not yet written back.
+    public var wornBadges: Set<RaynaUnlock> {
+        get {
+            let raw: Set<RaynaUnlock>
+            if d.object(forKey: WornSet.prefsKey) != nil {
+                raw = WornSet.badges(from: d.integer(forKey: WornSet.prefsKey))
+            } else {
+                raw = WornSet.migrated(from: wornBadgeCode, unlocked: unlocked)
+            }
+            return WornSet.normalized(raw.filter { unlocked.contains($0) })
+        }
+        nonmutating set {
+            let clean = WornSet.normalized(newValue.filter { unlocked.contains($0) })
+            d.set(WornSet.bits(clean), forKey: WornSet.prefsKey)
+        }
+    }
     /// Unlocks earned but not yet celebrated in the UI (e.g. earned via a widget or notification action).
     public var pendingUnlocks: [RaynaUnlock] {
         get { (d.stringArray(forKey: "pendingUnlocks") ?? []).compactMap(RaynaUnlock.init(rawValue:)) }
@@ -360,6 +376,10 @@ public struct RaynaExtras {
         guard !fresh.isEmpty else { return [] }
         unlocked = unlocked + fresh
         pendingUnlocks = pendingUnlocks + fresh
+        let next = WornSet.autoWear(wornBadges, fresh: fresh)
+        if d.object(forKey: WornSet.prefsKey) == nil || next != wornBadges {
+            wornBadges = next
+        }
         return fresh
     }
     public func takePendingUnlocks() -> [RaynaUnlock] {

@@ -275,7 +275,9 @@ public extension SyncLedger {
         }
         if s.todayML > 0 || h[local.today] != nil { h[local.today] = s.todayML }
         s.history = h; s.swaps = sw
-        for (k, v) in settings.values where s.settings[k] != nil || k == "exerciseExtraOn" { s.settings[k] = v.value }
+        for (k, v) in settings.values where s.settings[k] != nil || k == "exerciseExtraOn" || k == WornSet.prefsKey {
+            s.settings[k] = v.value
+        }
         var texts = s.text
         for (k, v) in settings.text { texts[k] = v.value }
         s.text = texts

@@ -7,7 +7,7 @@ import SwiftUI
 /// Reads/writes the synced keys. iOS uses the App Group defaults (RaynaStore), macOS the standard defaults
 /// (AppState); both use the same key names.
 public struct SyncLocalDefaults {
-    public static let intSettings = ["goalML", "glassML", "quietStartMin", "quietEndMin", WornBadge.prefsKey]
+    public static let intSettings = ["goalML", "glassML", "quietStartMin", "quietEndMin", WornBadge.prefsKey, WornSet.prefsKey]
     public static let boolSettings = ["eveningSwap", "swapChallenge", "rayFactsOn"]
     public let d: UserDefaults
     public init(_ d: UserDefaults) { self.d = d }
@@ -16,9 +16,13 @@ public struct SyncLocalDefaults {
         let today = RaynaCopy.dayKey(for: now)
         let isToday = d.string(forKey: "dayKey") == today
         var settings: [String: Int] = [:]
-        for k in Self.intSettings + Self.boolSettings {
+        for k in Self.intSettings + Self.boolSettings where k != WornSet.prefsKey {
             let v = d.integer(forKey: k)
             settings[k] = k == "glassML" ? GlassSize.sanitize(v) : v
+        }
+        // A missing worn set still means "use the old single badge". Do not upload that as an empty set.
+        if d.object(forKey: WornSet.prefsKey) != nil {
+            settings[WornSet.prefsKey] = d.integer(forKey: WornSet.prefsKey)
         }
         // Only sync the switch once this device has stored it. A missing key means "on" and must not upload as off.
         if d.object(forKey: "exerciseExtraOn") != nil {

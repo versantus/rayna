@@ -38,8 +38,8 @@ final class AppState: ObservableObject {
     /// History, unlocks and swap-a-fizzy-drink stats (shared logic with iOS).
     let extras = RaynaExtras(defaults: .standard)
     var goalDays: [String] { get { d.stringArray(forKey: "goalDays") ?? [] } set { d.set(Array(newValue.suffix(30)), forKey: "goalDays") } }
-    /// The one badge on the live ray and the share card. Empty when Rayna is wearing nothing.
-    var accessories: Set<RaynaUnlock> { extras.wornBadge.map { [$0] } ?? [] }
+    /// The badges on the live ray and the share card. At most one in each slot.
+    var accessories: Set<RaynaUnlock> { extras.wornBadges }
     var recap: RaynaRecap { extras.recap(goalDays: goalDays, streak: streak) }
     func publishToPod() {
         guard PodService.isEntitled else { return }

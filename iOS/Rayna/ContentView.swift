@@ -348,9 +348,9 @@ struct JourneySheet: View {
     var body: some View {
         NavigationStack {
                 ScrollView {
-                    RaynaJourneyView(extras: model.extras, recap: model.store.recap, streak: model.streak, onWear: { code in
+                    RaynaJourneyView(extras: model.extras, recap: model.store.recap, streak: model.streak, onWear: { set in
                         model.objectWillChange.send()
-                        model.extras.wornBadgeCode = code
+                        model.extras.wornBadges = set
                         model.afterChange()
                     }) {
                         dismiss()

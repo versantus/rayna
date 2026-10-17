@@ -391,8 +391,8 @@ final class JourneyWindowController {
         let view = ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 BrandHeader(title: "Rayna's journey", subtitle: "Streak, unlocks and your weekly recap.", progress: state.progress)
-                RaynaJourneyView(extras: state.extras, recap: state.recap, streak: state.streak, onWear: { code in
-                    state.extras.wornBadgeCode = code
+                RaynaJourneyView(extras: state.extras, recap: state.recap, streak: state.streak, onWear: { set in
+                    state.extras.wornBadges = set
                     state.objectWillChange.send()
                     state.localChanged()
                 }) {

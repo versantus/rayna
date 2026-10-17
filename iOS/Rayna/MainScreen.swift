@@ -78,7 +78,7 @@ struct PhoneHome: View {
             let side = RaynaStage.side(width: geo.size.width * 0.94, height: geo.size.height * 0.72)
             ZStack {
                 RaynaView(progress: model.progress, wiggleAt: model.wiggleAt, flipAt: model.flipAt,
-                          size: side, accessories: model.accessories)
+                          size: side, accessories: model.accessories, brightenAccessories: true)
                     .position(x: geo.size.width / 2, y: geo.size.height * 0.50)
                     .accessibilityHidden(true)
                 waterTag(in: geo.size)

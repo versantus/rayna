@@ -172,28 +172,31 @@ public struct RaynaView: View {
     public var size: CGFloat = 100
     public var fullTail = false
     public var script: RaynaScript? = nil
-    /// Streak unlocks drawn over her (bubble trail, headband, medal, baby ray).
+    /// Up to one badge in each slot (head, chest, fin).
     public var accessories: Set<RaynaUnlock> = []
+    /// Brighten badges that sit under the immersive waterline.
+    public var brightenAccessories = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(progress: Double, wiggleAt: Date? = nil, flipAt: Date? = nil, pout: Bool = false,
                 size: CGFloat = 100, fullTail: Bool = false, script: RaynaScript? = nil,
-                accessories: Set<RaynaUnlock> = []) {
+                accessories: Set<RaynaUnlock> = [], brightenAccessories: Bool = false) {
         self.progress = progress; self.wiggleAt = wiggleAt; self.flipAt = flipAt; self.pout = pout
         self.size = size; self.fullTail = fullTail; self.script = script; self.accessories = accessories
+        self.brightenAccessories = brightenAccessories
     }
 
     public var body: some View {
         Group {
             if reduceMotion {
-                RaynaStill(progress: progress).overlay(RaynaAccessories(unlocks: accessories, date: .distantPast))
+                RaynaStill(progress: progress).overlay(RaynaAccessories(unlocks: accessories, date: .distantPast, brighten: brightenAccessories))
             } else {
                 TimelineView(.animation(minimumInterval: 1.0 / 30)) { tl in
                     if let img = frame(at: tl.date) {
                         let _ = LaunchTiming.mark("firstAnimatedFrame")
                         let sp = spin(at: tl.date)
                         Image(decorative: img, scale: 1).resizable().interpolation(.high).aspectRatio(contentMode: .fit)
-                            .overlay(RaynaAccessories(unlocks: accessories, date: tl.date))
+                            .overlay(RaynaAccessories(unlocks: accessories, date: tl.date, brighten: brightenAccessories))
                             .rotationEffect(.degrees(sp.angle))
                             .scaleEffect(sp.scale)
                             .offset(y: sp.lift * size)
