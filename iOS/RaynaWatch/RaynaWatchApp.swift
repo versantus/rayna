@@ -14,6 +14,8 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
     @Published var wiggle = 0
     /// The scene worn on the phone ("" for none): fish, grass, moon and shells, or baby rays in the watch sea.
     @Published var scene = ""
+    /// True from opening until the phone has answered (or a few seconds pass), so an old number never looks final.
+    @Published var updating = false
     /// Glasses and undos tapped before the phone heard about them. Sent on activation.
     private var unsentGlasses = 0
     private var unsentUndos = 0
@@ -79,12 +81,25 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
+    /// On opening: ask the phone for today's numbers rather than waiting for it to send them.
+    func refresh() {
+        guard WCSession.default.activationState == .activated else { return }
+        relay()
+        guard WCSession.default.isReachable else { return }
+        updating = true
+        WCSession.default.sendMessage([WatchKeys.hello: 1], replyHandler: { [weak self] ctx in
+            DispatchQueue.main.async { self?.apply(ctx) }
+        }, errorHandler: { [weak self] _ in DispatchQueue.main.async { self?.updating = false } })
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4) { [weak self] in self?.updating = false }
+    }
+
     private func apply(_ ctx: [String: Any]) {
         if let v = ctx[WatchKeys.ml] as? Int { ml = v }
         if let v = ctx[WatchKeys.goal] as? Int { goal = v }
         if let v = ctx[WatchKeys.glassML] as? Int { glassML = v }
         if let v = ctx[WatchKeys.streak] as? Int { streak = v }
         if let v = ctx[WatchKeys.scene] as? String { scene = v }
+        updating = false
         save()
     }
 
@@ -92,8 +107,12 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
         let ctx = session.receivedApplicationContext
         DispatchQueue.main.async {
             if !ctx.isEmpty { self.apply(ctx) }
-            self.relay()
+            self.refresh()
         }
+    }
+    /// The phone's fast watch-face updates (transferCurrentComplicationUserInfo) arrive here.
+    func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
+        DispatchQueue.main.async { self.apply(userInfo) }
     }
     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
         DispatchQueue.main.async { self.apply(applicationContext) }
@@ -106,8 +125,10 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
 @main
 struct RaynaWatchApp: App {
     @StateObject private var model = WatchModel.shared
+    @Environment(\.scenePhase) private var phase
     var body: some Scene {
         WindowGroup { WatchHome().environmentObject(model) }
+            .onChange(of: phase) { _, now in if now == .active { model.refresh() } }
     }
 }
 
@@ -131,9 +152,12 @@ struct WatchHome: View {
                 VStack(spacing: 0) {
                     Text(String(format: "%.2f / %.1f L", Double(model.ml) / 1000, Double(model.goal) / 1000))
                         .font(.system(.footnote, design: .rounded, weight: .bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.white.opacity(model.updating ? 0.6 : 1))
                         .shadow(color: .black.opacity(0.35), radius: 2)
                         .lineLimit(1).minimumScaleFactor(0.7)
+                    if model.updating {
+                        Text("Updating…").font(.system(.caption2, design: .rounded)).foregroundStyle(.white.opacity(0.7))
+                    }
                     Spacer(minLength: 0)
                     HStack(spacing: 8) {
                         Button { model.undo() } label: {

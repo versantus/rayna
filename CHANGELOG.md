@@ -3,6 +3,7 @@
 All notable changes to Rayna (macOS menu-bar app + iOS app). macOS versions are listed; the iOS app ships as 1.0 (unreleased).
 
 ## Unreleased
+- Watch sync is faster: the watch asks the phone for today's numbers as soon as it opens (a "hello" message, answered in milliseconds) and shows "Updating…" until they arrive; the phone sends the moment the watch app comes into reach; and with the watch app closed, the watch face gets the fast complication channel when watchOS has budget left. The phone no longer re-sends identical numbers after every change, and coalesces a burst of changes into one send.
 - Testing: "Reset today's nudge limits" on the pod screen clears this phone's 3-per-person nudge counts and Sent ticks for today. Shown only in Debug and TestFlight builds (StoreKit `AppTransaction` sandbox environment), never in the App Store build.
 - Apple Watch: Rayna now installs on watchOS 10 and later. The project never set a watchOS minimum, so Xcode used its newest (27.0) and Watches on older watchOS (e.g. 10.6) couldn't install it.
 - Nudges are visible inside Rayna, not only as a notification: a banner drops in ("Sophie nudged you. Time for a glass!") and Rayna wiggles; the pod screen lists "Nudged you today" with times; and the sender sees "Sent ✓ 14:32" once the nudge has saved to iCloud. Debug launch setting `RAYNA_NUDGE=<name>` fakes one.

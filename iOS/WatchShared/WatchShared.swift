@@ -7,6 +7,8 @@ enum WatchKeys {
     static let undoGlass = "undoGlass"
     /// The worn scene badge id ("" for none), so the watch sea has the same fish, grass, moon or baby rays.
     static let scene = "scene"
+    /// The watch asking for today's numbers when it opens (the phone replies with them).
+    static let hello = "hello"
     static let watchGroup = "group.co.versantus.raynawater"
 }
 
