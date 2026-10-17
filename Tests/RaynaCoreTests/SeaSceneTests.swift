@@ -10,6 +10,13 @@ final class SeaSceneTests: XCTestCase {
 
     private func waterline(_ p: Double) -> CGFloat { WaterBackground.waterline(progress: p, height: phone.height) }
 
+    func testTheWatchUsesTheSameWaterline() {
+        for p in levels { for h in [200.0, 514.0, 760.0] {
+            XCTAssertEqual(SeaSceneLayout.waterline(progress: p, height: h), WaterBackground.waterline(progress: p, height: h))
+        } }
+        XCTAssertEqual(Set(SeaSceneKind.allCases.map(\.rawValue)), Set(RaynaUnlock.allCases.filter { $0.slot == .scene }.map(\.rawValue)))
+    }
+
     func testOnlySceneBadgesDrawAnything() {
         for u in RaynaUnlock.allCases where u.slot != .scene {
             XCTAssertTrue(SeaSceneLayout.items(for: u, progress: 0.5, size: phone, time: 0).isEmpty, u.rawValue)
@@ -32,30 +39,38 @@ final class SeaSceneTests: XCTestCase {
 
     func testPlantsNeverGrowAboveTheWater() {
         for p in levels { for t in times {
-            for item in SeaSceneLayout.items(for: .flood, progress: p, size: phone, time: t) {
+            for item in SeaSceneLayout.items(for: RaynaUnlock.flood, progress: p, size: phone, time: t) {
                 XCTAssertLessThanOrEqual(item.size.height, phone.height - waterline(p) + 0.5, "\(p)")
                 XCTAssertEqual(item.center.y + item.size.height / 2, phone.height + 4, accuracy: 0.01, "rooted on the seabed")
             }
         } }
-        let low = SeaSceneLayout.items(for: .flood, progress: 0.1, size: phone, time: 0).map(\.size.height).max()!
-        let high = SeaSceneLayout.items(for: .flood, progress: 0.9, size: phone, time: 0).map(\.size.height).max()!
+        let low = SeaSceneLayout.items(for: RaynaUnlock.flood, progress: 0.1, size: phone, time: 0).map(\.size.height).max()!
+        let high = SeaSceneLayout.items(for: RaynaUnlock.flood, progress: 0.9, size: phone, time: 0).map(\.size.height).max()!
         XCTAssertGreaterThan(high, low * 2, "more water, taller kelp")
     }
 
     func testTheMoonNeedsSky() {
         let size = phone
-        let moon = { (p: Double) in SeaSceneLayout.items(for: .tide, progress: p, size: size, time: 0).first { $0.sprite == "moon" } }
+        let moon = { (p: Double) in SeaSceneLayout.items(for: RaynaUnlock.tide, progress: p, size: size, time: 0).first { $0.sprite == "moon" } }
         let half = try? XCTUnwrap(moon(0.5))
         XCTAssertLessThan((half?.center.y ?? .infinity) + (half?.size.height ?? 0) / 2, waterline(0.5))
         XCTAssertNil(moon(0.95), "no sky left at the top")
-        XCTAssertEqual(SeaSceneLayout.items(for: .tide, progress: 0.95, size: phone, time: 0).count, 3, "shells stay on the sand")
+        XCTAssertEqual(SeaSceneLayout.items(for: RaynaUnlock.tide, progress: 0.95, size: phone, time: 0).count, 3, "shells stay on the sand")
+    }
+
+    func testCompactKeepsTheMoonAndSandClearOfTheWatchText() {
+        let watch = CGSize(width: 205, height: 251)
+        let items = SeaSceneLayout.items(for: SeaSceneKind.tide, progress: 0.3, size: watch, time: 0, compact: true)
+        let moon = items.first { $0.sprite == "moon" }!
+        XCTAssertGreaterThan(moon.center.x - moon.size.width / 2, watch.width * 0.78, "beside the centred litres line")
+        XCTAssertTrue(items.filter { $0.sprite != "moon" }.allSatisfy { $0.center.x < watch.width * 0.2 || $0.center.x > watch.width * 0.8 })
     }
 
     func testShallowWaterHasFewerSwimmers() {
-        XCTAssertEqual(SeaSceneLayout.items(for: .surge, progress: 0.15, size: phone, time: 0).count, 2)
-        XCTAssertEqual(SeaSceneLayout.items(for: .surge, progress: 0.6, size: phone, time: 0).count, 4)
-        XCTAssertEqual(SeaSceneLayout.items(for: .podWave, progress: 0.15, size: phone, time: 0).count, 2)
-        XCTAssertEqual(SeaSceneLayout.items(for: .podWave, progress: 0.6, size: phone, time: 0).count, 3)
+        XCTAssertEqual(SeaSceneLayout.items(for: RaynaUnlock.surge, progress: 0.15, size: phone, time: 0).count, 2)
+        XCTAssertEqual(SeaSceneLayout.items(for: RaynaUnlock.surge, progress: 0.6, size: phone, time: 0).count, 4)
+        XCTAssertEqual(SeaSceneLayout.items(for: RaynaUnlock.podWave, progress: 0.15, size: phone, time: 0).count, 2)
+        XCTAssertEqual(SeaSceneLayout.items(for: RaynaUnlock.podWave, progress: 0.6, size: phone, time: 0).count, 3)
     }
 
     func testItMovesOverTimeAndHoldsStillAtOneMoment() {

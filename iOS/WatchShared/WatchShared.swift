@@ -3,6 +3,10 @@ import Foundation
 /// Keys shared between the iPhone app, the watch app and the watch complication.
 enum WatchKeys {
     static let ml = "ml", goal = "goal", glassML = "glassML", streak = "streak", day = "day", addGlass = "addGlass"
+    /// Glasses to undo on the phone (its Undo removes the last glass logged).
+    static let undoGlass = "undoGlass"
+    /// The worn scene badge id ("" for none), so the watch sea has the same fish, grass, moon or baby rays.
+    static let scene = "scene"
     static let watchGroup = "group.co.versantus.raynawater"
 }
 

@@ -3,7 +3,7 @@ import WatchConnectivity
 import RaynaCore
 
 /// iPhone side of the watch link: pushes today's numbers as application context and applies
-/// "+1 glass" taps from the watch.
+/// "+1 glass" and Undo taps from the watch.
 final class WatchSync: NSObject, WCSessionDelegate {
     static let shared = WatchSync()
 
@@ -15,7 +15,9 @@ final class WatchSync: NSObject, WCSessionDelegate {
 
     private func context() -> [String: Any] {
         let s = RaynaStore.shared
-        return [WatchKeys.ml: s.totalML, WatchKeys.goal: s.effectiveGoal, WatchKeys.glassML: s.glassML, WatchKeys.streak: s.streak]
+        let scene = s.extras.wornBadges.first { $0.slot == .scene }?.rawValue ?? ""
+        return [WatchKeys.ml: s.totalML, WatchKeys.goal: s.effectiveGoal, WatchKeys.glassML: s.glassML, WatchKeys.streak: s.streak,
+                WatchKeys.scene: scene]
     }
 
     func push() {
@@ -37,24 +39,27 @@ final class WatchSync: NSObject, WCSessionDelegate {
         return min(20, max(1, payload[WatchKeys.addGlass] as? Int ?? 1))
     }
 
-    private func applyAdds(_ payload: [String: Any]) {
-        let n = glasses(in: payload)
-        guard n > 0 else { return }
+    private func undos(in payload: [String: Any]) -> Int {
+        guard payload[WatchKeys.undoGlass] != nil else { return 0 }
+        return min(20, max(1, payload[WatchKeys.undoGlass] as? Int ?? 1))
+    }
+
+    /// Adds first, then undos (the watch cancels a + and an Undo itself before sending, so what is left is net).
+    private func apply(_ payload: [String: Any], then done: (() -> Void)? = nil) {
+        let adds = glasses(in: payload), takes = undos(in: payload)
+        guard adds + takes > 0 else { done?(); return }
         DispatchQueue.main.async {
-            for _ in 0..<n { AppModel.shared.addGlass() }
+            for _ in 0..<adds { AppModel.shared.addGlass() }
+            for _ in 0..<takes { AppModel.shared.undo() }
+            done?()
         }
     }
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
-        let n = glasses(in: message)
-        guard n > 0 else { replyHandler(context()); return }
-        DispatchQueue.main.async {
-            for _ in 0..<n { AppModel.shared.addGlass() }
-            replyHandler(self.context())
-        }
+        apply(message) { replyHandler(self.context()) }
     }
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
-        applyAdds(userInfo)
+        apply(userInfo)
     }
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) { push() }
     func sessionDidBecomeInactive(_ session: WCSession) {}

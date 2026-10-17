@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		05FB807666F452F1B0375FAC /* SeaSceneLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54E6F6A42086A9FC74F4098A /* SeaSceneLayout.swift */; };
 		0CD9CA283ED8574C8396C7E9 /* LayoutPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AE5E6D75631F9D74219A904 /* LayoutPicker.swift */; };
 		0CFB281847C30153784F0D21 /* RaynaActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = E194E1E0606D36D7D4B4B3E7 /* RaynaActivity.swift */; };
 		122C119D30D70ECF7CBC7721 /* MenuGlyph@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4FC2DEBEB1CFA4F96E12E90D /* MenuGlyph@2x.png */; };
@@ -128,6 +129,7 @@
 		4562E3D0679E16F0A1F3B5CF /* AddGlassIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddGlassIntent.swift; sourceTree = "<group>"; };
 		4FC2DEBEB1CFA4F96E12E90D /* MenuGlyph@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "MenuGlyph@2x.png"; sourceTree = "<group>"; };
 		53D577DCB2A0A7A80F9AE672 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		54E6F6A42086A9FC74F4098A /* SeaSceneLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeaSceneLayout.swift; sourceTree = "<group>"; };
 		5A959B414D7E4F8558E5BA55 /* RaynaWatchWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RaynaWatchWidget.entitlements; sourceTree = "<group>"; };
 		6206752303AB1904950CB09D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6407386D21DDEED7E499BE02 /* RaynaIOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaynaIOSApp.swift; sourceTree = "<group>"; };
@@ -329,10 +331,19 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		E0EF28DFCBBBF4648FBF716C /* RaynaCore */ = {
+			isa = PBXGroup;
+			children = (
+				54E6F6A42086A9FC74F4098A /* SeaSceneLayout.swift */,
+			);
+			path = RaynaCore;
+			sourceTree = "<group>";
+		};
 		E1F22BEAABA7EE6C6D2BE97E /* Sources */ = {
 			isa = PBXGroup;
 			children = (
 				783CB52E050B32015DE65D35 /* Rayna */,
+				E0EF28DFCBBBF4648FBF716C /* RaynaCore */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -597,6 +608,7 @@
 			files = (
 				7104A2840A24B4C19C1CAD21 /* RaynaStage.swift in Sources */,
 				61A3BC3D1E2B007A4A3F4346 /* RaynaWatchApp.swift in Sources */,
+				05FB807666F452F1B0375FAC /* SeaSceneLayout.swift in Sources */,
 				297778288ABBB7F1F71C2A05 /* WatchShared.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

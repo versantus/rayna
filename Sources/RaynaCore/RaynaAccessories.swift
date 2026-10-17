@@ -249,29 +249,14 @@ public struct RaynaAccessories: View {
                 ctx.fill(Path(ellipseIn: CGRect(x: c.x - r * 0.55, y: c.y - r * 0.6, width: r * 0.5, height: r * 0.35)), with: .color(.white.opacity(0.4 + 0.4 * shine)))
             }
 
-            if unlocks.contains(.baby) {
-                let bob = sin(t * 2.2) * 0.012
-                let cx = 0.8 + sin(t * 0.7) * 0.02, cy = 0.66 + bob, w = 0.15, h = 0.095
-                var body = Path()
-                body.move(to: P(cx, cy - h * 0.55))
-                body.addQuadCurve(to: P(cx + w / 2, cy), control: P(cx + w * 0.42, cy - h * 0.45))
-                body.addQuadCurve(to: P(cx, cy + h * 0.5), control: P(cx + w * 0.2, cy + h * 0.45))
-                body.addQuadCurve(to: P(cx - w / 2, cy), control: P(cx - w * 0.2, cy + h * 0.45))
-                body.addQuadCurve(to: P(cx, cy - h * 0.55), control: P(cx - w * 0.42, cy - h * 0.45))
-                var tail = Path()
-                tail.move(to: P(cx, cy + h * 0.45))
-                tail.addQuadCurve(to: P(cx + 0.012 * sin(t * 3), cy + h * 1.5), control: P(cx - 0.015, cy + h))
-                ctx.stroke(tail, with: .color(Color(red: 0.2, green: 0.55, blue: 0.62)), lineWidth: max(1, s * 0.006))
-                ctx.fill(body, with: .linearGradient(Gradient(colors: [Color(red: 0.4, green: 0.82, blue: 0.85), Color(red: 0.18, green: 0.6, blue: 0.7)]),
-                                                     startPoint: P(cx, cy - h / 2), endPoint: P(cx, cy + h / 2)))
-                for ex in [-0.018, 0.018] {
-                    let e = P(cx + ex, cy - h * 0.18), er = 0.008 * s
-                    ctx.fill(Path(ellipseIn: CGRect(x: e.x - er, y: e.y - er, width: 2 * er, height: 2 * er)), with: .color(Color(red: 0.08, green: 0.1, blue: 0.15)))
-                    ctx.fill(Path(ellipseIn: CGRect(x: e.x - er * 0.2, y: e.y - er * 0.7, width: er * 0.6, height: er * 0.6)), with: .color(.white))
-                }
-                var smile = Path()
-                smile.move(to: P(cx - 0.012, cy - h * 0.02)); smile.addQuadCurve(to: P(cx + 0.012, cy - h * 0.02), control: P(cx, cy + h * 0.12))
-                ctx.stroke(smile, with: .color(Color(red: 0.08, green: 0.12, blue: 0.18)), lineWidth: max(1, s * 0.004))
+            // The 30-day buddy: one of the Pod wave baby rays, bobbing beside her tail.
+            if unlocks.contains(.baby), let buddy = SeaSprites.image("ray-blue") {
+                let cx = 0.8 + sin(t * 0.7) * 0.02, cy = 0.66 + sin(t * 2.2) * 0.012, w = 0.15
+                let h = w / (SeaSceneLayout.aspect["ray-blue"] ?? 0.73)
+                var b = ctx
+                b.translateBy(x: P(cx, cy).x, y: P(cx, cy).y)
+                b.rotate(by: .degrees(sin(t * 0.9) * 8))
+                b.draw(Image(decorative: buddy, scale: 1), in: CGRect(x: -w * s / 2, y: -h * s / 2, width: w * s, height: h * s))
             }
         }
         .allowsHitTesting(false)

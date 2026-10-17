@@ -53,7 +53,7 @@ final class AppModel: ObservableObject {
         if let spec = env["RAYNA_BADGES"], !spec.isEmpty {
             let fresh = store.extras.unlockForTesting(RaynaExtras.badges(from: spec))
             store.extras.pendingUnlocks = []
-            if unlockBanner == nil { unlockBanner = fresh.last }
+            if unlockBanner == nil, env["RAYNA_BANNER"] != "0" { unlockBanner = fresh.last }   // RAYNA_BANNER=0: screenshots without the card
         }
         if let n = env["RAYNA_FACTS"].flatMap(Int.init) { store.extras.factsUnlocked = n }
         if let n = env["RAYNA_FACT"].flatMap(Int.init), n < store.extras.factsUnlocked {   // demo only, never locked facts

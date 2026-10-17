@@ -21,7 +21,9 @@ struct ContentView: View {
         ZStack {
             Self.backdrop(scheme).ignoresSafeArea()
             GeometryReader { geo in
-                let wide = hSize == .regular && geo.size.width >= 700 && !typeSize.isAccessibilitySize
+                // Two columns only in landscape. An iPad held upright gets the iPhone layouts (and the layout picker),
+                // so Rayna is big and central instead of small under an empty sky.
+                let wide = hSize == .regular && geo.size.width >= 700 && geo.size.width > geo.size.height && !typeSize.isAccessibilitySize
                 // Immersive is the ocean itself. Hero and Balanced keep the water inside their card.
                 // iPad uses the two-column layout and keeps the full-screen water.
                 if wide || model.store.mainLayout == .immersive {
@@ -97,7 +99,12 @@ struct ContentView: View {
         .sheet(isPresented: $model.showJourney) {
             JourneySheet().environmentObject(model)
         }
-        .onAppear { model.checkUnlocks() }
+        .onAppear {
+            model.checkUnlocks()
+            #if DEBUG   // screenshots: RAYNA_LAYOUTS=1 opens the layout picker
+            if ProcessInfo.processInfo.environment["RAYNA_LAYOUTS"] == "1" { choosingLayout = true }
+            #endif
+        }
     }
 
     /// The sky-to-sea gradient behind every layout (also drawn in the layout picker's cards).
