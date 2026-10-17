@@ -132,7 +132,7 @@ struct ContentView: View {
             HStack(spacing: 12) {
                 Image(systemName: "trophy.fill").font(.title3).foregroundStyle(Color("AccentColor"))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Rayna's journey").font(.system(.subheadline, design: .rounded, weight: .bold))
+                    Text("Badges").font(.system(.subheadline, design: .rounded, weight: .bold))
                     Text(String(format: "%.1f L this week", model.store.recap.litres))
                         .font(.footnote).foregroundStyle(.secondary)
                 }
@@ -358,8 +358,19 @@ struct JourneySheet: View {
                     }
                         .padding()
                 }
-            .navigationTitle("Rayna's journey")
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+                .badgeSwapToastOverlay()
+            .navigationTitle("Badges")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                let unlocked = model.extras.unlocked.count
+                let total = RaynaUnlock.allCases.count
+                ToolbarItem(placement: .topBarLeading) {
+                    Label("\(unlocked)/\(total)", systemImage: "trophy.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .accessibilityLabel("\(unlocked) of \(total) badges")
+                }
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+            }
         }
     }
 }

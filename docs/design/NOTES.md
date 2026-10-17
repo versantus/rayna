@@ -8,3 +8,7 @@ B Immersive: full-bleed ocean, the whole screen is the glass and the water line 
 C Balanced: large pool card (Ray ~78% wide) with speech bubble and % ring inside; amount line; one compact row with pod avatars (green ring = on track) + exercise toggle; split button (size picker | +1 glass) plus undo.
 
 The built app does not include the Exercise toggle, the +500 control, or the "Exercise adds +500 ml" line shown in these pictures. Exercise days live in Settings.
+
+## Badge mockups
+
+`badges-trophy.png` is the Badges screen: Ray is wearing up to one badge on her head, chest and fin, with a shirt icon on worn cards. `badges-main.png` is Immersive with those three badges on Rayna. `badges-compare.png` is the earlier single-badge screen beside the new one. The cards use a white shirt icon, not the word Wearing.

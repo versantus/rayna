@@ -388,9 +388,11 @@ final class JourneyWindowController {
     private var window: NSWindow?
 
     func show(state: AppState) {
+        let unlocked = state.extras.unlocked.count
+        let total = RaynaUnlock.allCases.count
         let view = ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                BrandHeader(title: "Rayna's journey", subtitle: "Streak, unlocks and your weekly recap.", progress: state.progress)
+                BrandHeader(title: "Badges", subtitle: "\(unlocked) of \(total) · weekly recap below.", progress: state.progress)
                 RaynaJourneyView(extras: state.extras, recap: state.recap, streak: state.streak, onWear: { set in
                     state.extras.wornBadges = set
                     state.objectWillChange.send()
@@ -401,12 +403,14 @@ final class JourneyWindowController {
                 Spacer(minLength: 60)
             }.padding(.horizontal, 20).padding(.top, 34)
         }
+        .badgeSwapToastOverlay()
         .frame(width: 480, height: 640)
         .raynaBackdrop(waveHeight: 70)
         if let w = window {
             w.contentViewController = NSHostingController(rootView: view)
+            w.title = "Badges"
         } else {
-            window = RaynaBrand.makeWindow(title: "Rayna's journey", root: view)
+            window = RaynaBrand.makeWindow(title: "Badges", root: view)
         }
         RaynaBrand.present(window)
     }

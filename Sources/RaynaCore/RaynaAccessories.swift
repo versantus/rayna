@@ -8,6 +8,9 @@ import AppKit
 /// Looks up a badge imageset in the app's asset catalog. Nil when the catalog does not contain it
 /// (the menu-bar binary built with ./build.sh, or a Watch/widget target), so callers can keep the SF Symbol.
 enum BadgeArt {
+    private static var icons: [String: Image] = [:]
+    private static var missing: Set<String> = []
+
     static func image(named name: String) -> Image? {
         #if canImport(UIKit)
         guard UIImage(named: name) != nil else { return nil }
@@ -18,6 +21,75 @@ enum BadgeArt {
         #else
         return nil
         #endif
+    }
+
+    /// The badge drawing with the empty margin cut away, so it can sit on a slot or in a card.
+    static func icon(named name: String) -> Image? {
+        if let cached = icons[name] { return cached }
+        if missing.contains(name) { return nil }
+        #if canImport(UIKit)
+        guard let ui = UIImage(named: name), let cg = ui.cgImage, let cut = BadgePixels.crop(cg) else {
+            missing.insert(name)
+            return nil
+        }
+        let image = Image(uiImage: UIImage(cgImage: cut, scale: ui.scale, orientation: .up))
+        #elseif canImport(AppKit)
+        guard let ns = NSImage(named: NSImage.Name(name)),
+              let cg = ns.cgImage(forProposedRect: nil, context: nil, hints: nil),
+              let cut = BadgePixels.crop(cg) else {
+            missing.insert(name)
+            return nil
+        }
+        let image = Image(nsImage: NSImage(cgImage: cut, size: NSSize(width: cut.width, height: cut.height)))
+        #else
+        return nil
+        #endif
+        icons[name] = image
+        return image
+    }
+}
+
+/// Cuts a badge imageset down to the pixels that are actually drawn.
+enum BadgePixels {
+    static func crop(_ image: CGImage) -> CGImage? {
+        let width = image.width
+        let height = image.height
+        guard width > 0, height > 0 else { return nil }
+        // Draw into a bitmap whose first row is the top of the picture, then crop that bitmap.
+        let bytesPerRow = width * 4
+        guard let ctx = CGContext(
+            data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: bytesPerRow,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ), let rendered = upright(image, in: ctx) else { return nil }
+        guard let data = rendered.dataProvider?.data, let raw = CFDataGetBytePtr(data) else { return nil }
+        let bpr = rendered.bytesPerRow
+        var minX = width, minY = height, maxX = 0, maxY = 0
+        for y in 0..<height {
+            let row = y * bpr
+            for x in 0..<width where raw[row + x * 4 + 3] > 16 {
+                if x < minX { minX = x }
+                if y < minY { minY = y }
+                if x + 1 > maxX { maxX = x + 1 }
+                if y + 1 > maxY { maxY = y + 1 }
+            }
+        }
+        guard maxX > minX, maxY > minY else { return nil }
+        let pad = 2
+        let left = max(0, minX - pad)
+        let top = max(0, minY - pad)
+        let right = min(width, maxX + pad)
+        let bottom = min(height, maxY + pad)
+        return rendered.cropping(to: CGRect(x: left, y: top, width: right - left, height: bottom - top))
+    }
+
+    /// `makeImage()` after a flipped draw keeps the top of the artwork as the first row.
+    private static func upright(_ image: CGImage, in ctx: CGContext) -> CGImage? {
+        let height = CGFloat(image.height)
+        ctx.translateBy(x: 0, y: height)
+        ctx.scaleBy(x: 1, y: -1)
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: CGFloat(image.width), height: height))
+        return ctx.makeImage()
     }
 }
 
@@ -45,12 +117,19 @@ public struct RaynaAccessories: View {
         .allowsHitTesting(false)
     }
 
-    /// Overlay art is already placed in the square (crown on the head, rosette on the chest, trophy on the disc).
+    /// Each worn imageset sits on its slot: head above the eyes, chest under the smile, fin by her right fin.
+    /// The art is cropped to the badge, so a scene overlay does not cover her face.
     private var pictured: some View {
-        ZStack {
+        GeometryReader { geo in
+            let side = min(geo.size.width, geo.size.height)
             ForEach(RaynaUnlock.allCases.filter { unlocks.contains($0) }) { unlock in
-                if let name = unlock.overlayAssetName, BadgeArt.image(named: name) != nil {
-                    Image(name).resizable().scaledToFit().accessibilityHidden(true)
+                if let name = unlock.overlayAssetName, let icon = BadgeArt.icon(named: name) {
+                    icon
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: side * Self.iconScale(unlock.slot), height: side * Self.iconScale(unlock.slot))
+                        .position(Self.anchor(unlock.slot, in: geo.size))
+                        .accessibilityHidden(true)
                 }
             }
         }
@@ -60,7 +139,7 @@ public struct RaynaAccessories: View {
     private var symbolFallbacks: some View {
         GeometryReader { geo in
             let side = min(geo.size.width, geo.size.height)
-            ForEach(RaynaUnlock.allCases.filter(needsSymbol)) { unlock in
+            ForEach(RaynaUnlock.allCases.filter { self.needsSymbol($0) }) { unlock in
                 if let name = unlock.symbolName {
                     Image(systemName: name)
                         .font(.system(size: side * 0.14, weight: .bold))
@@ -80,12 +159,20 @@ public struct RaynaAccessories: View {
         return BadgeArt.image(named: name) == nil
     }
 
-    /// Head sits above the disc, chest is below the smile, fin is out by her right fin.
+    /// Head sits on top of the disc, above the eyes. Chest is below the smile. Fin is out by her right fin.
     static func anchor(_ slot: BadgeSlot, in size: CGSize) -> CGPoint {
         switch slot {
-        case .head: return CGPoint(x: size.width * 0.50, y: size.height * 0.05)
-        case .chest: return CGPoint(x: size.width * 0.50, y: size.height * 0.42)
+        case .head: return CGPoint(x: size.width * 0.50, y: size.height * 0.07)
+        case .chest: return CGPoint(x: size.width * 0.50, y: size.height * 0.44)
         case .fin: return CGPoint(x: size.width * 0.78, y: size.height * 0.64)
+        }
+    }
+
+    static func iconScale(_ slot: BadgeSlot) -> CGFloat {
+        switch slot {
+        case .head: return 0.20
+        case .chest: return 0.18
+        case .fin: return 0.16
         }
     }
 
@@ -189,7 +276,14 @@ public struct RaynaJourneyView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            recapCard
+            wearingStrip
+            let have = Set(extras.unlocked)
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                ForEach(RaynaUnlock.allCases) { u in
+                    badgeCard(u, unlocked: have.contains(u))
+                }
+            }
+            .preference(key: BadgeSwapToastKey.self, value: swapToast)
             if extras.kidMode {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Ray friends").font(.system(.title3, design: .rounded, weight: .bold))
@@ -205,56 +299,44 @@ public struct RaynaJourneyView: View {
                     }
                 }
             }
-            wearingStrip
-            Text("Rayna's collection").font(.system(.title3, design: .rounded, weight: .bold))
-            let have = Set(extras.unlocked)
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                ForEach(RaynaUnlock.allCases) { u in
-                    badgeCard(u, unlocked: have.contains(u))
-                }
-            }
-            if let swapToast {
-                HStack(spacing: 8) {
-                    badgeMark(swapToast.from, size: 22)
-                    Image(systemName: "arrow.right")
-                    badgeMark(swapToast.to, size: 22)
-                }
-                .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(.ultraThinMaterial, in: Capsule())
-                .frame(maxWidth: .infinity)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Swapped \(swapToast.from.title) for \(swapToast.to.title)")
-                .task(id: "\(swapToast.from.id)-\(swapToast.to.id)") {
-                    try? await Task.sleep(nanoseconds: 1_600_000_000)
-                    self.swapToast = nil
-                }
-            }
+            recapCard
+        }
+        .task(id: swapToast.map { "\($0.from.id)-\($0.to.id)" }) {
+            guard swapToast != nil else { return }
+            try? await Task.sleep(nanoseconds: 1_600_000_000)
+            swapToast = nil
         }
     }
 
     private var wearingStrip: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Ray is wearing").font(.system(.title3, design: .rounded, weight: .bold))
-            HStack(alignment: .center, spacing: 12) {
-                ZStack {
-                    RaynaStill(progress: 0.8)
-                    RaynaAccessories(unlocks: worn)
-                }
-                .frame(width: 120, height: 120)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(worn.isEmpty ? "Ray is wearing nothing" : "Ray is wearing \(worn.map(\.title).sorted().joined(separator: ", "))")
-                VStack(spacing: 6) {
-                    ForEach(BadgeSlot.allCases, id: \.self) { slotRow($0) }
-                }
+        HStack(alignment: .center, spacing: 12) {
+            ZStack {
+                RaynaStill(progress: 0.8)
+                RaynaAccessories(unlocks: worn)
             }
+            .frame(width: 132, height: 148)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(worn.isEmpty ? "Ray is wearing nothing" : "Ray is wearing \(worn.map(\.title).sorted().joined(separator: ", "))")
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "tshirt.fill")
+                        .foregroundStyle(Color.accentColor)
+                    Text("Ray is wearing")
+                }
+                .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                ForEach(BadgeSlot.allCases, id: \.self) { slotRow($0) }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Color.primary.opacity(0.06)))
     }
 
     private func slotRow(_ slot: BadgeSlot) -> some View {
         let badge = worn.first { $0.slot == slot }
         return HStack(spacing: 8) {
             if let badge {
-                badgeMark(badge, size: 28)
+                BadgeMark(unlock: badge, size: 26)
                 Text(slot.title).font(.system(.subheadline, design: .rounded, weight: .semibold))
                 Spacer(minLength: 0)
                 Button {
@@ -262,19 +344,36 @@ public struct RaynaJourneyView: View {
                     next.remove(badge)
                     apply(next, swap: nil)
                 } label: {
-                    Image(systemName: "xmark").font(.caption.weight(.bold)).frame(width: 32, height: 32)
+                    Image(systemName: "xmark")
+                        .font(.caption2.weight(.bold))
+                        .frame(width: 22, height: 22)
+                        .background(Circle().fill(Color.primary.opacity(0.08)))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Take off \(badge.title)")
             } else {
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .stroke(style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
                     .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 36)
-                    .overlay(Text(slot.title).font(.caption).foregroundStyle(.secondary))
+                    .frame(width: 22, height: 22)
+                Text(slot.title).font(.system(.subheadline, design: .rounded, weight: .semibold)).foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                Text("Empty").font(.caption).foregroundStyle(.secondary)
             }
         }
-        .frame(minHeight: 36)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, minHeight: 40)
+        .background {
+            if badge == nil {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                    .foregroundStyle(.secondary.opacity(0.7))
+            } else {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Color.primary.opacity(0.14), lineWidth: 1)
+            }
+        }
         .accessibilityElement(children: badge == nil ? .combine : .contain)
         .accessibilityLabel(badge == nil ? "\(slot.title), empty" : "\(slot.title), \(badge?.title ?? "")")
     }
@@ -287,42 +386,62 @@ public struct RaynaJourneyView: View {
             let swap = result.replaced.map { BadgeSwap(from: $0, to: u) }
             apply(result.set, swap: swap)
         } label: {
-            VStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 ZStack(alignment: .topTrailing) {
-                    Group {
-                        if let name = u.compositeAssetName, let image = BadgeArt.image(named: name) {
-                            image.resizable().scaledToFit().opacity(got ? 1 : 0.25).saturation(got ? 1 : 0)
-                        } else {
-                            RaynaStill(progress: 0.8).opacity(got ? 1 : 0.25).saturation(got ? 1 : 0)
-                            RaynaAccessories(unlocks: [u]).opacity(got ? 1 : 0.35)
-                        }
-                    }
-                    .frame(height: 96)
-                    .frame(maxWidth: .infinity)
-                    if wearing {
-                        WearRibbon()
-                    } else if got {
+                    BadgeArtwork(unlock: u)
+                        .opacity(got ? 1 : 0.35)
+                        .saturation(got ? 1 : 0)
+                        .frame(height: 72)
+                        .frame(maxWidth: .infinity)
+                        .clipped()
+                    if !wearing && got {
                         Image(systemName: "tshirt")
                             .font(.caption.weight(.semibold))
-                            .padding(6)
-                            .background(.thinMaterial, in: Circle())
-                            .padding(4)
-                    } else {
+                            .foregroundStyle(.secondary)
+                            .frame(width: 26, height: 26)
+                            .background(Circle().stroke(Color.secondary.opacity(0.45), lineWidth: 1))
+                            .padding(2)
+                            .accessibilityHidden(true)
+                    } else if !got {
                         Image(systemName: "lock.fill")
                             .font(.caption.weight(.bold))
                             .foregroundStyle(.secondary)
-                            .padding(8)
+                            .padding(4)
+                            .accessibilityHidden(true)
                     }
                 }
-                Text("\(u.emoji) \(u.title)").font(.system(.subheadline, design: .rounded, weight: .semibold))
-                Text(u.slot.title).font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
-                Text(got ? u.blurb : u.lockedHint(streak: streak, bestStreak: extras.bestStreak))
-                    .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                Text(u.title)
+                    .font(.system(.subheadline, design: .rounded, weight: .bold))
+                    .foregroundStyle(got ? Color.primary : Color.secondary)
+                    .multilineTextAlignment(.leading)
+                if got {
+                    HStack(spacing: 5) {
+                        Circle().fill(Color.accentColor).frame(width: 6, height: 6)
+                        Text(u.slot.title).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                    }
+                } else {
+                    Text(u.lockedHint(streak: streak, bestStreak: extras.bestStreak))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-            .padding(10).frame(maxWidth: .infinity)
-            .background(RoundedRectangle(cornerRadius: 16).fill(wearing ? Color.accentColor.opacity(0.14) : Color.primary.opacity(got ? 0.06 : 0.03)))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(wearing ? Color.accentColor : .clear, lineWidth: 2))
-            .shadow(color: wearing ? Color.accentColor.opacity(0.45) : .clear, radius: wearing ? 6 : 0)
+            .padding(12)
+            .frame(maxWidth: .infinity, minHeight: 148, alignment: .topLeading)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(wearing ? Color.accentColor.opacity(0.16) : Color.primary.opacity(got ? 0.06 : 0.04))
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(wearing ? Color.accentColor : Color.primary.opacity(0.06), lineWidth: wearing ? 1.5 : 1)
+            }
+            .overlay(alignment: .topTrailing) {
+                if wearing { WearRibbon() }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .shadow(color: wearing ? Color.accentColor.opacity(0.55) : .clear, radius: wearing ? 8 : 0)
         }
         .buttonStyle(.plain)
         .disabled(!got)
@@ -335,17 +454,6 @@ public struct RaynaJourneyView: View {
         worn = next
         onWear?(next)
         swapToast = swap
-    }
-
-    @ViewBuilder private func badgeMark(_ u: RaynaUnlock, size: CGFloat) -> some View {
-        if let name = u.symbolName {
-            Image(systemName: name)
-                .font(.system(size: size * 0.55, weight: .bold))
-                .frame(width: size, height: size)
-                .accessibilityHidden(true)
-        } else {
-            Text(u.emoji).font(.system(size: size * 0.6)).frame(width: size, height: size).accessibilityHidden(true)
-        }
     }
 
     private var recapCard: some View {
@@ -388,22 +496,107 @@ public struct RaynaJourneyView: View {
     }
 }
 
-/// Corner ribbon. A white shirt icon, so the badge does not need the word "Wearing".
+/// Diagonal corner sash. A white shirt icon, so the card does not need the word "Wearing".
 private struct WearRibbon: View {
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            Rectangle()
-                .fill(Color.accentColor)
-                .frame(width: 46, height: 16)
-                .rotationEffect(.degrees(45))
-                .offset(x: 10, y: 6)
+        GeometryReader { geo in
+            let w = geo.size.width
+            let s = min(56, w * 0.46)
+            Path { p in
+                p.move(to: CGPoint(x: w, y: 0))
+                p.addLine(to: CGPoint(x: w, y: s))
+                p.addLine(to: CGPoint(x: w - s, y: 0))
+                p.closeSubpath()
+            }
+            .fill(Color.accentColor)
             Image(systemName: "tshirt.fill")
-                .font(.system(size: 9, weight: .bold))
+                .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(.white)
-                .offset(x: -2, y: 8)
+                .position(x: w - s * 0.30, y: s * 0.28)
         }
-        .frame(width: 36, height: 36, alignment: .topTrailing)
-        .clipped()
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+struct BadgeSwapToastKey: PreferenceKey {
+    static var defaultValue: BadgeSwap? = nil
+    static func reduce(value: inout BadgeSwap?, nextValue: () -> BadgeSwap?) {
+        value = nextValue() ?? value
+    }
+}
+
+/// Old icon, a swap arrow, the new icon, and the word Swapped.
+public struct BadgeSwapToast: View {
+    public var swap: BadgeSwap
+    public init(swap: BadgeSwap) { self.swap = swap }
+    public var body: some View {
+        HStack(spacing: 8) {
+            BadgeMark(unlock: swap.from, size: 22)
+            Image(systemName: "arrow.left.arrow.right")
+                .font(.system(size: 14, weight: .bold))
+                .accessibilityHidden(true)
+            BadgeMark(unlock: swap.to, size: 22)
+            Text("Swapped")
+                .font(.system(.subheadline, design: .rounded, weight: .semibold))
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(.regularMaterial, in: Capsule())
+        .shadow(color: .black.opacity(0.15), radius: 8, y: 3)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Swapped \(swap.from.title) for \(swap.to.title)")
+    }
+}
+
+public extension View {
+    /// Pins the swap toast to the bottom of the screen that contains the badge grid.
+    func badgeSwapToastOverlay() -> some View {
+        overlayPreferenceValue(BadgeSwapToastKey.self) { swap in
+            if let swap {
+                BadgeSwapToast(swap: swap)
+                    .padding(.bottom, 10)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            }
+        }
+    }
+}
+
+struct BadgeMark: View {
+    var unlock: RaynaUnlock
+    var size: CGFloat
+    var body: some View {
+        Group {
+            if let name = unlock.overlayAssetName, let icon = BadgeArt.icon(named: name) {
+                icon.resizable().scaledToFit()
+            } else if let symbol = unlock.symbolName {
+                Image(systemName: symbol)
+                    .font(.system(size: size * 0.55, weight: .bold))
+            } else {
+                Text(unlock.emoji).font(.system(size: size * 0.62))
+            }
+        }
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
+    }
+}
+
+/// The badge on its own, for a collection card. Code-drawn streak badges stay on a small Rayna.
+struct BadgeArtwork: View {
+    var unlock: RaynaUnlock
+    var body: some View {
+        Group {
+            if let name = unlock.overlayAssetName, let icon = BadgeArt.icon(named: name) {
+                icon.resizable().scaledToFit()
+            } else {
+                ZStack {
+                    RaynaStill(progress: 0.8)
+                    RaynaAccessories(unlocks: [unlock])
+                }
+                .scaleEffect(unlock.slot == .fin ? 1.35 : 1.8)
+                .offset(y: unlock.slot == .head ? 28 : (unlock.slot == .chest ? 8 : -8))
+            }
+        }
         .accessibilityHidden(true)
     }
 }
