@@ -63,6 +63,68 @@ final class FeatureTests: XCTestCase {
         XCTAssertFalse(text.lowercased().contains("owner participant"), file: file, line: line)
     }
 
+    func testMainLayoutAndExerciseDay() {
+        XCTAssertEqual(MainLayout.decode(nil), .immersive)
+        XCTAssertEqual(MainLayout.decode(""), .immersive)
+        XCTAssertEqual(MainLayout.decode("nope"), .immersive)
+        XCTAssertEqual(MainLayout.decode("hero"), .hero)
+        XCTAssertEqual(MainLayout.decode("balanced"), .balanced)
+        XCTAssertEqual(MainLayout.decode("immersive"), .immersive)
+
+        var older = SyncSettings()
+        older.text[MainLayout.storageKey] = SyncText("hero", at: Date(timeIntervalSince1970: 10))
+        var newer = SyncSettings()
+        newer.text[MainLayout.storageKey] = SyncText("balanced", at: Date(timeIntervalSince1970: 30))
+        XCTAssertEqual(older.merged(with: newer).text[MainLayout.storageKey]?.value, "balanced")
+        XCTAssertEqual(newer.merged(with: older).text[MainLayout.storageKey]?.value, "balanced")
+
+        let bare = try? JSONDecoder().decode(SyncSettings.self, from: Data("{\"values\":{}}".utf8))
+        XCTAssertEqual(bare?.text.count, 0)
+        let encoded = try? JSONEncoder().encode(newer)
+        let round = encoded.flatMap { try? JSONDecoder().decode(SyncSettings.self, from: $0) }
+        XCTAssertEqual(round?.text[MainLayout.storageKey]?.value, "balanced")
+
+        var ledger = SyncLedger()
+        ledger.capture(SyncLocalSnapshot(today: "2026-10-17", text: [MainLayout.storageKey: "hero"]),
+                       device: "phone", now: Date(timeIntervalSince1970: 10))
+        XCTAssertEqual(ledger.settings.text[MainLayout.storageKey]?.value, "hero")
+        ledger.mergeRemote(newer)
+        XCTAssertEqual(ledger.settings.text[MainLayout.storageKey]?.value, "balanced")
+
+        let name = "rayna-layout-tests"
+        let d = UserDefaults(suiteName: name)!
+        d.removePersistentDomain(forName: name)
+        let store = RaynaStore(defaults: d)
+        store.goalML = 2500
+        XCTAssertEqual(store.mainLayout, .immersive)
+        XCTAssertTrue(store.exerciseExtraOn)
+        XCTAssertEqual(store.effectiveGoal, 2500)
+        store.runBonusML = 500
+        store.runDay = true
+        XCTAssertEqual(store.effectiveGoal, 3000)
+        store.exerciseExtraOn = false
+        XCTAssertEqual(store.effectiveGoal, 2500)
+        store.runDay = false
+        store.exerciseExtraOn = true
+        XCTAssertEqual(store.effectiveGoal, 2500)
+        XCTAssertEqual(ExerciseDay.goal(base: 2000, extraOn: true, exerciseDay: true, bonus: 500, kidMode: true), 2000)
+
+        let now = Date()
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: now)!
+        XCTAssertTrue(ExerciseDay.hasHeavyWorkoutToday([ExerciseDay.Session(at: now, heavy: true)], now: now))
+        XCTAssertFalse(ExerciseDay.hasHeavyWorkoutToday([ExerciseDay.Session(at: yesterday, heavy: true)], now: now))
+        XCTAssertFalse(ExerciseDay.hasHeavyWorkoutToday([ExerciseDay.Session(at: now, heavy: false)], now: now))
+        let today = RaynaCopy.dayKey(for: now)
+        XCTAssertFalse(ExerciseDay.shouldAutoApply(extraOn: true, autoDetect: false, kidMode: false,
+                                                    alreadyAppliedDay: "", today: today, hasHeavyToday: true))
+        XCTAssertTrue(ExerciseDay.shouldAutoApply(extraOn: true, autoDetect: true, kidMode: false,
+                                                   alreadyAppliedDay: "", today: today, hasHeavyToday: true))
+        XCTAssertFalse(ExerciseDay.shouldAutoApply(extraOn: true, autoDetect: true, kidMode: false,
+                                                    alreadyAppliedDay: today, today: today, hasHeavyToday: true))
+        XCTAssertFalse(ExerciseDay.shouldAutoApply(extraOn: false, autoDetect: true, kidMode: false,
+                                                    alreadyAppliedDay: "", today: today, hasHeavyToday: true))
+    }
+
     func testGlassSizeValidation() {
         XCTAssertTrue(GlassSize.isValid(50))
         XCTAssertTrue(GlassSize.isValid(2000))
