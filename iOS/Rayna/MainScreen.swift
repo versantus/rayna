@@ -85,7 +85,6 @@ struct PhoneHome: View {
                           size: side, accessories: model.accessories, brightenAccessories: true)
                     .position(x: geo.size.width / 2, y: geo.size.height * 0.50)
                     .accessibilityHidden(true)
-                waterTag(in: geo.size)
                 VStack(spacing: 8) {
                     HStack(alignment: .top) {
                         immersiveTitle
@@ -122,7 +121,8 @@ struct PhoneHome: View {
             Text(RaynaCopy.amountTitle(ml: model.totalML, glassML: model.store.glassML, kidMode: model.kidMode))
                 .font(.system(size: compact ? 32 : 40, weight: .heavy, design: .rounded))
                 .foregroundStyle(ink).lineLimit(1).minimumScaleFactor(0.6)
-            Text(model.kidMode ? "of your cups" : "of \(String(format: "%.1f", Double(model.goal) / 1000)) L goal")
+            Text(model.kidMode ? "of your cups"
+                 : "of \(String(format: "%.1f", Double(model.goal) / 1000)) L goal · \(RaynaCopy.percent(ml: model.totalML, goal: model.goal))%")
                 .font(.system(.subheadline, design: .rounded)).foregroundStyle(.secondary)
             StreakDots(streak: model.streak, goalDays: model.store.goalDays).scaleEffect(0.9, anchor: .leading)
             exerciseMark
@@ -150,6 +150,8 @@ struct PhoneHome: View {
 
     // MARK: Shared pieces
 
+    private var ringSide: CGFloat { compact ? 46 : 54 }
+
     private func pool(fraction: CGFloat, ring: Bool) -> some View {
         let shape = RoundedRectangle(cornerRadius: 28, style: .continuous)
         return ZStack {
@@ -162,21 +164,12 @@ struct PhoneHome: View {
                           size: side, accessories: model.accessories)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             }
-            speech.padding(.horizontal, 12).padding(.top, 8)
+            // Balanced keeps the bubble clear of its progress ring in the top-right corner.
+            speech.padding(.leading, 12).padding(.trailing, ring ? ringSide + 24 : 12).padding(.top, 8)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            GeometryReader { g in
-                let y = WaterBackground.waterline(progress: model.progress, height: g.size.height)
-                Text("\(RaynaCopy.percent(ml: model.totalML, goal: model.goal))%")
-                    .font(.system(.caption, design: .rounded, weight: .bold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(.black.opacity(0.25), in: Capsule())
-                    .position(x: g.size.width - 36, y: min(max(y, 16), g.size.height - 16))
-            }
-            .allowsHitTesting(false)
             if ring {
                 ProgressRing(progress: model.progress)
-                    .frame(width: compact ? 46 : 54, height: compact ? 46 : 54)
+                    .frame(width: ringSide, height: ringSide)
                     .overlay(Text("\(RaynaCopy.percent(ml: model.totalML, goal: model.goal))%")
                         .font(.system(.caption2, design: .rounded, weight: .bold)))
                     .padding(12)
@@ -185,16 +178,6 @@ struct PhoneHome: View {
         }
         .clipShape(shape)
         .overlay(shape.stroke(.white.opacity(0.14), lineWidth: 1))
-    }
-
-    private func waterTag(in size: CGSize) -> some View {
-        let y = WaterBackground.waterline(progress: model.progress, height: size.height)
-        return Text("\(RaynaCopy.percent(ml: model.totalML, goal: model.goal))%")
-            .font(.system(.caption, design: .rounded, weight: .bold))
-            .padding(.horizontal, 8).padding(.vertical, 4)
-            .background(.ultraThinMaterial, in: Capsule())
-            .position(x: size.width - 36, y: y)
-            .allowsHitTesting(false)
     }
 
     private var speech: some View {
