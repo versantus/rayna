@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import UserNotifications
 import WidgetKit
 import RaynaCore
@@ -7,19 +8,36 @@ import CloudKit
 final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        PodInviteController.install()
+        #if DEBUG
+        MainActor.assumeIsolated { PodService.shared.debugTools = true }
+        #endif
+        Task { @MainActor in
+            let tester = await PodService.isTestFlight()
+            PodService.shared.testerTools = tester
+            RaynaFeatures.labsAllowed = tester      // App Store installs never see Labs, even if left on
+        }
         UNUserNotificationCenter.current().delegate = self
         RaynaFrames.preloadForLaunch(progress: RaynaStore.shared.progress)
         DispatchQueue.global(qos: .utility).async { ReminderScheduler.registerCategories() }
         application.registerForRemoteNotifications()
-        WatchSync.shared.start()   // silent CloudKit pushes for pods
+        WatchSync.shared.start()
         RaynaCloudSync.configure(defaults: RaynaStore.shared.defaults) {
             // Remote intake/settings landed in the store: refresh UI, widgets, watch (no re-sync loop).
             RaynaStore.shared.reconcileGoal()   // synced glasses may have completed today's goal
             AppModel.shared.refresh()
             AppModel.shared.afterRemoteChange()
         }
-        RaynaCloudSync.shared.syncNow()
+        Task { await RaynaCloudSync.shared?.catchUp() }
         return true
+    }
+
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        Task { @MainActor in RaynaCloudSync.shared?.noteRemoteNotifications(available: true) }
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        Task { @MainActor in RaynaCloudSync.shared?.noteRemoteNotifications(available: false) }
     }
 
     func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession,
@@ -73,7 +91,10 @@ struct RaynaIOSApp: App {
             ContentView()
                 .environmentObject(model)
                 .onChange(of: scenePhase) { _, phase in
-                    if phase == .active { model.refresh(); RaynaCloudSync.shared?.syncNow() }
+                    if phase == .active {
+                        model.refresh()
+                        Task { await RaynaCloudSync.shared?.catchUp() }
+                    }
                 }
         }
     }
@@ -86,6 +107,58 @@ final class SceneDelegate: NSObject, UIWindowSceneDelegate {
             await PodService.shared.accept(metadata)
             AppModel.shared.showPod = true
             AppModel.shared.publishToPod()
+        }
+    }
+}
+
+/// Re-presents the existing pod share so a pending invite can be sent again.
+enum PodInviteController {
+    @MainActor
+    static func install() {
+        let pod = PodService.shared
+        pod.presentShare = { @MainActor share in present(share) }
+        pod.supplyLocal = { @MainActor in
+            let s = RaynaStore.shared
+            return PodLive(glasses: s.glasses, ml: s.totalML, goal: s.effectiveGoal, streak: s.streak, isKid: s.extras.kidMode)
+        }
+        pod.onRoster = { @MainActor members in
+            let fresh = RaynaStore.shared.extras.notePodOverAchieved(PodAchievement.everyoneBeatGoal(members))
+            guard !fresh.isEmpty else { return }
+            AppModel.shared.objectWillChange.send()
+            AppModel.shared.checkUnlocks()
+        }
+    }
+
+    @MainActor
+    static func present(_ share: CKShare) {
+        let vc = UICloudSharingController(share: share, container: CKContainer(identifier: PodService.containerID))
+        vc.availablePermissions = [.allowPublic, .allowPrivate, .allowReadWrite]
+        vc.delegate = Delegate.shared
+        guard let root = keyRoot() else { return }
+        var top = root
+        while let next = top.presentedViewController { top = next }
+        top.present(vc, animated: true)
+    }
+
+    @MainActor
+    private static func keyRoot() -> UIViewController? {
+        let windows = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+        return (windows.first { $0.isKeyWindow } ?? windows.first)?.rootViewController
+    }
+
+    final class Delegate: NSObject, UICloudSharingControllerDelegate {
+        static let shared = Delegate()
+        func cloudSharingController(_ csc: UICloudSharingController, failedToSaveShareWithError error: Error) {
+            Task { @MainActor in PodService.shared.presentCloudError(error) }
+        }
+        func itemTitle(for csc: UICloudSharingController) -> String? { "Join my Rayna pod" }
+        func cloudSharingControllerDidSaveShare(_ csc: UICloudSharingController) {
+            Task { @MainActor in await PodService.shared.fetch() }
+        }
+        func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {
+            Task { @MainActor in await PodService.shared.fetch() }
         }
     }
 }

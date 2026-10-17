@@ -22,7 +22,10 @@ public final class RaynaStore {
     public var log: [Date] { get { (defaults.array(forKey: "log") as? [Date]) ?? [] } set { defaults.set(newValue, forKey: "log") } }
     public var runDay: Bool { get { defaults.bool(forKey: "runDay") } set { defaults.set(newValue, forKey: "runDay"); checkGoal() } }
     public var goalML: Int { get { defaults.integer(forKey: "goalML") } set { defaults.set(newValue, forKey: "goalML"); checkGoal() } }
-    public var glassML: Int { get { defaults.integer(forKey: "glassML") } set { defaults.set(newValue, forKey: "glassML") } }
+    public var glassML: Int {
+        get { GlassSize.sanitize(defaults.integer(forKey: "glassML")) }
+        set { defaults.set(GlassSize.sanitize(newValue), forKey: "glassML") }
+    }
     public var intervalMin: Int { get { defaults.integer(forKey: "intervalMin") } set { defaults.set(newValue, forKey: "intervalMin") } }
     public var quietStartMin: Int { get { defaults.integer(forKey: "quietStartMin") } set { defaults.set(newValue, forKey: "quietStartMin") } }
     public var quietEndMin: Int { get { defaults.integer(forKey: "quietEndMin") } set { defaults.set(newValue, forKey: "quietEndMin") } }
@@ -38,16 +41,39 @@ public final class RaynaStore {
     public var extras: RaynaExtras { RaynaExtras(defaults: defaults) }
 
     // MARK: Derived
-    /// Run-day bonus in ml (500 by default; Health can scale it by workout length).
+    /// Exercise-day bonus in ml (500 by default; Health can scale it). Stored as `runBonusML`.
     public var runBonusML: Int { get { let v = defaults.integer(forKey: "runBonusML"); return v > 0 ? v : 500 } set { defaults.set(newValue, forKey: "runBonusML"); checkGoal() } }
-    /// Day key on which Health auto-applied the run bonus (so a manual "off" isn't overridden again).
+    /// Day key on which Health auto-applied the exercise-day bonus (so a manual "off" isn't overridden again). Key stays `healthRunDay`.
     public var healthRunDay: String { get { defaults.string(forKey: "healthRunDay") ?? "" } set { defaults.set(newValue, forKey: "healthRunDay") } }
     public var healthAutoRun: Bool { get { defaults.bool(forKey: "healthAutoRun") } set { defaults.set(newValue, forKey: "healthAutoRun") } }
     public var healthWriteWater: Bool { get { defaults.bool(forKey: "healthWriteWater") } set { defaults.set(newValue, forKey: "healthWriteWater") } }
-    public var effectiveGoal: Int { goalML + (runDay && !extras.kidMode ? runBonusML : 0) }   // no run day in kid mode
+    /// Master switch for the exercise-day bonus. Missing means on, so older installs keep the bonus.
+    public var exerciseExtraOn: Bool {
+        get { defaults.object(forKey: "exerciseExtraOn") == nil ? true : defaults.bool(forKey: "exerciseExtraOn") }
+        set { defaults.set(newValue, forKey: "exerciseExtraOn"); checkGoal() }
+    }
+    /// iPhone main screen. Missing or unknown is Immersive. The Mac panel ignores it.
+    /// Rayna's colour, `raynaSkin` inside the existing RaynaPrefs payload. Classic when unset or not released.
+    public var skin: RaynaSkin {
+        get {
+            let s = defaults.string(forKey: RaynaSkin.storageKey).flatMap(RaynaSkin.init(rawValue:)) ?? .classic
+            return RaynaFeatures.rayColours && s.isAvailable ? s : .classic
+        }
+        set { defaults.set(newValue.rawValue, forKey: RaynaSkin.storageKey) }
+    }
+
+    public var mainLayout: MainLayout {
+        get { MainLayout.decode(defaults.string(forKey: MainLayout.storageKey)) }
+        set { defaults.set(newValue.rawValue, forKey: MainLayout.storageKey) }
+    }
+    public var effectiveGoal: Int {
+        ExerciseDay.goal(base: goalML, extraOn: exerciseExtraOn, exerciseDay: runDay, bonus: runBonusML, kidMode: extras.kidMode)
+    }
     public var progress: Double { effectiveGoal > 0 ? min(Double(totalML) / Double(effectiveGoal), 1) : 0 }
     public var glasses: Int { glassML > 0 ? totalML / glassML : 0 }
-    public var quip: String { RaynaCopy.quip(for: progress) }
+    public var quip: String {
+        RaynaCopy.quip(for: progress, exerciseDay: runDay && !extras.kidMode, salt: totalML, kidMode: extras.kidMode)
+    }
     public var lastLogged: Date? { log.last }
     public func isQuiet(at date: Date) -> Bool { RaynaCopy.isQuiet(date, start: quietStartMin, end: quietEndMin) }
     public func goalMet(on date: Date) -> Bool { goalDays.contains(RaynaCopy.dayKey(for: date)) }
@@ -80,6 +106,7 @@ public final class RaynaStore {
 
     @discardableResult
     private func checkGoal(now: Date = Date()) -> Bool {
+        extras.noteIntake(ml: totalML, goal: effectiveGoal, now: now)
         guard progress >= 1 else { return false }
         let today = RaynaCopy.dayKey(for: now)
         guard lastGoalDay != today else { return false }
@@ -94,18 +121,24 @@ public final class RaynaStore {
     @discardableResult
     public func reconcileGoal(now: Date = Date()) -> Bool { checkGoal(now: now) }
 
-    public func rolloverIfNeeded(now: Date = Date()) {
+    /// Zeros the day when the calendar day changes. True when ml or the streak changed, so the pod can be told.
+    @discardableResult
+    public func rolloverIfNeeded(now: Date = Date()) -> Bool {
         let today = RaynaCopy.dayKey(for: now)
+        var rolled = false
         if dayKey != today {
             dayKey = today
             totalML = 0
             log = []
             defaults.set(false, forKey: "runDay")
             defaults.set(500, forKey: "runBonusML")
+            rolled = true
         }
         if lastGoalDay != today && lastGoalDay != RaynaCopy.yesterdayKey(from: now) && streak != 0 {
             streak = 0
+            rolled = true
         }
+        return rolled
     }
 
     /// Seeds a pleasant demo day (used for App Store screenshots via the `-RaynaDemo <glasses>` launch argument).

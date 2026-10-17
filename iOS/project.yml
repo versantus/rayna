@@ -5,13 +5,14 @@ options:
   deploymentTarget:
     iOS: "17.0"
     macOS: "13.0"
+    watchOS: "10.0"     # without this Xcode used its newest (27.0), so older Watches couldn't install Rayna
   createIntermediateGroups: true
 settings:
   base:
     DEVELOPMENT_TEAM: F9MJXEKGAR
     CODE_SIGN_STYLE: Automatic
-    MARKETING_VERSION: "1.1"
-    CURRENT_PROJECT_VERSION: "8"
+    MARKETING_VERSION: "1.2"
+    CURRENT_PROJECT_VERSION: "15"
     SWIFT_VERSION: "5.0"
     TARGETED_DEVICE_FAMILY: "1,2"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
@@ -44,7 +45,7 @@ targets:
     info:
       path: Rayna/Info.plist
       properties:
-        NSHealthShareUsageDescription: Rayna reads today's running workouts to add your run-day water bonus automatically.
+        NSHealthShareUsageDescription: Rayna reads today's workouts to add your heavy-exercise water bonus automatically.
         NSHealthUpdateUsageDescription: Rayna can save each glass you log as Dietary Water in Apple Health.
         CKSharingSupported: true
         NSSupportsLiveActivities: true
@@ -103,6 +104,8 @@ targets:
     sources:
       - RaynaWatch
       - WatchShared
+      - path: ../Sources/RaynaCore/SeaSceneLayout.swift
+      - path: ../Sources/RaynaCore/SeaSceneDraw.swift
     dependencies:
       - target: RaynaWatchWidget
     entitlements:

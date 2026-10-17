@@ -12,7 +12,7 @@ Rayna is a tiny macOS menu-bar app that reminds you to drink water. A cheerful s
 - **Menu-bar fill** — a drop icon plus a percentage of today's goal.
 - **One-click logging** — "+1 glass" with undo; glass size and daily goal are configurable.
 - **Animated nudges** — Rayna swims in with a speech bubble: "Drank one 💧" or "Later".
-- **Run-day bonus** — toggle +500 ml on days you run.
+- **Exercise-day bonus** — toggle +500 ml on a heavy exercise day.
 - **Quiet hours** — no nudges overnight (default 22:00–07:30).
 - **Fizzy-drink swap** — an optional, guilt-free "swap a fizzy drink for a glass of water" nudge after 18:00.
 - **Streaks** — consecutive goal days, plus a barrel roll and confetti when you hit your goal.

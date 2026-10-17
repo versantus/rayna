@@ -11,11 +11,20 @@ final class AppState: ObservableObject {
     @Published var log: [Date] { didSet { d.set(log, forKey: "log") } }
     @Published var runDay: Bool { didSet { d.set(runDay, forKey: "runDay"); localChanged(); checkGoal() } }
     @Published var goalML: Int { didSet { d.set(goalML, forKey: "goalML"); localChanged(); checkGoal() } }
-    @Published var glassML: Int { didSet { d.set(glassML, forKey: "glassML"); localChanged() } }
+    @Published var glassML: Int {
+        didSet {
+            let clean = GlassSize.sanitize(glassML)
+            if clean != glassML { glassML = clean; return }
+            d.set(clean, forKey: "glassML"); localChanged()
+        }
+    }
     @Published var intervalMin: Int { didSet { d.set(intervalMin, forKey: "intervalMin"); NotificationManager.shared.resetSchedule() } }
+    @Published var remindersOn: Bool { didSet { d.set(remindersOn, forKey: "remindersOn"); NotificationManager.shared.resetSchedule() } }
     @Published var quietStartMin: Int { didSet { d.set(quietStartMin, forKey: "quietStartMin"); localChanged() } }
     @Published var quietEndMin: Int { didSet { d.set(quietEndMin, forKey: "quietEndMin"); localChanged() } }
     @Published var eveningSwap: Bool { didSet { d.set(eveningSwap, forKey: "eveningSwap"); localChanged() } }
+    @Published var exerciseExtraOn: Bool { didSet { d.set(exerciseExtraOn, forKey: "exerciseExtraOn"); localChanged(); checkGoal() } }
+    @Published var runBonusML: Int { didSet { d.set(runBonusML, forKey: "runBonusML"); localChanged(); checkGoal() } }
     @Published var streak: Int { didSet { d.set(streak, forKey: "streak") } }
     @Published var systemNotifications: Bool { didSet { d.set(systemNotifications, forKey: "systemNotifications"); if systemNotifications { NotificationManager.shared.requestAuth() } } }
     @Published var glassEvent = 0
@@ -29,14 +38,22 @@ final class AppState: ObservableObject {
     /// History, unlocks and swap-a-fizzy-drink stats (shared logic with iOS).
     let extras = RaynaExtras(defaults: .standard)
     var goalDays: [String] { get { d.stringArray(forKey: "goalDays") ?? [] } set { d.set(Array(newValue.suffix(30)), forKey: "goalDays") } }
-    var accessories: Set<RaynaUnlock> { Set(extras.unlocked) }
+    /// The badges on the live ray and the share card. At most one in each slot.
+    var accessories: Set<RaynaUnlock> { extras.wornBadges }
     var recap: RaynaRecap { extras.recap(goalDays: goalDays, streak: streak) }
+    /// Rayna's colour (`raynaSkin`, synced with the iPhone). Classic until colours are released.
+    var skin: RaynaSkin {
+        get {
+            let s = d.string(forKey: RaynaSkin.storageKey).flatMap(RaynaSkin.init(rawValue:)) ?? .classic
+            return RaynaFeatures.rayColours && s.isAvailable ? s : .classic
+        }
+        set { d.set(newValue.rawValue, forKey: RaynaSkin.storageKey); RaynaFrames.skin = newValue; objectWillChange.send(); localChanged() }
+    }
     func publishToPod() {
         guard PodService.isEntitled else { return }
-        let g = glassML > 0 ? totalML / glassML : 0, ml = totalML, goal = effectiveGoal, st = streak
+        let g = glasses, ml = totalML, goal = effectiveGoal, st = streak, kid = extras.kidMode
         Task { @MainActor in
-            if PodService.shared.status == .unknown { await PodService.shared.refreshStatus() }
-            await PodService.shared.publish(glasses: g, ml: ml, goal: goal, streak: st)
+            await PodService.shared.publish(glasses: g, ml: ml, goal: goal, streak: st, isKid: kid)
         }
     }
 
@@ -44,7 +61,7 @@ final class AppState: ObservableObject {
         RaynaShareInfo(kind: kind, litres: Double(totalML) / 1000, goalL: Double(effectiveGoal) / 1000,
                        streak: streak, weekL: recap.litres, unlocks: accessories)
     }
-    var showSwap: Bool { extras.swapChallenge && RaynaExtras.isSwapTime() }
+    var showSwap: Bool { extras.swapChallenge && (RaynaExtras.isSwapTime() || ProcessInfo.processInfo.environment["RAYNA_SWAP"] == "1") }
 
     private var dayKey: String { didSet { d.set(dayKey, forKey: "dayKey") } }
     private var lastGoalDay: String { didSet { d.set(lastGoalDay, forKey: "lastGoalDay") } }
@@ -54,7 +71,7 @@ final class AppState: ObservableObject {
 
     private init() {
         d.register(defaults: [
-            "goalML": 2500, "glassML": 250, "intervalMin": 50,
+            "goalML": 2500, "glassML": 250, "intervalMin": 60, "remindersOn": true,
             "quietStartMin": 22 * 60, "quietEndMin": 7 * 60 + 30,
             "eveningSwap": true
         ])
@@ -62,23 +79,41 @@ final class AppState: ObservableObject {
         log = (d.array(forKey: "log") as? [Date]) ?? []
         runDay = d.bool(forKey: "runDay")
         goalML = d.integer(forKey: "goalML")
-        glassML = d.integer(forKey: "glassML")
-        intervalMin = min(60, max(45, d.integer(forKey: "intervalMin")))
+        let rawGlass = d.integer(forKey: "glassML")
+        let cleanGlass = GlassSize.sanitize(rawGlass)
+        if cleanGlass != rawGlass { d.set(cleanGlass, forKey: "glassML") }
+        glassML = cleanGlass
+        let storedInterval = d.integer(forKey: "intervalMin")
+        intervalMin = storedInterval > 0 ? storedInterval : 60
+        if d.object(forKey: "remindersOn") == nil { d.set(true, forKey: "remindersOn") }
+        remindersOn = d.bool(forKey: "remindersOn")
         quietStartMin = d.integer(forKey: "quietStartMin")
         quietEndMin = d.integer(forKey: "quietEndMin")
         eveningSwap = d.bool(forKey: "eveningSwap")
+        exerciseExtraOn = d.object(forKey: "exerciseExtraOn") == nil ? true : d.bool(forKey: "exerciseExtraOn")
+        let storedBonus = d.integer(forKey: "runBonusML")
+        runBonusML = storedBonus > 0 ? storedBonus : 500
         streak = d.integer(forKey: "streak")
         systemNotifications = d.bool(forKey: "systemNotifications")
         dayKey = d.string(forKey: "dayKey") ?? AppState.key(for: Date())
         lastGoalDay = d.string(forKey: "lastGoalDay") ?? ""
         lastSwapDay = d.string(forKey: "lastSwapDay") ?? ""
         launchAtLogin = SMAppService.mainApp.status == .enabled
-        rolloverIfNeeded()
+        #if DEBUG
+        if let spec = ProcessInfo.processInfo.environment["RAYNA_BADGES"], !spec.isEmpty {
+            let fresh = extras.unlockForTesting(RaynaExtras.badges(from: spec))
+            extras.pendingUnlocks = []
+            unlockBanner = fresh.last
+        }
+        #endif
+        if rolloverIfNeeded() { publishToPod() }
         let t = Timer(timeInterval: 30, repeats: true) { [weak self] _ in
-            self?.rolloverIfNeeded()
+            guard let self, self.rolloverIfNeeded() else { return }
+            self.publishToPod()
         }
         RunLoop.main.add(t, forMode: .common)
         timer = t
+        RaynaFrames.skin = skin
     }
 
     /// Re-read synced keys after iCloud sync wrote another device's changes into the defaults.
@@ -92,10 +127,16 @@ final class AppState: ObservableObject {
         if newLog != log { log = newLog }
         if runDay != d.bool(forKey: "runDay") { runDay = d.bool(forKey: "runDay") }
         if eveningSwap != d.bool(forKey: "eveningSwap") { eveningSwap = d.bool(forKey: "eveningSwap") }
+        let extra = d.object(forKey: "exerciseExtraOn") == nil ? true : d.bool(forKey: "exerciseExtraOn")
+        if exerciseExtraOn != extra { exerciseExtraOn = extra }
+        let bonus = d.integer(forKey: "runBonusML")
+        let cleanBonus = bonus > 0 ? bonus : 500
+        if runBonusML != cleanBonus { runBonusML = cleanBonus }
         lastGoalDay = d.string(forKey: "lastGoalDay") ?? lastGoalDay
         // Synced glasses can complete the goal without a local +1, so record the goal day/streak here too
         // (otherwise the streak could read 0 days on a device that never saw its own glass hit the goal).
         checkGoal()
+        RaynaFrames.skin = skin
         objectWillChange.send()
     }
     /// True while applying synced values (so it doesn't count as a local edit).
@@ -104,7 +145,12 @@ final class AppState: ObservableObject {
     func localChanged() { if !reloading { MainActor.assumeIsolated { RaynaCloudSync.shared?.syncSoon() } } }
 
     // MARK: Derived
-    var effectiveGoal: Int { goalML + (runDay ? 500 : 0) }
+    /// Kid mode has no exercise-day bonus, matching the iPhone. The flag stays `runDay`.
+    var effectiveGoal: Int {
+        ExerciseDay.goal(base: goalML, extraOn: exerciseExtraOn, exerciseDay: runDay, bonus: runBonusML, kidMode: extras.kidMode)
+    }
+    var kidMode: Bool { extras.kidMode }
+    var glasses: Int { glassML > 0 ? totalML / glassML : 0 }
     var progress: Double { effectiveGoal > 0 ? min(Double(totalML) / Double(effectiveGoal), 1) : 0 }
     var lastLogged: Date? { log.last }
 
@@ -129,12 +175,25 @@ final class AppState: ObservableObject {
     }
 
     func undo() {
-        rolloverIfNeeded()
-        guard totalML > 0 else { return }
+        let rolled = rolloverIfNeeded()
+        guard totalML > 0 else {
+            if rolled { publishToPod() }
+            return
+        }
         totalML = max(0, totalML - glassML)
         if !log.isEmpty { log.removeLast() }
         extras.recordDay(totalML)
         if progress < 1 { celebrate = false }
+        publishToPod()
+    }
+
+    /// Kid mode: cups, a 1.5 L goal and simpler words. The feature flag gates it on both platforms.
+    func setKidMode(_ on: Bool) {
+        guard let next = extras.applyKidMode(on, goalML: goalML, glassML: glassML) else { return }
+        goalML = next.goalML
+        glassML = next.glassML
+        objectWillChange.send()
+        localChanged()
     }
 
     /// "I swapped a fizzy drink for water": a swap + a glass.
@@ -155,33 +214,58 @@ final class AppState: ObservableObject {
         launchAtLogin = SMAppService.mainApp.status == .enabled
     }
 
+    #if DEBUG
+    /// Inserts badges into the collection. `spec` is `all` or comma-separated ids such as `surge,podWave`.
+    func unlockBadgesForTesting(_ spec: String = "all") {
+        let fresh = extras.unlockForTesting(RaynaExtras.badges(from: spec))
+        extras.pendingUnlocks = []
+        objectWillChange.send()
+        if unlockBanner == nil { unlockBanner = fresh.last }
+    }
+    #endif
+
     private func checkGoal() {
-        guard progress >= 1 else { return }
-        let today = AppState.key(for: Date())
-        if lastGoalDay != today {
-            streak = (lastGoalDay == AppState.yesterdayKey) ? streak + 1 : 1
-            lastGoalDay = today
-            goalDays = goalDays + [today]
-            celebrate = true
-            if let u = extras.noteStreak(streak).last {
-                extras.pendingUnlocks = []
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.unlockBanner = u }
+        if progress >= 1 {
+            let today = AppState.key(for: Date())
+            if lastGoalDay != today {
+                streak = (lastGoalDay == AppState.yesterdayKey) ? streak + 1 : 1
+                lastGoalDay = today
+                goalDays = goalDays + [today]
+                celebrate = true
+                extras.noteStreak(streak)
             }
         }
+        celebrateNewUnlocks()
     }
 
-    func rolloverIfNeeded() {
+    /// Shows one new badge. Streak badges win over an over-achiever badge earned on the same glass.
+    private func celebrateNewUnlocks() {
+        let streakPending = extras.pendingUnlocks
+        let intake = extras.noteIntake(ml: totalML, goal: effectiveGoal)
+        guard unlockBanner == nil else { extras.pendingUnlocks = []; return }
+        let streak = streakPending.last { if case .streakDays = $0.rule { return true }; return false }
+        guard let u = streak ?? intake.last ?? extras.pendingUnlocks.last else { return }
+        extras.pendingUnlocks = []
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { self.unlockBanner = u }
+    }
+
+    @discardableResult
+    func rolloverIfNeeded() -> Bool {
         let today = AppState.key(for: Date())
+        var rolled = false
         if dayKey != today {
             dayKey = today
             totalML = 0
             log = []
             runDay = false
             celebrate = false
+            rolled = true
         }
         if lastGoalDay != today && lastGoalDay != AppState.yesterdayKey && streak != 0 {
             streak = 0
+            rolled = true
         }
+        return rolled
     }
 
     // MARK: Quiet hours
@@ -190,8 +274,9 @@ final class AppState: ObservableObject {
     }
 
     // MARK: Quips (shared with iOS via RaynaCore)
-    static let quips = RaynaCopy.quips
-    var quip: String { RaynaCopy.quip(for: progress) }
-    static let reminders = RaynaCopy.reminders
+    var quip: String {
+        RaynaCopy.quip(for: progress, exerciseDay: runDay && !kidMode, salt: totalML, kidMode: kidMode)
+    }
+    static var reminders: [String] { RaynaCopy.reminders }
     static let swapText = RaynaCopy.swapText
 }

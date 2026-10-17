@@ -4,6 +4,7 @@ import AppKit
 
 struct ContentView: View {
     @EnvironmentObject var state: AppState
+    @ObservedObject private var pod = PodService.shared
     @State private var confettiID = 0
     @State private var showConfetti = false
     @State private var wiggleAt: Date? = nil
@@ -12,130 +13,55 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .center, spacing: 12) {
-                    ZStack {
-                        ProgressRing(progress: state.progress).frame(width: 110, height: 110)
-                        RaynaView(progress: state.progress, wiggleAt: wiggleAt, flipAt: flipAt, accessories: state.accessories)
-                            .scaleEffect(0.95)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    header
+                    quipBubble
+                    RaynaView(progress: state.progress, wiggleAt: wiggleAt, flipAt: flipAt,
+                              size: RaynaStage.side(width: 352, height: 380), accessories: state.accessories)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: RaynaStage.side(width: 352, height: 380))
+                    amount
+                    if pod.status == .inPod && !pod.visibleMembers.isEmpty { podCard }
+                    if state.showSwap { swapCard }
+                    buttons
+                    GlassSizeQuickAdd(glassML: $state.glassML)
+                    if state.runDay && state.exerciseExtraOn && !state.kidMode {
+                        Label("Exercise day +\(state.runBonusML) ml", systemImage: RaynaCopy.exerciseDaySymbol)
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .foregroundColor(.secondary)
                     }
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(alignment: .firstTextBaseline, spacing: 2) {
-                            Text(String(format: "%.2f", Double(state.totalML) / 1000))
-                                .font(.system(size: 22, weight: .bold))
-                            Text(String(format: "/ %.1f L", Double(state.effectiveGoal) / 1000))
-                                .font(.system(size: 13)).foregroundColor(.secondary)
-                        }
-                        if let f = state.bubbleFact {
-                            Button { state.factPage = f } label: {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    RayFactTag()
-                                    Text(f.text).font(.system(size: 13)).fixedSize(horizontal: false, vertical: true)
-                                    Text("Click to read more").font(.system(size: 11)).foregroundColor(.secondary)
-                                }
-                                .padding(10)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.75)))
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                        } else {
-                        Text(state.quip)
-                            .font(.system(size: 13))
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(10)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(Color.accentColor.opacity(0.1)))
-                        }
+                    HStack {
+                        Spacer()
+                        Button("Quit Rayna") { NSApp.terminate(nil) }
+                            .keyboardShortcut("q")
                     }
                 }
-
-                HStack(spacing: 8) {
-                    Button { state.addGlass() } label: {
-                        Text("+1 glass (\(state.glassML) ml)").frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    Button("Undo") { state.undo() }
-                        .controlSize(.large)
-                    if state.progress >= 1 {
-                        Button { MacShare.share(state.shareInfo(.goal)) } label: { Image(systemName: "square.and.arrow.up") }
-                            .controlSize(.large)
-                            .help("Share a Rayna goal card")
-                    }
-                }
-
-                if state.showSwap {
-                    Button { state.logSwap() } label: {
-                        HStack(spacing: 6) {
-                            Text("🥤➡️💧")
-                            VStack(alignment: .leading, spacing: 0) {
-                                Text(state.swapThanks ?? "I swapped a fizzy drink for water").font(.system(size: 12, weight: .semibold))
-                                let st = state.extras.swapStreak()
-                                Text(st > 0 ? "Swap streak \(st) · \(state.extras.swapsTotal) total" : "Optional fizzy-drink challenge · logs a glass")
-                                    .font(.system(size: 11)).foregroundColor(.secondary)
-                            }
-                            Spacer(minLength: 0)
-                        }
-                        .padding(8)
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.accentColor.opacity(0.1)))
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                HStack {
-                    Text("Streak").font(.system(size: 12))
-                    HStack(spacing: 3) {
-                        ForEach(0..<7, id: \.self) { i in
-                            Circle()
-                                .fill(i < state.streak ? Color.accentColor : Color.secondary.opacity(0.25))
-                                .frame(width: 8, height: 8)
-                        }
-                    }
-                    Text("\(state.streak) day\(state.streak == 1 ? "" : "s")").font(.system(size: 12))
-                    Spacer()
-                    Toggle(isOn: $state.runDay) { Text("🏃 Run day +500 ml").font(.system(size: 12)) }
-                        .toggleStyle(.switch).controlSize(.mini)
-                }
-
-                Divider()
-                HStack {
-                    Button {
-                        SettingsWindowController.shared.show(state: state)
-                    } label: {
-                        Image(systemName: "gearshape")
-                    }
-                    .help("Settings… (⌘,)")
-                    .keyboardShortcut(",")
-                    Button {
-                        JourneyWindowController.shared.show(state: state)
-                    } label: {
-                        Image(systemName: "trophy")
-                    }
-                    .help("Journey…")
-                    Button {
-                        WelcomeWindowController.shared.show(state: state)
-                    } label: {
-                        Image(systemName: "info.circle")
-                    }
-                    .help("Welcome… / About Rayna")
-                    Spacer()
-                    Button("Quit Rayna") { NSApp.terminate(nil) }
-                        .keyboardShortcut("q")
+                .padding(14)
+            }
+            .background {
+                ZStack {
+                    WaterBackground(progress: state.progress)
+                    SeaScene(worn: state.accessories, progress: state.progress)
+                    if state.kidMode { RayVisitorsLayer(visitors: RayVisitor.visiting(streak: state.streak)) }
                 }
             }
-            .padding(14)
-            .background(WaterBackground(progress: state.progress))
+
+            PodNudgeBanner()
 
             if showConfetti {
                 ConfettiView().id(confettiID)
+                if state.kidMode { ConfettiView().id(confettiID + 1).scaleEffect(1.6) }
             }
             if let u = state.unlockBanner {
-                RaynaUnlockBanner(unlock: u, onShare: { state.unlockBanner = nil; MacShare.share(state.shareInfo(.unlock(u))) }) { state.unlockBanner = nil }
+                RaynaUnlockBanner(unlock: u, onShare: {
+                    state.unlockBanner = nil
+                    ShareWindowController.shared.show(info: state.shareInfo(.unlock(u)))
+                }) { state.unlockBanner = nil }
                     .scaleEffect(0.9)
             }
         }
-        .frame(width: 340)
+        .frame(width: 380, height: 740)
         .sheet(item: $state.factPage) { f in
             RayFactPage(fact: f, onDone: { state.factPage = nil })
                 .frame(width: 420, height: 560)
@@ -144,7 +70,139 @@ struct ContentView: View {
             if newValue { party() }
         }
         .onChange(of: state.glassEvent) { _ in wiggleAt = Date() }
-        .onAppear { if state.celebrate && state.progress >= 1 { party() } }
+        .onAppear {
+            if state.celebrate && state.progress >= 1 { party() }
+            Task { await RaynaCloudSync.shared?.catchUp() }
+        }
+    }
+
+    private var header: some View {
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Rayna").font(.system(.title, design: .rounded, weight: .heavy))
+                StreakDots(streak: state.streak, goalDays: state.goalDays)
+            }
+            Spacer(minLength: 8)
+            Button {
+                JourneyWindowController.shared.show(state: state)
+            } label: {
+                Image(systemName: "trophy.fill")
+            }
+            .help("Collection and weekly recap")
+            Button {
+                SettingsWindowController.shared.show(state: state)
+            } label: {
+                Image(systemName: "gearshape.fill")
+            }
+            .help("Settings… (⌘,)")
+            .keyboardShortcut(",")
+        }
+    }
+
+    @ViewBuilder private var quipBubble: some View {
+        if let f = state.bubbleFact {
+            Button { state.factPage = f } label: {
+                VStack(spacing: 6) {
+                    RayFactTag()
+                    Text(f.text).font(.system(size: 13, weight: .semibold)).multilineTextAlignment(.center)
+                    Text("Tap to read more").font(.system(size: 11)).foregroundColor(.secondary)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity)
+                .background(RoundedRectangle(cornerRadius: 16).fill(Color.white.opacity(0.85)))
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        } else {
+            HStack(spacing: 8) {
+                Text(state.quip)
+                    .font(.system(size: 13, weight: .semibold))
+                    .multilineTextAlignment(.center)
+                if state.progress >= 1 {
+                    Button {
+                        ShareWindowController.shared.show(info: state.shareInfo(.goal))
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .help("Share your goal")
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity)
+            .background(RoundedRectangle(cornerRadius: 16).fill(Color.accentColor.opacity(0.12)))
+        }
+    }
+
+    private var amount: some View {
+        VStack(spacing: 2) {
+            Text(RaynaCopy.amountTitle(ml: state.totalML, glassML: state.glassML, kidMode: state.kidMode))
+                .font(.system(size: 28, weight: .heavy, design: .rounded))
+            Text(RaynaCopy.amountSubtitle(ml: state.totalML, goal: state.effectiveGoal, glassML: state.glassML, kidMode: state.kidMode))
+                .font(.system(size: 13, design: .rounded)).foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var podCard: some View {
+        Button { PodWindowController.shared.show() } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "person.3.fill").foregroundColor(.accentColor)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Your pod · \(pod.podName)")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .lineLimit(2)
+                    HStack(spacing: 6) {
+                        ForEach(pod.visibleMembers.prefix(6)) { m in
+                            let shown = pod.displayed(m)
+                            ProgressView(value: shown.todayProgress)
+                                .tint(shown.todayProgress >= 1 ? .green : .accentColor)
+                                .frame(maxWidth: 36)
+                        }
+                    }
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundColor(.secondary)
+            }
+            .padding(10)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+        }
+        .buttonStyle(.plain)
+        .help("Opens the pod screen")
+    }
+
+    private var swapCard: some View {
+        Button { state.logSwap() } label: {
+            HStack(spacing: 10) {
+                Text("🥤➡️💧")
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(state.swapThanks ?? RaynaCopy.swapButtonTitle)
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                    Text(RaynaCopy.swapDetail(streak: state.extras.swapStreak(), total: state.extras.swapsTotal))
+                        .font(.system(size: 11)).foregroundColor(.secondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(10)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var buttons: some View {
+        HStack(spacing: 8) {
+            Button { state.addGlass() } label: {
+                Label(RaynaCopy.addGlassLabel(glassML: state.glassML, kidMode: state.kidMode), systemImage: "drop.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            Button { state.undo() } label: {
+                Image(systemName: "arrow.uturn.backward")
+            }
+            .controlSize(.large)
+            .disabled(state.totalML == 0)
+            .help("Undo last glass")
+        }
     }
 
     private func party() {
@@ -160,6 +218,7 @@ struct ContentView: View {
 
 struct SettingsView: View {
     @EnvironmentObject var state: AppState
+    @ObservedObject private var pod = PodService.shared
 
     private func timeBinding(_ kp: ReferenceWritableKeyPath<AppState, Int>) -> Binding<Date> {
         Binding<Date>(
@@ -179,54 +238,105 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            BrandHeader(title: "Rayna Settings",
-                        subtitle: "Tune your goal, reminders and extras.",
-                        progress: state.progress)
-            HStack(alignment: .top, spacing: 14) {
-                VStack(spacing: 14) {
-                    BrandCard(title: "Goal", symbol: "target", tint: RaynaBrand.blue) {
-                        BrandRow(symbol: "drop.fill", tint: RaynaBrand.blue, title: "Daily goal", detail: "\(state.goalML) ml") {
-                            Stepper("", value: $state.goalML, in: 1000...5000, step: 250).labelsHidden()
-                        }
-                        BrandRow(symbol: "cup.and.saucer.fill", tint: .teal, title: "Glass size", detail: "\(state.glassML) ml") {
-                            Stepper("", value: $state.glassML, in: 100...750, step: 50).labelsHidden()
-                        }
-                    }
-                    BrandCard(title: "Reminders", symbol: "bell.badge.fill", tint: .orange) {
-                        BrandRow(symbol: "timer", tint: .orange, title: "Remind every", detail: "\(state.intervalMin) min") {
-                            Stepper("", value: $state.intervalMin, in: 45...60, step: 5).labelsHidden()
-                        }
-                        BrandRow(symbol: "app.badge", tint: .red, title: "System notifications too") {
-                            Toggle("", isOn: $state.systemNotifications).labelsHidden().toggleStyle(.switch)
-                        }
-                        Button { NudgeController.shared.show(text: AppState.reminders.randomElement() ?? "Sip o'clock!", isSwap: false) } label: {
-                            Label("Preview nudge", systemImage: "play.circle.fill")
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                BrandHeader(title: "Settings",
+                            subtitle: "Tune your goal, reminders and extras.",
+                            progress: state.progress)
+                BrandCard(title: "Friends", symbol: "person.3.fill", tint: RaynaBrand.blue) {
+                    Button { PodWindowController.shared.show() } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Pods").font(.system(size: 13, weight: .semibold))
+                                Text(pod.status == .inPod ? pod.podName : "Hydrate with friends over iCloud")
+                                    .font(.system(size: 11)).foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right").foregroundColor(.secondary)
                         }
                     }
-                    BrandCard(title: "Quiet hours", symbol: "moon.stars.fill", tint: .indigo) {
-                        BrandRow(symbol: "moon.fill", tint: .indigo, title: "Quiet from") {
-                            DatePicker("", selection: timeBinding(\.quietStartMin), displayedComponents: .hourAndMinute).labelsHidden()
-                        }
-                        BrandRow(symbol: "sunrise.fill", tint: .yellow, title: "Quiet until") {
-                            DatePicker("", selection: timeBinding(\.quietEndMin), displayedComponents: .hourAndMinute).labelsHidden()
-                        }
-                    }
+                    .buttonStyle(.plain)
+                    Text("Start or join a pod, invite friends, nudge each other and build a pod streak.")
+                        .font(.system(size: 11)).foregroundColor(.secondary)
                 }
-                BrandCard(title: "Extras", symbol: "sparkles", tint: RaynaBrand.pink) {
-                    BrandRow(symbol: "bubbles.and.sparkles.fill", tint: .mint, title: "Fizzy-drink swap nudge", detail: "After 18:00") {
-                        Toggle("", isOn: $state.eveningSwap).labelsHidden().toggleStyle(.switch)
-                    }
-                    BrandRow(symbol: "flag.checkered", tint: .purple, title: "Swap-a-fizzy-drink challenge button", detail: "After 18:00") {
-                        Toggle("", isOn: extra({ state.extras.swapChallenge }, { state.extras.swapChallenge = $0 })).labelsHidden().toggleStyle(.switch)
-                    }
+                BrandCard(title: RaynaFeatures.kidMode ? "Ray Facts & kids" : "Ray Facts", symbol: "book.closed.fill", tint: .yellow) {
                     BrandRow(symbol: "lightbulb.fill", tint: .yellow, title: "Ray Facts", detail: "Rayna shares a fact at 25/50/75/100%") {
                         Toggle("", isOn: extra({ state.extras.rayFactsOn }, { state.extras.rayFactsOn = $0 })).labelsHidden().toggleStyle(.switch)
                     }
-                    BrandRow(symbol: "speaker.wave.2.fill", tint: .pink, title: "Sounds", detail: "Splash, bubbles, goal chime") {
+                    if RaynaFeatures.kidMode {
+                        BrandRow(symbol: "figure.and.child.holdinghands", tint: RaynaBrand.pink, title: "Kid mode") {
+                            Toggle("", isOn: Binding(get: { state.kidMode }, set: { state.setKidMode($0) })).labelsHidden().toggleStyle(.switch)
+                        }
+                    }
+                    Text(RaynaFeatures.kidMode
+                         ? "Ray Facts: Rayna shares a real ray fact at 25, 50, 75 and 100% of your goal. Tap her bubble to read it; then it swims off. Kid mode: cups instead of litres, a 1.5 L goal, simpler words, bigger celebrations and ray friends who visit as the streak grows. In a pod, kids are marked so grown-ups can follow along."
+                         : "Rayna shares a real ray fact at 25, 50, 75 and 100% of your goal. Tap her bubble to read it; then it swims off.")
+                        .font(.system(size: 11)).foregroundColor(.secondary)
+                }
+                BrandCard(title: "Daily goal", symbol: "target", tint: RaynaBrand.blue) {
+                    BrandRow(symbol: "drop.fill", tint: RaynaBrand.blue, title: "Goal: \(String(format: "%.2f L", Double(state.goalML) / 1000))") {
+                        Stepper("", value: $state.goalML, in: 1000...5000, step: 250).labelsHidden()
+                    }
+                    GlassSizePicker(glassML: $state.glassML)
+                }
+                BrandCard(title: "Exercise days", symbol: "dumbbell.fill", tint: RaynaBrand.blue) {
+                    BrandRow(symbol: "dumbbell.fill", tint: RaynaBrand.blue, title: "Add extra water on exercise days") {
+                        Toggle("", isOn: $state.exerciseExtraOn).labelsHidden().toggleStyle(.switch)
+                    }
+                    if state.exerciseExtraOn {
+                        BrandRow(symbol: "drop.fill", tint: RaynaBrand.aqua, title: "Extra water: +\(state.runBonusML) ml") {
+                            Stepper("", value: $state.runBonusML, in: 250...1500, step: 250).labelsHidden()
+                        }
+                        BrandRow(symbol: "checkmark.circle.fill", tint: .green, title: "Today is an exercise day") {
+                            Toggle("", isOn: $state.runDay).labelsHidden().toggleStyle(.switch)
+                        }
+                    }
+                    Text("On an exercise day Rayna adds the extra water to today's goal. An iPhone can turn the day on from Apple Health. This Mac follows that, and you can switch today on or off here. There is no Health connection on the Mac.")
+                        .font(.system(size: 11)).foregroundColor(.secondary)
+                }
+                BrandCard(title: "Sounds", symbol: "speaker.wave.2.fill", tint: .pink) {
+                    BrandRow(symbol: "speaker.wave.2.fill", tint: .pink, title: "Sounds") {
                         Toggle("", isOn: extra({ RaynaSounds.shared.enabled }, { RaynaSounds.shared.enabled = $0; if $0 { RaynaSounds.shared.play(.splash) } }))
                             .labelsHidden().toggleStyle(.switch)
                     }
+                    Text("Gentle ocean sounds: a splash for each glass, bubbles when Rayna wiggles and a chime when you hit your goal. They follow your silent switch and mix with your music.")
+                        .font(.system(size: 11)).foregroundColor(.secondary)
+                }
+                BrandCard(title: "Reminders", symbol: "bell.badge.fill", tint: .orange) {
+                    BrandRow(symbol: "bell.fill", tint: .orange, title: "Reminders") {
+                        Toggle("", isOn: $state.remindersOn).labelsHidden().toggleStyle(.switch)
+                    }
+                    ReminderIntervalPicker(minutes: $state.intervalMin)
+                        .disabled(!state.remindersOn)
+                    BrandRow(symbol: "moon.fill", tint: .indigo, title: "Quiet from") {
+                        DatePicker("", selection: timeBinding(\.quietStartMin), displayedComponents: .hourAndMinute).labelsHidden()
+                    }
+                    BrandRow(symbol: "sunrise.fill", tint: .yellow, title: "Quiet until") {
+                        DatePicker("", selection: timeBinding(\.quietEndMin), displayedComponents: .hourAndMinute).labelsHidden()
+                    }
+                    BrandRow(symbol: "bubbles.and.sparkles.fill", tint: .mint, title: "Fizzy-drink swap nudge 🥤➡️💧") {
+                        Toggle("", isOn: $state.eveningSwap).labelsHidden().toggleStyle(.switch)
+                    }
+                    BrandRow(symbol: "flag.checkered", tint: .purple, title: "Swap-a-fizzy-drink challenge (after 18:00)") {
+                        Toggle("", isOn: extra({ state.extras.swapChallenge }, { state.extras.swapChallenge = $0 })).labelsHidden().toggleStyle(.switch)
+                    }
+                    BrandRow(symbol: "app.badge", tint: .red, title: "System notifications too") {
+                        Toggle("", isOn: $state.systemNotifications).labelsHidden().toggleStyle(.switch)
+                    }
+                    Button { NudgeController.shared.show(text: RaynaCopy.nextReminder(), isSwap: false) } label: {
+                        Label("Preview nudge", systemImage: "play.circle.fill")
+                    }
+                    Text("Rayna nudges you during waking hours only. Tap “Drank one 💧” on a notification to log a glass without opening the app.")
+                        .font(.system(size: 11)).foregroundColor(.secondary)
+                }
+                if let sync = RaynaCloudSync.shared {
+                    BrandCard(title: "iCloud", symbol: "icloud.fill", tint: RaynaBrand.blue) {
+                        RaynaSyncSettingsRow(sync: sync).toggleStyle(.switch)
+                        Text("Syncs today's water, your history and settings between your iPhone, Apple Watch and Mac through your private iCloud.")
+                            .font(.system(size: 11)).foregroundColor(.secondary)
+                    }
+                }
+                BrandCard(title: "This Mac", symbol: "laptopcomputer", tint: RaynaBrand.aqua) {
                     BrandRow(symbol: "sparkles.rectangle.stack.fill", tint: RaynaBrand.aqua, title: "Show splash on launch") {
                         Toggle("", isOn: extra({ SplashWindowController.enabled }, { SplashWindowController.enabled = $0 })).labelsHidden().toggleStyle(.switch)
                     }
@@ -234,20 +344,29 @@ struct SettingsView: View {
                         Toggle("", isOn: Binding(get: { state.launchAtLogin }, set: { state.setLaunchAtLogin($0) }))
                             .labelsHidden().toggleStyle(.switch)
                     }
-                    if let sync = RaynaCloudSync.shared {
-                        Divider()
-                        RaynaSyncSettingsRow(sync: sync).toggleStyle(.switch)
-                    }
-                    Divider()
                     Button { WelcomeWindowController.shared.show(state: state) } label: {
                         Label("Show welcome…", systemImage: "hand.wave.fill")
                     }
                 }
+                #if DEBUG
+                BrandCard(title: "Debug", symbol: "ladybug.fill", tint: .orange) {
+                    Button { state.unlockBadgesForTesting() } label: {
+                        Label("Unlock all badges", systemImage: "rosette")
+                    }
+                    Text("Debug builds only. Launch with RAYNA_BADGES=all, or a comma-separated list: surge, tide, flood, over3, over7, over30, personalBest, podWave.")
+                        .font(.system(size: 11)).foregroundColor(.secondary)
+                }
+                #endif
+                BrandCard(title: "About", symbol: "hand.raised.fill", tint: .secondary) {
+                    Link("Privacy policy", destination: URL(string: "https://rayna-water.netlify.app/privacy.html")!)
+                    Link("Rayna for iPhone", destination: URL(string: "https://rayna-water.netlify.app")!)
+                    Text("Everything stays on this Mac (and iCloud if you turn it on). No accounts, no tracking.")
+                        .font(.system(size: 11)).foregroundColor(.secondary)
+                }
             }
-            Spacer(minLength: 60)
+            .padding(.horizontal, 22).padding(.top, 34).padding(.bottom, 28)
         }
-        .padding(.horizontal, 22).padding(.top, 34)
-        .frame(width: 700, height: 600)
+        .frame(width: 460, height: 720)
         .raynaBackdrop(waveHeight: 70)
     }
 }
@@ -272,29 +391,121 @@ final class JourneyWindowController {
     private var window: NSWindow?
 
     func show(state: AppState) {
+        let unlocked = state.extras.unlocked.count
+        let total = RaynaUnlock.allCases.count
         let view = ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                BrandHeader(title: "Rayna's journey", subtitle: "Streak, unlocks and your weekly recap.", progress: state.progress)
-                RaynaJourneyView(extras: state.extras, recap: state.recap, streak: state.streak) {
-                    MacShare.share(state.shareInfo(state.streak >= 3 ? .streak(state.streak) : .recap))
-                }
-                BrandCard(title: "Pod", symbol: "person.3.fill", tint: RaynaBrand.blue) {
-                    PodView(onInvite: { url in MacShare.shareURL(url) })
-                        .task { await PodService.shared.refreshStatus() }
+                BrandHeader(title: "Badges", subtitle: "\(unlocked) of \(total) · weekly recap below.", progress: state.progress)
+                RaynaJourneyView(extras: state.extras, recap: state.recap, streak: state.streak, skin: state.skin, onWear: { set in
+                    state.extras.wornBadges = set
+                    state.objectWillChange.send()
+                    state.localChanged()
+                }, onSkin: { state.skin = $0 }) {
+                    ShareWindowController.shared.show(info: state.shareInfo(state.streak >= 3 ? .streak(state.streak) : .recap))
                 }
                 Spacer(minLength: 60)
             }.padding(.horizontal, 20).padding(.top, 34)
         }
-        .frame(width: 480, height: 720)
+        .badgeSwapToastOverlay()
+        .frame(width: 480, height: 640)
         .raynaBackdrop(waveHeight: 70)
         if let w = window {
             w.contentViewController = NSHostingController(rootView: view)
+            w.title = "Badges"
         } else {
-            window = RaynaBrand.makeWindow(title: "Rayna's journey", root: view)
+            window = RaynaBrand.makeWindow(title: "Badges", root: view)
         }
         RaynaBrand.present(window)
     }
 }
+/// Full pod screen: the same `PodView` as iPhone Settings → Pods.
+@MainActor
+final class PodWindowController {
+    static let shared = PodWindowController()
+    private var window: NSWindow?
+
+    func show() {
+        let root = ScrollView {
+            PodView()
+                .padding(20)
+                .padding(.top, 28)
+        }
+        .frame(width: 520, height: 680)
+        .raynaBackdrop(waveHeight: 70)
+        if window == nil {
+            window = RaynaBrand.makeWindow(title: "Pod", root: root)
+        } else {
+            window?.contentViewController = NSHostingController(rootView: root)
+        }
+        RaynaBrand.present(window)
+        let s = AppState.shared
+        Task { @MainActor in
+            await PodService.shared.openPod(glasses: s.glasses, ml: s.totalML, goal: s.effectiveGoal, streak: s.streak, isKid: s.extras.kidMode)
+        }
+    }
+}
+
+/// Story and square share cards, then the Mac share picker. Same two sizes as the iPhone sheet.
+final class ShareWindowController {
+    static let shared = ShareWindowController()
+    private var window: NSWindow?
+
+    func show(info: RaynaShareInfo) {
+        let root = MacSharePreview(info: info) { [weak self] in
+            self?.window?.close()
+        }
+        if window == nil {
+            window = RaynaBrand.makeWindow(title: "Share", root: root)
+        } else {
+            window?.contentViewController = NSHostingController(rootView: root)
+        }
+        RaynaBrand.present(window)
+    }
+}
+
+struct MacSharePreview: View {
+    let info: RaynaShareInfo
+    var onDone: () -> Void
+    @State private var story: NSImage?
+    @State private var square: NSImage?
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                Text("Share").font(.system(.title3, design: .rounded, weight: .bold))
+                if let story {
+                    Image(nsImage: story).resizable().scaledToFit().frame(maxHeight: 280)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    Button { MacShare.share(info, square: false) } label: {
+                        Label("Share story (1080×1920)", systemImage: "square.and.arrow.up").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                if let square {
+                    Image(nsImage: square).resizable().scaledToFit().frame(maxHeight: 200)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                    Button { MacShare.share(info, square: true) } label: {
+                        Label("Share square (1080×1080)", systemImage: "square.and.arrow.up").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                }
+                if story == nil { ProgressView().padding(40) }
+                Button("Done", action: onDone)
+            }
+            .padding(20)
+        }
+        .frame(width: 420, height: 640)
+        .task {
+            if let cg = RaynaShareRenderer.image(info, square: false) {
+                story = NSImage(cgImage: cg, size: NSSize(width: CGFloat(cg.width), height: CGFloat(cg.height)))
+            }
+            if let cg = RaynaShareRenderer.image(info, square: true) {
+                square = NSImage(cgImage: cg, size: NSSize(width: CGFloat(cg.width), height: CGFloat(cg.height)))
+            }
+        }
+    }
+}
+
 extension MacShare {
     @MainActor
     static func shareURL(_ url: URL) {
@@ -310,7 +521,20 @@ extension MacShare {
 enum MacShare {
     @MainActor
     static func share(_ info: RaynaShareInfo) {
+        share(urls: RaynaShareRenderer.pngFiles(info))
+    }
+
+    /// One card: story or square. Falls back to both files if that PNG was not written.
+    @MainActor
+    static func share(_ info: RaynaShareInfo, square: Bool) {
         let urls = RaynaShareRenderer.pngFiles(info)
+        let name = square ? "Rayna-square.png" : "Rayna-story.png"
+        let picked = urls.filter { $0.lastPathComponent == name }
+        share(urls: picked.isEmpty ? urls : picked)
+    }
+
+    @MainActor
+    static func share(urls: [URL]) {
         guard !urls.isEmpty else { return }
         let picker = NSSharingServicePicker(items: urls)
         // Anchor at the mouse in whichever window is frontmost (menu-bar panel or Journey window).

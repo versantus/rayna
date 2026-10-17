@@ -44,50 +44,72 @@ final class AppModel: ObservableObject {
         showSettings = args.contains("-RaynaShowSettings") || env["RAYNA_SETTINGS"] == "1"
         showJourney = env["RAYNA_JOURNEY"] == "1"
         if let u = env["RAYNA_UNLOCK"].flatMap(RaynaUnlock.init(rawValue:)) { unlockBanner = u }
-        if env["RAYNA_POD"] == "1" { DispatchQueue.main.async { PodService.shared.loadDemo(); self.showPod = true } }
+        if env["RAYNA_POD"] == "1" {
+            Task { @MainActor in PodService.shared.loadDemo(); self.showPod = true }
+        }
         if env["RAYNA_KID"] == "1" { setKidMode(true); store.seedDemo(glasses: Int(env["RAYNA_DEMO"] ?? "4") ?? 4, streak: Int(env["RAYNA_STREAK"] ?? "8") ?? 8) }
         if env["RAYNA_KID"] == "0" { setKidMode(false); if let g = demo { store.seedDemo(glasses: g, streak: Int(env["RAYNA_STREAK"] ?? "5") ?? 5) } }
         #if DEBUG   // screenshot hooks; never in release builds
+        if let spec = env["RAYNA_BADGES"], !spec.isEmpty {
+            let fresh = store.extras.unlockForTesting(RaynaExtras.badges(from: spec))
+            store.extras.pendingUnlocks = []
+            if unlockBanner == nil, env["RAYNA_BANNER"] != "0" { unlockBanner = fresh.last }   // RAYNA_BANNER=0: screenshots without the card
+        }
+        if let l = env["RAYNA_LAYOUT"].flatMap(MainLayout.init(rawValue:)) { store.mainLayout = l }   // immersive | hero | balanced
+        if env["RAYNA_LABS"] == "1" { RaynaFeatures.labs = true }   // screenshots of the unreleased pack
+        if let s = env["RAYNA_SKIN"].flatMap(RaynaSkin.init(rawValue:)) { store.skin = s }
+        if let who = env["RAYNA_NUDGE"] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { PodService.shared.debugReceiveNudge(from: who) }
+        }
+        if let spec = env["RAYNA_WEAR"] { store.extras.wornBadges = Set(RaynaExtras.badges(from: spec)) }   // e.g. meadow,headband
         if let n = env["RAYNA_FACTS"].flatMap(Int.init) { store.extras.factsUnlocked = n }
         if let n = env["RAYNA_FACT"].flatMap(Int.init), n < store.extras.factsUnlocked {   // demo only, never locked facts
             bubbleFact = RayFacts.all[n] }
         if let n = env["RAYNA_FACTPAGE"].flatMap(Int.init), n < store.extras.factsUnlocked { factPage = RayFacts.all[n] }
         #endif
-        if env["RAYNA_POD"] == "card" { DispatchQueue.main.async { PodService.shared.loadDemo() } }
+        if env["RAYNA_POD"] == "card" { Task { @MainActor in PodService.shared.loadDemo() } }
         if env["RAYNA_SHARE"] == "goal" { DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.offerShare(.goal) } }
-        store.rolloverIfNeeded()
+        if store.rolloverIfNeeded() { publishToPod() }
+        applySkin()
+    }
+
+    /// Rayna's colour for every view (and the widget, via the shared store). Classic until colours are released.
+    func applySkin() { RaynaFrames.skin = store.skin }
+
+    func setSkin(_ skin: RaynaSkin) {
+        objectWillChange.send()
+        store.skin = skin
+        applySkin()
+        afterChange()
     }
 
     func refresh(wiggle: Bool = false) {
         store.rolloverIfNeeded()
+        applySkin()
         if !demoMode {
-            HealthManager.shared.applyRunDay(store: store) { applied in if applied { self.objectWillChange.send(); self.afterChange() } }
+            HealthManager.shared.applyRunDay(store: store) { applied in
+                if applied { self.objectWillChange.send(); self.afterChange(); self.checkUnlocks() }
+            }
         }
         checkUnlocks()
         if wiggle { wiggleAt = Date(); if !demoMode { RaynaSounds.shared.play(.bubbles) } }
         objectWillChange.send()
+        publishToPod()
     }
 
     // MARK: Reads
     var progress: Double { store.progress }
     var totalML: Int { store.totalML }
     var goal: Int { store.effectiveGoal }
-    var quip: String { kidMode ? RaynaCopy.kidQuip(for: progress) : store.quip }
+    var quip: String { store.quip }
     var kidMode: Bool { store.extras.kidMode }
 
     /// Kid mode: cups, a smaller goal (1.5 L in 200 ml cups) and simpler words. Restores the grown-up goal when off.
     func setKidMode(_ on: Bool) {
         objectWillChange.send()
-        let x = store.extras
-        guard RaynaFeatures.kidMode, on != x.kidMode else { return }
-        if on {
-            x.adultGoalML = store.goalML; x.adultGlassML = store.glassML
-            store.glassML = 200; store.goalML = 1500
-        } else {
-            if x.adultGoalML > 0 { store.goalML = x.adultGoalML }
-            if x.adultGlassML > 0 { store.glassML = x.adultGlassML }
-        }
-        x.kidMode = on
+        guard let next = store.extras.applyKidMode(on, goalML: store.goalML, glassML: store.glassML) else { return }
+        store.goalML = next.goalML
+        store.glassML = next.glassML
         afterChange()
     }
 
@@ -97,7 +119,8 @@ final class AppModel: ObservableObject {
     }
     var streak: Int { store.streak }
     var extras: RaynaExtras { store.extras }
-    var accessories: Set<RaynaUnlock> { Set(store.extras.unlocked) }
+    /// The badges on the live ray and the share card. At most one in each slot.
+    var accessories: Set<RaynaUnlock> { store.extras.wornBadges }
     var showSwap: Bool { store.extras.swapChallenge && (RaynaExtras.isSwapTime() || ProcessInfo.processInfo.environment["RAYNA_SWAP"] == "1") }
 
     func shareInfo(_ kind: RaynaShareKind) -> RaynaShareInfo {
@@ -106,10 +129,22 @@ final class AppModel: ObservableObject {
     }
     func offerShare(_ kind: RaynaShareKind) { share = shareInfo(kind) }
 
+    #if DEBUG
+    /// Inserts badges into the collection. `spec` is `all` or comma-separated ids such as `surge,podWave`.
+    func unlockBadgesForTesting(_ spec: String = "all") {
+        let fresh = store.extras.unlockForTesting(RaynaExtras.badges(from: spec))
+        store.extras.pendingUnlocks = []
+        objectWillChange.send()
+        if unlockBanner == nil { unlockBanner = fresh.last }
+    }
+    #endif
+
     func checkUnlocks() {
-        if unlockBanner == nil, let u = store.extras.takePendingUnlocks().last {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { self.unlockBanner = u }
-        }
+        guard unlockBanner == nil else { return }
+        let pending = store.extras.takePendingUnlocks()
+        let streak = pending.last { if case .streakDays = $0.rule { return true }; return false }
+        guard let u = streak ?? pending.last else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { self.unlockBanner = u }
     }
 
     /// Evening challenge: "I swapped a fizzy drink for water" = a swap + a glass.
@@ -162,7 +197,7 @@ final class AppModel: ObservableObject {
 
     func binding<T>(_ kp: ReferenceWritableKeyPath<RaynaStore, T>) -> Binding<T> {
         Binding(get: { self.store[keyPath: kp] },
-                set: { self.objectWillChange.send(); self.store[keyPath: kp] = $0; self.afterChange() })
+                set: { self.objectWillChange.send(); self.store[keyPath: kp] = $0; self.afterChange(); self.checkUnlocks() })
     }
 
     func publishToPod() {
@@ -174,6 +209,7 @@ final class AppModel: ObservableObject {
     }
 
     func afterChange() {
+        applySkin()
         Task { @MainActor in RaynaCloudSync.shared?.syncSoon() }
         publishToPod()
         WatchSync.shared.push()

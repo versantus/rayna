@@ -1,8 +1,10 @@
 import WidgetKit
 import SwiftUI
 
-struct WEntry: TimelineEntry { let date: Date; let ml: Int; let goal: Int
-    var progress: Double { goal > 0 ? min(Double(ml) / Double(goal), 1) : 0 } }
+struct WEntry: TimelineEntry { let date: Date; let ml: Int; let goal: Int; var skin = "classic"
+    var progress: Double { goal > 0 ? min(Double(ml) / Double(goal), 1) : 0 }
+    /// Rayna's still for this progress, in her colour (band<n>-<colour>).
+    var band: String { let n = raynaBand(progress); return skin == "classic" || skin.isEmpty ? "band\(n)" : "band\(n)-\(skin)" } }
 
 struct WProvider: TimelineProvider {
     private var d: UserDefaults { UserDefaults(suiteName: WatchKeys.watchGroup) ?? .standard }
@@ -16,7 +18,7 @@ struct WProvider: TimelineProvider {
         let today = String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
         let ml = d.string(forKey: WatchKeys.day) == today ? d.integer(forKey: WatchKeys.ml) : 0
         let g = d.integer(forKey: WatchKeys.goal)
-        return WEntry(date: Date(), ml: ml, goal: g == 0 ? 2500 : g)
+        return WEntry(date: Date(), ml: ml, goal: g == 0 ? 2500 : g, skin: d.string(forKey: WatchKeys.skin) ?? "classic")
     }
 }
 
@@ -30,7 +32,7 @@ struct RaynaComplicationView: View {
                 .gaugeStyle(.accessoryCircularCapacity)
         case .accessoryRectangular:
             HStack {
-                Image("band\(raynaBand(e.progress))").resizable().scaledToFit().frame(width: 36)
+                Image(e.band).resizable().scaledToFit().frame(maxWidth: 52, maxHeight: .infinity)
                 VStack(alignment: .leading) {
                     Text(String(format: "%.1f / %.1f L", Double(e.ml) / 1000, Double(e.goal) / 1000)).font(.headline)
                     ProgressView(value: e.progress)

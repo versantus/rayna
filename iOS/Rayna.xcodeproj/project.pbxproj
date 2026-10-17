@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		05FB807666F452F1B0375FAC /* SeaSceneLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54E6F6A42086A9FC74F4098A /* SeaSceneLayout.swift */; };
+		0CD9CA283ED8574C8396C7E9 /* LayoutPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AE5E6D75631F9D74219A904 /* LayoutPicker.swift */; };
 		0CFB281847C30153784F0D21 /* RaynaActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = E194E1E0606D36D7D4B4B3E7 /* RaynaActivity.swift */; };
 		122C119D30D70ECF7CBC7721 /* MenuGlyph@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 4FC2DEBEB1CFA4F96E12E90D /* MenuGlyph@2x.png */; };
 		1D80D2128B043E1EB42F635A /* RaynaCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4DCC39961F649EA4480E8353 /* RaynaCore */; };
@@ -27,6 +29,7 @@
 		6B1D7C70502462878B577C61 /* BrandedWindows.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9599807F678148A580D316F /* BrandedWindows.swift */; };
 		6B22C8CBEB1EF8C8590AD5DB /* RaynaActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = E194E1E0606D36D7D4B4B3E7 /* RaynaActivity.swift */; };
 		6CBB5F849DABFEB3516EFC1C /* RaynaWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E304D665590360E7CFAFA116 /* RaynaWidget.swift */; };
+		7104A2840A24B4C19C1CAD21 /* RaynaStage.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF74DB9546E72675E0EC7201 /* RaynaStage.swift */; };
 		74151B6518F5C85BCC843055 /* AddGlassIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4562E3D0679E16F0A1F3B5CF /* AddGlassIntent.swift */; };
 		74597E8001E71A565A32843C /* RaynaWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 08282B4C050AF02DCF8DB4AA /* RaynaWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		7FD6ECA48FFD747CA15A8E13 /* WatchSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6F0347DB03BE7020908CAEF /* WatchSync.swift */; };
@@ -39,9 +42,11 @@
 		B70A92F429895BDB58AAB7F7 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D577DCB2A0A7A80F9AE672 /* ContentView.swift */; };
 		B749AC9B30305583EC443673 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6206752303AB1904950CB09D /* Assets.xcassets */; };
 		C18A18768CAC57BE984B6544 /* RaynaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFCCA9E99CEAC13B12DEE0F3 /* RaynaApp.swift */; };
+		C82EA0D6312AFF58307235C4 /* SeaSceneDraw.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5417246629C13B55C508693 /* SeaSceneDraw.swift */; };
 		CA72939AD8507F29B1AE1494 /* NudgeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2D359B1E8091AA30A83B7FB /* NudgeController.swift */; };
 		CC6D08889460F753827FDE02 /* WatchShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = D901844C361FC73AB5ACBC69 /* WatchShared.swift */; };
 		CFAD8179630905514B7EC447 /* AddGlassIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4562E3D0679E16F0A1F3B5CF /* AddGlassIntent.swift */; };
+		D19400F4B8769A2EECE67CE4 /* MainScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5C66D3B9392F1E27BFEB757 /* MainScreen.swift */; };
 		E1DF8D3066D1BFB00C0613CC /* RaynaWatchWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CA82BDC19144266634E645F /* RaynaWatchWidget.swift */; };
 		E395EF1701A6C87A46A172FF /* WatchShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = D901844C361FC73AB5ACBC69 /* WatchShared.swift */; };
 		E8497F78E796940FF2915DAC /* RaynaCore in Frameworks */ = {isa = PBXBuildFile; productRef = 51A48CC2333F1FC5084C219B /* RaynaCore */; };
@@ -113,6 +118,7 @@
 		08282B4C050AF02DCF8DB4AA /* RaynaWidgetExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = RaynaWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		08D171E1B8CDA3ABB3FFB4E1 /* Rayna.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Rayna.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0A482E4E817F70913890C19D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		0AE5E6D75631F9D74219A904 /* LayoutPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutPicker.swift; sourceTree = "<group>"; };
 		1CA82BDC19144266634E645F /* RaynaWatchWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaynaWatchWidget.swift; sourceTree = "<group>"; };
 		1E8DD73A3F1523E84F7E7914 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		204F0E633C7D31C79BFC8BE2 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -124,6 +130,7 @@
 		4562E3D0679E16F0A1F3B5CF /* AddGlassIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddGlassIntent.swift; sourceTree = "<group>"; };
 		4FC2DEBEB1CFA4F96E12E90D /* MenuGlyph@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "MenuGlyph@2x.png"; sourceTree = "<group>"; };
 		53D577DCB2A0A7A80F9AE672 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		54E6F6A42086A9FC74F4098A /* SeaSceneLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeaSceneLayout.swift; sourceTree = "<group>"; };
 		5A959B414D7E4F8558E5BA55 /* RaynaWatchWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RaynaWatchWidget.entitlements; sourceTree = "<group>"; };
 		6206752303AB1904950CB09D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6407386D21DDEED7E499BE02 /* RaynaIOSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaynaIOSApp.swift; sourceTree = "<group>"; };
@@ -144,6 +151,7 @@
 		AE7A5FDD6D45DF0BE71F2ABC /* rayna */ = {isa = PBXFileReference; lastKnownFileType = folder; name = rayna; path = ..; sourceTree = SOURCE_ROOT; };
 		BFCCA9E99CEAC13B12DEE0F3 /* RaynaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaynaApp.swift; sourceTree = "<group>"; };
 		C9599807F678148A580D316F /* BrandedWindows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandedWindows.swift; sourceTree = "<group>"; };
+		CF74DB9546E72675E0EC7201 /* RaynaStage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaynaStage.swift; sourceTree = "<group>"; };
 		D6F0347DB03BE7020908CAEF /* WatchSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSync.swift; sourceTree = "<group>"; };
 		D7805989DD91471597445195 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		D901844C361FC73AB5ACBC69 /* WatchShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchShared.swift; sourceTree = "<group>"; };
@@ -151,6 +159,8 @@
 		DDCACE7D0A62C6F7C1D48B42 /* HealthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthManager.swift; sourceTree = "<group>"; };
 		E194E1E0606D36D7D4B4B3E7 /* RaynaActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaynaActivity.swift; sourceTree = "<group>"; };
 		E304D665590360E7CFAFA116 /* RaynaWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaynaWidget.swift; sourceTree = "<group>"; };
+		E5417246629C13B55C508693 /* SeaSceneDraw.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeaSceneDraw.swift; sourceTree = "<group>"; };
+		E5C66D3B9392F1E27BFEB757 /* MainScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainScreen.swift; sourceTree = "<group>"; };
 		EA56E768A9B470A7DC7832DA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -268,6 +278,7 @@
 			children = (
 				EA56E768A9B470A7DC7832DA /* Assets.xcassets */,
 				1E8DD73A3F1523E84F7E7914 /* Info.plist */,
+				CF74DB9546E72675E0EC7201 /* RaynaStage.swift */,
 				4093B516FE99081A70F112A2 /* RaynaWatch.entitlements */,
 				7FC589A540816FB874EA853A /* RaynaWatchApp.swift */,
 			);
@@ -302,7 +313,9 @@
 				9B2F27C22DE5E361FF973ECF /* ContentView.swift */,
 				DDCACE7D0A62C6F7C1D48B42 /* HealthManager.swift */,
 				70E8C4FB448873400DF401A7 /* Info.plist */,
+				0AE5E6D75631F9D74219A904 /* LayoutPicker.swift */,
 				39E035FE300B9678173D4065 /* LiveActivityManager.swift */,
+				E5C66D3B9392F1E27BFEB757 /* MainScreen.swift */,
 				89F851B9928143970D811760 /* Rayna.entitlements */,
 				6407386D21DDEED7E499BE02 /* RaynaIOSApp.swift */,
 				97F2495A7C6D826D1FC9909C /* SettingsView.swift */,
@@ -320,10 +333,20 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		E0EF28DFCBBBF4648FBF716C /* RaynaCore */ = {
+			isa = PBXGroup;
+			children = (
+				E5417246629C13B55C508693 /* SeaSceneDraw.swift */,
+				54E6F6A42086A9FC74F4098A /* SeaSceneLayout.swift */,
+			);
+			path = RaynaCore;
+			sourceTree = "<group>";
+		};
 		E1F22BEAABA7EE6C6D2BE97E /* Sources */ = {
 			isa = PBXGroup;
 			children = (
 				783CB52E050B32015DE65D35 /* Rayna */,
+				E0EF28DFCBBBF4648FBF716C /* RaynaCore */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -571,7 +594,9 @@
 				2BDFBBD54BDB99541CCFD5CA /* AppModel.swift in Sources */,
 				FFB1BAACB08BE3600EF7811C /* ContentView.swift in Sources */,
 				3C97EA50CE7563A8E08590AB /* HealthManager.swift in Sources */,
+				0CD9CA283ED8574C8396C7E9 /* LayoutPicker.swift in Sources */,
 				66A03C9C8FEA08D86DBC35EF /* LiveActivityManager.swift in Sources */,
+				D19400F4B8769A2EECE67CE4 /* MainScreen.swift in Sources */,
 				0CFB281847C30153784F0D21 /* RaynaActivity.swift in Sources */,
 				2A6BE1DD83027C9A037A8839 /* RaynaIOSApp.swift in Sources */,
 				A3477AAB197C05E6D317AA3D /* SettingsView.swift in Sources */,
@@ -584,7 +609,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7104A2840A24B4C19C1CAD21 /* RaynaStage.swift in Sources */,
 				61A3BC3D1E2B007A4A3F4346 /* RaynaWatchApp.swift in Sources */,
+				C82EA0D6312AFF58307235C4 /* SeaSceneDraw.swift in Sources */,
+				05FB807666F452F1B0375FAC /* SeaSceneLayout.swift in Sources */,
 				297778288ABBB7F1F71C2A05 /* WatchShared.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -825,7 +853,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 15;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = F9MJXEKGAR;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -847,7 +875,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -856,6 +884,7 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Debug;
 		};
@@ -895,7 +924,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 15;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = F9MJXEKGAR;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -911,7 +940,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -919,6 +948,7 @@
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Release;
 		};

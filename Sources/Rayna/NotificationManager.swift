@@ -14,8 +14,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
     func setUp() {
         center.delegate = self
-        let drank = UNNotificationAction(identifier: Self.drankAction, title: "Drank one", options: [])
-        let snooze = UNNotificationAction(identifier: Self.snoozeAction, title: "Snooze 15 min", options: [])
+        let drank = UNNotificationAction(identifier: Self.drankAction, title: "Drank one 💧", options: [])
+        let snooze = UNNotificationAction(identifier: Self.snoozeAction, title: "Later", options: [])
         let cat = UNNotificationCategory(identifier: Self.category, actions: [drank, snooze],
                                          intentIdentifiers: [], options: [])
         center.setNotificationCategories([cat])
@@ -42,7 +42,8 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
     private func tick() {
         let s = AppState.shared
-        s.rolloverIfNeeded()
+        if s.rolloverIfNeeded() { s.publishToPod() }
+        guard s.remindersOn else { return }
         let now = Date()
 
         // Evening swap nudge: once per day after 18:00
@@ -58,7 +59,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         if s.isQuiet(at: now) { return }
         if s.progress >= 1 { return }
         if let last = s.lastLogged, now.timeIntervalSince(last) < 20 * 60 { return }
-        post(title: "Rayna 💧", body: AppState.reminders.randomElement() ?? "Sip o'clock!", actions: true)
+        post(title: "Rayna 💧", body: RaynaCopy.nextReminder(at: now), actions: true)
     }
 
     private func post(title: String, body: String, actions: Bool) {
