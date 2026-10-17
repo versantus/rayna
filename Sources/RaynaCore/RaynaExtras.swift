@@ -63,6 +63,13 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
         case .podWave: return "person.3.fill"
         }
     }
+    /// Full-frame art (tide's moon and water, flood, the pod wave). Worn alone, never on top of a headband or medal.
+    public var isSceneOverlay: Bool {
+        switch self {
+        case .tide, .flood, .podWave: return true
+        default: return false
+        }
+    }
     /// Badge art alone, transparent, same square as Rayna. Nil for code-drawn streak accessories.
     public var overlayAssetName: String? {
         symbolName == nil ? nil : "badge-\(rawValue)-overlay"
@@ -182,6 +189,13 @@ public struct RaynaExtras {
         get { (d.stringArray(forKey: "unlocks") ?? []).compactMap(RaynaUnlock.init(rawValue:)) }
         nonmutating set { d.set(newValue.map(\.rawValue), forKey: "unlocks") }
     }
+    /// `wornBadge` in the prefs payload. 0 wears the most recently earned badge, -1 wears nothing, otherwise a badge code.
+    public var wornBadgeCode: Int {
+        get { d.object(forKey: WornBadge.prefsKey) == nil ? WornBadge.automatic : d.integer(forKey: WornBadge.prefsKey) }
+        nonmutating set { d.set(newValue, forKey: WornBadge.prefsKey) }
+    }
+    /// The one overlay on the live ray and the share card.
+    public var wornBadge: RaynaUnlock? { WornBadge.worn(code: wornBadgeCode, unlocked: unlocked) }
     /// Unlocks earned but not yet celebrated in the UI (e.g. earned via a widget or notification action).
     public var pendingUnlocks: [RaynaUnlock] {
         get { (d.stringArray(forKey: "pendingUnlocks") ?? []).compactMap(RaynaUnlock.init(rawValue:)) }

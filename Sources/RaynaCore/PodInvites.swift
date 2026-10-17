@@ -104,6 +104,67 @@ public enum PodTile {
     }
 }
 
+/// Which badge Rayna is wearing. Stored as `wornBadge` inside the existing RaynaPrefs payload, not a new CloudKit field.
+public enum WornBadge {
+    public static let prefsKey = "wornBadge"
+    /// Missing or 0: the most recently earned unlock.
+    public static let automatic = 0
+    /// An explicit empty ray.
+    public static let none = -1
+
+    public static func code(for unlock: RaynaUnlock) -> Int {
+        (RaynaUnlock.allCases.firstIndex(of: unlock) ?? 0) + 1
+    }
+
+    public static func unlock(code: Int) -> RaynaUnlock? {
+        guard code > 0, RaynaUnlock.allCases.indices.contains(code - 1) else { return nil }
+        return RaynaUnlock.allCases[code - 1]
+    }
+
+    /// One badge, or nil for a bare ray. An explicit pick that isn't unlocked falls back to the newest.
+    public static func worn(code: Int, unlocked: [RaynaUnlock]) -> RaynaUnlock? {
+        if code == none { return nil }
+        if let chosen = unlock(code: code), unlocked.contains(chosen) { return chosen }
+        return unlocked.last
+    }
+
+    /// At most one overlay. A scene (moon and tide water, flood, pod wave) replaces any other badge in the set.
+    public static func single(in unlocks: Set<RaynaUnlock>) -> RaynaUnlock? {
+        let ordered = RaynaUnlock.allCases.filter { unlocks.contains($0) }
+        if ordered.count <= 1 { return ordered.first }
+        if let scene = ordered.last(where: \.isSceneOverlay) { return scene }
+        return ordered.last
+    }
+}
+
+/// Local stand-ins for the pod screen. Debug builds show them; they are never written to CloudKit.
+public enum PodFakeRoster {
+    public static let idPrefix = "fake-"
+    public static func isFake(_ id: String) -> Bool { id.hasPrefix(idPrefix) }
+
+    /// Varied tanks: one part full, one kid, one over goal, one in between.
+    public static func members(now: Date = Date()) -> [PodMember] {
+        [
+            PodMember(id: "fake-sam", name: "Sam", glasses: 4, ml: 1000, goal: 3200, streak: 2, updated: now),
+            PodMember(id: "fake-priya", name: "Priya", glasses: 3, ml: 600, goal: 1500, streak: 4, updated: now, isKid: true),
+            PodMember(id: "fake-tom", name: "Tom", glasses: 11, ml: 2750, goal: 2500, streak: 9, updated: now),
+            PodMember(id: "fake-noor", name: "Noor", glasses: 5, ml: 1600, goal: 2800, streak: 1, updated: now)
+        ]
+    }
+
+    public static func invites() -> [PodPendingInvite] {
+        [PodPendingInvite(id: "fake-invite-alex", name: "Alex")]
+    }
+
+    /// Two members over goal, so the pod-wave rule can be tried with no second account.
+    public static func wave(now: Date = Date()) -> [PodMember] {
+        [
+            PodMember(id: "fake-wave-a", name: "Sam", glasses: 12, ml: 3000, goal: 2500, streak: 3, updated: now),
+            PodMember(id: "fake-wave-b", name: "Tom", glasses: 9, ml: 2200, goal: 2000, streak: 3, updated: now)
+        ]
+    }
+}
+
 /// Pod-wide over-achievement. Uses raw ml and goal; the tank's displayed progress is capped at 100%.
 public enum PodAchievement {
     public static func everyoneBeatGoal(_ members: [PodMember]) -> Bool {

@@ -33,15 +33,13 @@ public struct RaynaAccessories: View {
     public var body: some View {
         ZStack {
             drawn
-            ForEach(overlayUnlocks) { unlock in
-                if let name = unlock.overlayAssetName, let image = BadgeArt.image(named: name) {
-                    image
-                        .resizable()
-                        .scaledToFit()
-                        .accessibilityHidden(true)
-                }
+            if let unlock = worn, let name = unlock.overlayAssetName, let image = BadgeArt.image(named: name) {
+                image
+                    .resizable()
+                    .scaledToFit()
+                    .accessibilityHidden(true)
             }
-            if showsSymbolFallback, let name = unlocks.first?.symbolName {
+            if showsSymbolFallback, let name = worn?.symbolName {
                 Image(systemName: name)
                     .font(.system(size: 22, weight: .bold))
                     .symbolRenderingMode(.hierarchical)
@@ -56,14 +54,12 @@ public struct RaynaAccessories: View {
         .allowsHitTesting(false)
     }
 
-    /// Over-achiever badges, stable order, so several can sit on the live ray in their own places.
-    private var overlayUnlocks: [RaynaUnlock] {
-        unlocks.filter { $0.overlayAssetName != nil }.sorted { $0.rawValue < $1.rawValue }
-    }
+    /// The one badge this ray is wearing. A scene overlay is never drawn together with a headband, medal or bubbles.
+    private var worn: RaynaUnlock? { WornBadge.single(in: unlocks) }
 
-    /// Corner symbol only for a single badge whose overlay imageset is not in this target.
+    /// Corner symbol only when the worn badge's imageset is not in this target.
     private var showsSymbolFallback: Bool {
-        guard unlocks.count == 1, let only = unlocks.first, let name = only.overlayAssetName else { return false }
+        guard let only = worn, let name = only.overlayAssetName else { return false }
         return BadgeArt.image(named: name) == nil
     }
 
@@ -74,7 +70,7 @@ public struct RaynaAccessories: View {
             func P(_ x: Double, _ y: Double) -> CGPoint { CGPoint(x: ox + x * s, y: oy + y * s) }
             let t = date.timeIntervalSinceReferenceDate
 
-            if unlocks.contains(.bubbles) {
+            if worn == .bubbles {
                 for i in 0..<7 {
                     let phase = (t * 0.35 + Double(i) / 7).truncatingRemainder(dividingBy: 1)
                     let x = 0.56 + 0.05 * sin(phase * 9 + Double(i)) + Double(i % 2) * 0.03
@@ -87,7 +83,7 @@ public struct RaynaAccessories: View {
                 }
             }
 
-            if unlocks.contains(.headband) {
+            if worn == .headband {
                 var band = Path()
                 band.move(to: P(0.417, 0.110))
                 band.addQuadCurve(to: P(0.583, 0.110), control: P(0.500, 0.070))
@@ -106,7 +102,7 @@ public struct RaynaAccessories: View {
                 ctx.fill(tails, with: .color(Color(red: 0.85, green: 0.18, blue: 0.3)))
             }
 
-            if unlocks.contains(.medal) {
+            if worn == .medal {
                 var ribbon = Path()
                 ribbon.move(to: P(0.455, 0.235)); ribbon.addLine(to: P(0.49, 0.36)); ribbon.addLine(to: P(0.51, 0.36)); ribbon.addLine(to: P(0.545, 0.235))
                 ribbon.addLine(to: P(0.525, 0.235)); ribbon.addLine(to: P(0.5, 0.33)); ribbon.addLine(to: P(0.475, 0.235)); ribbon.closeSubpath()
@@ -120,7 +116,7 @@ public struct RaynaAccessories: View {
                 ctx.fill(Path(ellipseIn: CGRect(x: c.x - r * 0.55, y: c.y - r * 0.6, width: r * 0.5, height: r * 0.35)), with: .color(.white.opacity(0.4 + 0.4 * shine)))
             }
 
-            if unlocks.contains(.baby) {
+            if worn == .baby {
                 let bob = sin(t * 2.2) * 0.012
                 let cx = 0.8 + sin(t * 0.7) * 0.02, cy = 0.66 + bob, w = 0.15, h = 0.095
                 var body = Path()
@@ -156,9 +152,14 @@ public struct RaynaJourneyView: View {
     public var extras: RaynaExtras
     public var recap: RaynaRecap
     public var streak: Int
+    public var onWear: ((Int) -> Void)?
     public var onShare: (() -> Void)?
-    public init(extras: RaynaExtras, recap: RaynaRecap, streak: Int, onShare: (() -> Void)? = nil) {
-        self.extras = extras; self.recap = recap; self.streak = streak; self.onShare = onShare
+    @State private var wornCode: Int
+    @State private var picked: RaynaUnlock?
+    @State private var showWear = false
+    public init(extras: RaynaExtras, recap: RaynaRecap, streak: Int, wornCode: Int = WornBadge.automatic, onWear: ((Int) -> Void)? = nil, onShare: (() -> Void)? = nil) {
+        self.extras = extras; self.recap = recap; self.streak = streak; self.onWear = onWear; self.onShare = onShare
+        _wornCode = State(initialValue: wornCode == WornBadge.automatic ? extras.wornBadgeCode : wornCode)
     }
 
     public var body: some View {
@@ -181,31 +182,59 @@ public struct RaynaJourneyView: View {
             }
             Text("Rayna's collection").font(.system(.title3, design: .rounded, weight: .bold))
             let have = Set(extras.unlocked)
+            let wearing = WornBadge.worn(code: wornCode, unlocked: extras.unlocked)
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 ForEach(RaynaUnlock.allCases) { u in
                     let got = have.contains(u)
-                    VStack(spacing: 6) {
-                        ZStack {
-                            if let name = u.compositeAssetName, let image = BadgeArt.image(named: name) {
-                                image
-                                    .resizable()
-                                    .scaledToFit()
-                                    .opacity(got ? 1 : 0.25)
-                                    .saturation(got ? 1 : 0)
-                            } else {
-                                RaynaStill(progress: 0.8).opacity(got ? 1 : 0.25).saturation(got ? 1 : 0)
-                                RaynaAccessories(unlocks: [u]).opacity(got ? 1 : 0.35)
+                    Button {
+                        guard got else { return }
+                        picked = u
+                        showWear = true
+                    } label: {
+                        VStack(spacing: 6) {
+                            ZStack {
+                                if let name = u.compositeAssetName, let image = BadgeArt.image(named: name) {
+                                    image
+                                        .resizable()
+                                        .scaledToFit()
+                                        .opacity(got ? 1 : 0.25)
+                                        .saturation(got ? 1 : 0)
+                                } else {
+                                    RaynaStill(progress: 0.8).opacity(got ? 1 : 0.25).saturation(got ? 1 : 0)
+                                    RaynaAccessories(unlocks: [u]).opacity(got ? 1 : 0.35)
+                                }
                             }
+                            .frame(height: 96)
+                            Text("\(u.emoji) \(u.title)").font(.system(.subheadline, design: .rounded, weight: .semibold))
+                            if wearing == u {
+                                Text("Wearing").font(.caption.weight(.bold)).foregroundStyle(Color.accentColor)
+                            }
+                            Text(got ? u.blurb : u.lockedHint(streak: streak, bestStreak: extras.bestStreak))
+                                .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
                         }
-                        .frame(height: 96)
-                        Text("\(u.emoji) \(u.title)").font(.system(.subheadline, design: .rounded, weight: .semibold))
-                        Text(got ? u.blurb : u.lockedHint(streak: streak, bestStreak: extras.bestStreak))
-                            .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                        .padding(10).frame(maxWidth: .infinity)
+                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.primary.opacity(got ? 0.06 : 0.03)))
                     }
-                    .padding(10).frame(maxWidth: .infinity)
-                    .background(RoundedRectangle(cornerRadius: 16).fill(Color.primary.opacity(got ? 0.06 : 0.03)))
+                    .buttonStyle(.plain)
+                    .disabled(!got)
+                    .accessibilityHint(got ? "Choose whether Rayna wears this" : "")
                 }
             }
+        }
+        .confirmationDialog(picked?.title ?? "Badge", isPresented: $showWear, titleVisibility: .visible) {
+            if let badge = picked {
+                Button("Wear") {
+                    wornCode = WornBadge.code(for: badge)
+                    onWear?(wornCode)
+                }
+            }
+            Button("Wear nothing") {
+                wornCode = WornBadge.none
+                onWear?(wornCode)
+            }
+            Button("Cancel", role: .cancel) { picked = nil }
+        } message: {
+            Text("Rayna wears one badge on the main screen. A tide, flood or pod wave replaces the headband, medal and bubbles.")
         }
     }
 

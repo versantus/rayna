@@ -118,7 +118,7 @@ struct ContentView: View {
             buttons
             glassSizeRow
             if !model.kidMode { runDayToggle }
-            if pod.status == .inPod && !pod.members.isEmpty { podCard }
+            if pod.status == .inPod && !pod.visibleMembers.isEmpty { podCard }
             if model.showSwap { swapCard }
             journeyCard
         }
@@ -165,7 +165,7 @@ struct ContentView: View {
             .layoutPriority(-1)   // Rayna gives way so the controls always fit (iPhone SE)
             if !scrolling { Spacer(minLength: 0) }
             amount
-            if pod.status == .inPod && !pod.members.isEmpty { podCard }
+            if pod.status == .inPod && !pod.visibleMembers.isEmpty { podCard }
             if model.showSwap { swapCard }
             buttons
             glassSizeRow
@@ -316,7 +316,7 @@ struct ContentView: View {
                     Text("Your pod · \(pod.podName)")
                         .font(.system(.subheadline, design: .rounded, weight: .bold)).lineLimit(2)
                     HStack(spacing: 6) {
-                        ForEach(pod.members.prefix(6)) { m in
+                        ForEach(pod.visibleMembers.prefix(6)) { m in
                             let shown = pod.displayed(m)
                             ProgressView(value: shown.todayProgress)
                                 .tint(shown.todayProgress >= 1 ? .green : Color("AccentColor"))
@@ -336,7 +336,7 @@ struct ContentView: View {
         .buttonStyle(.plain)
         .foregroundStyle(ink)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Your pod, \(pod.podName). " + pod.members.map { m in
+        .accessibilityLabel("Your pod, \(pod.podName). " + pod.visibleMembers.map { m in
             let shown = pod.displayed(m)
             return "\(shown.name) \(RaynaCopy.percent(ml: shown.isToday ? shown.ml : 0, goal: shown.goal)) percent"
         }.joined(separator: ", "))
@@ -379,7 +379,11 @@ struct JourneySheet: View {
     var body: some View {
         NavigationStack {
                 ScrollView {
-                    RaynaJourneyView(extras: model.extras, recap: model.store.recap, streak: model.streak) {
+                    RaynaJourneyView(extras: model.extras, recap: model.store.recap, streak: model.streak, onWear: { code in
+                        model.objectWillChange.send()
+                        model.extras.wornBadgeCode = code
+                        model.afterChange()
+                    }) {
                         dismiss()
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { model.offerShare(model.streak >= 3 ? .streak(model.streak) : .recap) }
                     }

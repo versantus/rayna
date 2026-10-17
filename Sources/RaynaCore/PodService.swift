@@ -59,6 +59,14 @@ public final class PodService: ObservableObject {
     @Published public private(set) var live: PodLive?
     @Published public var lastError: String?
     @Published public private(set) var isOwner = false
+    /// Set from Debug app launches. Release builds leave this false, so the sample roster never appears.
+    @Published public var debugTools = false
+    /// Sample members and one pending invite, drawn locally. Never saved to the pod zone.
+    @Published public private(set) var fakePod = false
+    private var fakeMembers: [PodMember] = []
+    private var fakeInvites: [PodPendingInvite] = []
+    /// When the last successful pod fetch finished.
+    @Published public private(set) var lastPodFetch: Date?
     /// Named invites that have not been accepted yet. Accepted people show up as member tiles instead.
     @Published public private(set) var pendingInvites: [PodPendingInvite] = []
     /// Presents the system share sheet for the existing CKShare (iOS UICloudSharingController, Mac cloud sharing).
@@ -488,6 +496,7 @@ public final class PodService: ObservableObject {
                 for id in page.deleted { recordCache.removeValue(forKey: id) }
             }
             savePodToken(page.token)
+            lastPodFetch = Date()
             applyRoster(Array(recordCache.values))
             await updatePodStreak()
             await checkNudges(in: page.changed)
@@ -545,6 +554,7 @@ public final class PodService: ObservableObject {
 
     /// Owner: drop a pending participant from the share. Confirmed by the caller.
     public func cancelInvite(id: String) async {
+        guard !PodFakeRoster.isFake(id) else { return }
         guard isOwner else { lastError = "Only the pod owner can cancel an invite."; return }
         guard zoneID != nil, let shareID = currentShare?.recordID else {
             pendingInvites.removeAll { $0.id == id }
@@ -602,6 +612,7 @@ public final class PodService: ObservableObject {
 
     /// Sends a friendly nudge (max 3 per person per day).
     public func nudge(_ m: PodMember) async {
+        guard !PodFakeRoster.isFake(m.id) else { return }
         guard nudgesLeft(for: m.id) > 0, let z = zoneID, let pid = podRecordID else { return }
         let r = CKRecord(recordType: "Nudge", recordID: CKRecord.ID(recordName: "nudge-\(UUID().uuidString)", zoneID: z))
         r.setParent(pid)
@@ -663,6 +674,65 @@ public final class PodService: ObservableObject {
         await fetch()
     }
 
+    /// Members on screen. Sample people are appended in memory and are not part of `members`, so a save cannot upload them.
+    public var visibleMembers: [PodMember] {
+        guard debugTools, fakePod else { return members }
+        return members + fakeMembers
+    }
+
+    public var visibleInvites: [PodPendingInvite] {
+        guard debugTools, fakePod else { return pendingInvites }
+        let existing = Set(pendingInvites.map(\.id))
+        return pendingInvites + fakeInvites.filter { !existing.contains($0.id) }
+    }
+
+    /// Debug builds only. Turning it on also runs the pod-wave rule against a local all-over roster, so the badge can be seen without a second account.
+    public func setFakePod(_ on: Bool) {
+        guard debugTools else { fakePod = false; fakeMembers = []; fakeInvites = []; return }
+        fakePod = on
+        if on {
+            fakeMembers = PodFakeRoster.members()
+            fakeInvites = PodFakeRoster.invites()
+            onRoster?(PodFakeRoster.wave())
+        } else {
+            fakeMembers = []
+            fakeInvites = []
+        }
+    }
+
+    public func refreshNow() async {
+        await refreshStatus()
+    }
+
+    public var podSubscriptionText: String {
+        if zoneID == nil { return "No pod zone" }
+        if podSubscribed { return ownerFlag ? "Subscribed (private database)" : "Subscribed (shared database)" }
+        return "Not subscribed yet"
+    }
+
+    public var participantDebugText: String {
+        guard let share = currentShare else { return "Share not loaded" }
+        let rows = share.participants.map { participant -> String in
+            let status: String
+            switch participant.acceptanceStatus {
+            case .accepted: status = "accepted"
+            case .pending: status = "pending"
+            case .removed: status = "removed"
+            case .unknown: status = "unknown"
+            @unknown default: status = "unknown"
+            }
+            let formatted = participant.userIdentity.nameComponents.map {
+                PersonNameComponentsFormatter.localizedString(from: $0, style: .default, options: [])
+            }
+            let who = PodInviteList.displayName(formattedName: formatted,
+                                                email: participant.userIdentity.lookupInfo?.emailAddress,
+                                                phone: participant.userIdentity.lookupInfo?.phoneNumber)
+            let role = participant.role == .owner ? "owner" : "member"
+            return "\(who) · \(role) · \(status)"
+        }
+        return "\(share.participants.count) participants — " + rows.joined(separator: "; ")
+    }
+
     // MARK: Demo (screenshots)
     public func loadDemo() {
         myID = "me"; podName = "Saturday Crew"; podStreak = 4; status = .inPod; isOwner = true
@@ -698,6 +768,11 @@ public struct PodView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 14) {
+            if pod.debugTools && pod.fakePod && pod.status != .inPod {
+                Text("Sample pod — not saved to iCloud")
+                    .font(.footnote).foregroundStyle(.secondary)
+                tank
+            }
             switch pod.status {
             case .unknown:
                 ProgressView().frame(maxWidth: .infinity)
@@ -743,18 +818,23 @@ public struct PodView: View {
                 .tint(.red)
                 .padding(.top, 8)
             }
+            if pod.debugTools { debugPanel }
             if let e = pod.lastError { Text(e).font(.footnote).foregroundStyle(.red) }
         }
         .confirmationDialog(selectedInvite?.name ?? "Invite", isPresented: $showInviteActions, titleVisibility: .visible) {
-            if pod.isOwner {
+            if PodFakeRoster.isFake(selectedInvite?.id ?? "") {
+                Button("Close", role: .cancel) { selectedInvite = nil }
+            } else if pod.isOwner {
                 Button("Resend invite") { if let invite = selectedInvite { resend(invite) } }
                 Button("Cancel invite", role: .destructive) { confirmCancel = true }
             }
             Button("Close", role: .cancel) { selectedInvite = nil }
         } message: {
-            Text(pod.isOwner
-                 ? "Waiting to join. Resend the invite, or cancel it."
-                 : "Waiting to join. The pod owner can resend or cancel this invite.")
+            Text(PodFakeRoster.isFake(selectedInvite?.id ?? "")
+                 ? "This is a sample invite on this device. It is not saved to iCloud."
+                 : (pod.isOwner
+                    ? "Waiting to join. Resend the invite, or cancel it."
+                    : "Waiting to join. The pod owner can resend or cancel this invite."))
         }
         .alert("Cancel invite?", isPresented: $confirmCancel) {
             Button("Cancel invite", role: .destructive) {
@@ -765,6 +845,29 @@ public struct PodView: View {
         } message: {
             Text("\(selectedInvite?.name ?? "They") will need a new invite to join.")
         }
+    }
+
+    private var debugPanel: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Debug").font(.system(.headline, design: .rounded))
+            Toggle("Fake pod members", isOn: Binding(get: { pod.fakePod }, set: { pod.setFakePod($0) }))
+            Text("Three or four sample people, one of them a kid and one over their goal, plus a sample invite. They stay on this device and are never written to iCloud. Turning this on can award Pod wave, which is a normal badge on this account.")
+                .font(.footnote).foregroundStyle(.secondary)
+            Button("Refresh pod now") { Task { await pod.refreshNow() } }
+                .buttonStyle(.bordered)
+            Group {
+                Text(pod.shareURL?.absoluteString ?? "No share URL")
+                Text(pod.participantDebugText)
+                Text(pod.lastPodFetch.map { "Last fetch \($0.formatted(date: .abbreviated, time: .standard))" } ?? "No fetch yet")
+                Text(pod.podSubscriptionText)
+            }
+            .font(.footnote.monospaced())
+            .foregroundStyle(.secondary)
+            .textSelection(.enabled)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 14).fill(Color.primary.opacity(0.05)))
     }
 
     private func sendInvite() {
@@ -786,10 +889,17 @@ public struct PodView: View {
         selectedInvite = nil
     }
 
+    /// Sample kid tiles show cups even while kid mode is switched off, so the layout is visible in a debug build.
+    private func tileCaption(_ member: PodMember) -> String {
+        guard PodFakeRoster.isFake(member.id), member.isKid else { return RaynaCopy.podTileLabel(member) }
+        let pct = member.isToday ? RaynaCopy.percent(ml: member.ml, goal: member.goal) : 0
+        return "\(member.isToday ? member.glasses : 0) cups · \(pct)%"
+    }
+
     private var tank: some View {
         // Adaptive grid: 2 big tanks per row on iPhone, more on iPad.
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12, alignment: .top)], alignment: .center, spacing: 16) {
-            ForEach(pod.members) { m in
+            ForEach(pod.visibleMembers) { m in
                 let shown = pod.displayed(m)
                 VStack(spacing: 6) {
                     GeometryReader { g in
@@ -811,10 +921,10 @@ public struct PodView: View {
                     }
                     .frame(height: 190)
                     .clipShape(RoundedRectangle(cornerRadius: 18))
-                    Text((shown.isKid && RaynaFeatures.kidMode ? "🧒 " : "") + (pod.isCurrentUser(shown.id) ? "\(shown.name) (you)" : shown.name))
+                    Text((shown.isKid && (RaynaFeatures.kidMode || PodFakeRoster.isFake(shown.id)) ? "🧒 " : "") + (pod.isCurrentUser(shown.id) ? "\(shown.name) (you)" : shown.name))
                         .font(.system(.body, design: .rounded, weight: .bold)).lineLimit(2).multilineTextAlignment(.center)
-                    Text(RaynaCopy.podTileLabel(shown)).font(.subheadline).foregroundStyle(.secondary)
-                    if !pod.isCurrentUser(shown.id) {
+                    Text(tileCaption(shown)).font(.subheadline).foregroundStyle(.secondary)
+                    if !pod.isCurrentUser(shown.id) && !PodFakeRoster.isFake(shown.id) {
                         let left = pod.nudgesLeft(for: shown.id)
                         Button { Task { await pod.nudge(shown) } } label: {
                             Text(left > 0 ? "Nudge 👋" : "Nudged").font(.subheadline.weight(.semibold)).frame(maxWidth: .infinity, minHeight: 36)
@@ -824,7 +934,7 @@ public struct PodView: View {
                 }
                 .accessibilityElement(children: .contain)
             }
-            ForEach(pod.pendingInvites) { invite in
+            ForEach(pod.visibleInvites) { invite in
                 Button {
                     selectedInvite = invite
                     showInviteActions = true

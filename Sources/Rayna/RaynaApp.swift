@@ -33,6 +33,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         MacPodInvite.install()
+        #if DEBUG
+        MainActor.assumeIsolated { PodService.shared.debugTools = true }
+        #endif
         NSApp.setActivationPolicy(.accessory)
         RaynaCloudSync.configure(defaults: .standard) { AppState.shared.reloadFromDefaults() }
         NSApp.registerForRemoteNotifications()
@@ -48,7 +51,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Dev/marketing: `Rayna --export-share-cards <dir>` writes sample story + square PNGs and quits.
         if let i = CommandLine.arguments.firstIndex(of: "--export-share-cards"), i + 1 < CommandLine.arguments.count {
             let dir = URL(fileURLWithPath: CommandLine.arguments[i + 1])
-            let info = RaynaShareInfo(kind: .goal, litres: 2.5, goalL: 2.5, streak: 14, weekL: 17.5, unlocks: [.bubbles, .headband, .medal])
+            let info = RaynaShareInfo(kind: .goal, litres: 2.5, goalL: 2.5, streak: 14, weekL: 17.5, unlocks: [.headband])
             for u in RaynaShareRenderer.pngFiles(info) {
                 try? FileManager.default.removeItem(at: dir.appendingPathComponent(u.lastPathComponent))
                 try? FileManager.default.copyItem(at: u, to: dir.appendingPathComponent(u.lastPathComponent))

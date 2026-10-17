@@ -177,6 +177,37 @@ final class FeatureTests: XCTestCase {
         XCTAssertNil(PodTile.cloudInt("1000"))
     }
 
+    func testOneWornBadgeAndLocalFakePod() {
+        let all = Array(RaynaUnlock.allCases)
+        XCTAssertEqual(WornBadge.worn(code: WornBadge.automatic, unlocked: all), all.last)
+        XCTAssertNil(WornBadge.worn(code: WornBadge.none, unlocked: all))
+        let head = WornBadge.code(for: .headband)
+        XCTAssertEqual(WornBadge.unlock(code: head), .headband)
+        XCTAssertEqual(WornBadge.worn(code: head, unlocked: all), .headband)
+        XCTAssertEqual(WornBadge.worn(code: head, unlocked: [.bubbles]), .bubbles)
+        XCTAssertEqual(WornBadge.single(in: [.headband]), .headband)
+        XCTAssertEqual(WornBadge.single(in: [.bubbles, .headband]), .headband)
+        XCTAssertEqual(WornBadge.single(in: [.headband, .tide, .bubbles, .flood]), .flood)
+        XCTAssertTrue(RaynaUnlock.tide.isSceneOverlay)
+        XCTAssertTrue(RaynaUnlock.flood.isSceneOverlay)
+        XCTAssertTrue(RaynaUnlock.podWave.isSceneOverlay)
+        XCTAssertFalse(RaynaUnlock.headband.isSceneOverlay)
+        XCTAssertFalse(RaynaUnlock.surge.isSceneOverlay)
+        XCTAssertFalse(RaynaUnlock.personalBest.isSceneOverlay)
+        XCTAssertTrue(SyncLocalDefaults.intSettings.contains(WornBadge.prefsKey))
+
+        let fakes = PodFakeRoster.members()
+        XCTAssertTrue((3...4).contains(fakes.count))
+        XCTAssertEqual(fakes.filter(\.isKid).count, 1)
+        XCTAssertEqual(fakes.filter { $0.ml > $0.goal }.count, 1)
+        XCTAssertGreaterThan(Set(fakes.map(\.goal)).count, 1)
+        XCTAssertTrue(fakes.allSatisfy { PodFakeRoster.isFake($0.id) })
+        XCTAssertEqual(PodFakeRoster.invites().count, 1)
+        XCTAssertTrue(PodFakeRoster.isFake(PodFakeRoster.invites()[0].id))
+        XCTAssertTrue(PodAchievement.everyoneBeatGoal(PodFakeRoster.wave()))
+        XCTAssertFalse(PodAchievement.everyoneBeatGoal(fakes))
+    }
+
     func testUnlockForTestingAndAssetNames() {
         let x = extras()
         XCTAssertEqual(x.unlockForTesting([.surge, .podWave, .surge]), [.surge, .podWave])

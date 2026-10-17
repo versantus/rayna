@@ -9,6 +9,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         PodInviteController.install()
+        #if DEBUG
+        MainActor.assumeIsolated { PodService.shared.debugTools = true }
+        #endif
         UNUserNotificationCenter.current().delegate = self
         RaynaFrames.preloadForLaunch(progress: RaynaStore.shared.progress)
         DispatchQueue.global(qos: .utility).async { ReminderScheduler.registerCategories() }

@@ -100,7 +100,8 @@ final class AppModel: ObservableObject {
     }
     var streak: Int { store.streak }
     var extras: RaynaExtras { store.extras }
-    var accessories: Set<RaynaUnlock> { Set(store.extras.unlocked) }
+    /// The one badge on the live ray and the share card. Empty when Rayna is wearing nothing.
+    var accessories: Set<RaynaUnlock> { store.extras.wornBadge.map { [$0] } ?? [] }
     var showSwap: Bool { store.extras.swapChallenge && (RaynaExtras.isSwapTime() || ProcessInfo.processInfo.environment["RAYNA_SWAP"] == "1") }
 
     func shareInfo(_ kind: RaynaShareKind) -> RaynaShareInfo {

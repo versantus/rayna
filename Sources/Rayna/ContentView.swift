@@ -21,7 +21,7 @@ struct ContentView: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 210)
                     amount
-                    if pod.status == .inPod && !pod.members.isEmpty { podCard }
+                    if pod.status == .inPod && !pod.visibleMembers.isEmpty { podCard }
                     if state.showSwap { swapCard }
                     buttons
                     GlassSizeQuickAdd(glassML: $state.glassML)
@@ -144,7 +144,7 @@ struct ContentView: View {
                         .font(.system(size: 13, weight: .bold, design: .rounded))
                         .lineLimit(2)
                     HStack(spacing: 6) {
-                        ForEach(pod.members.prefix(6)) { m in
+                        ForEach(pod.visibleMembers.prefix(6)) { m in
                             let shown = pod.displayed(m)
                             ProgressView(value: shown.todayProgress)
                                 .tint(shown.todayProgress >= 1 ? .green : .accentColor)
@@ -381,7 +381,11 @@ final class JourneyWindowController {
         let view = ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 BrandHeader(title: "Rayna's journey", subtitle: "Streak, unlocks and your weekly recap.", progress: state.progress)
-                RaynaJourneyView(extras: state.extras, recap: state.recap, streak: state.streak) {
+                RaynaJourneyView(extras: state.extras, recap: state.recap, streak: state.streak, onWear: { code in
+                    state.extras.wornBadgeCode = code
+                    state.objectWillChange.send()
+                    state.localChanged()
+                }) {
                     ShareWindowController.shared.show(info: state.shareInfo(state.streak >= 3 ? .streak(state.streak) : .recap))
                 }
                 Spacer(minLength: 60)

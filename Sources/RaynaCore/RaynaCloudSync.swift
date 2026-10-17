@@ -7,7 +7,7 @@ import SwiftUI
 /// Reads/writes the synced keys. iOS uses the App Group defaults (RaynaStore), macOS the standard defaults
 /// (AppState); both use the same key names.
 public struct SyncLocalDefaults {
-    public static let intSettings = ["goalML", "glassML", "quietStartMin", "quietEndMin"]
+    public static let intSettings = ["goalML", "glassML", "quietStartMin", "quietEndMin", WornBadge.prefsKey]
     public static let boolSettings = ["eveningSwap", "swapChallenge", "rayFactsOn"]
     public let d: UserDefaults
     public init(_ d: UserDefaults) { self.d = d }
