@@ -62,7 +62,10 @@ struct ContentView: View {
             if newValue { party() }
         }
         .onChange(of: state.glassEvent) { _ in wiggleAt = Date() }
-        .onAppear { if state.celebrate && state.progress >= 1 { party() } }
+        .onAppear {
+            if state.celebrate && state.progress >= 1 { party() }
+            Task { await RaynaCloudSync.shared?.catchUp() }
+        }
     }
 
     private var header: some View {

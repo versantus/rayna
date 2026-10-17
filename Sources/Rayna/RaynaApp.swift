@@ -18,14 +18,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func applicationDidBecomeActive(_ notification: Notification) {
+        Task { @MainActor in await RaynaCloudSync.shared?.catchUp() }
+    }
+
+    func application(_ application: NSApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        Task { @MainActor in RaynaCloudSync.shared?.noteRemoteNotifications(available: true) }
+    }
+
+    func application(_ application: NSApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        Task { @MainActor in RaynaCloudSync.shared?.noteRemoteNotifications(available: false) }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         MacPodInvite.install()
         NSApp.setActivationPolicy(.accessory)
         RaynaCloudSync.configure(defaults: .standard) { AppState.shared.reloadFromDefaults() }
         NSApp.registerForRemoteNotifications()
-        RaynaCloudSync.shared.syncNow()
-        // Fallback when a push is missed (e.g. after sleep): sync every 5 minutes.
-        Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { _ in Task { @MainActor in RaynaCloudSync.shared?.syncNow() } }
+        Task { await RaynaCloudSync.shared?.catchUp() }
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { _ in
+            Task { @MainActor in await RaynaCloudSync.shared?.catchUp() }
+        }
         RaynaFrames.preloadForLaunch(progress: AppState.shared.progress)
         DispatchQueue.main.async { NotificationManager.shared.setUp() }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { WelcomeWindowController.shared.showIfFirstLaunch(state: AppState.shared) }

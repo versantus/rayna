@@ -44,6 +44,8 @@ final class FeatureTests: XCTestCase {
         let streakCard = RaynaShareInfo(kind: .streak(4), litres: 1, goalL: 2.5, streak: 4, weekL: 10, unlocks: [])
         XCTAssertEqual(streakCard.subtitle, "Hydration goal hit 4 days in a row")
         XCTAssertEqual(RaynaCopy.reminderMinutes, [30, 45, 60, 90, 120])
+        XCTAssertLessThanOrEqual(RaynaCloudSync.saveDebounceSeconds, 1)
+        XCTAssertEqual(RaynaCloudSync.fallbackPollSeconds, 60)
         XCTAssertEqual(RaynaCopy.addGlassLabel(glassML: 330, kidMode: false), "+1 glass · 330 ml")
         XCTAssertEqual(RaynaCopy.addGlassLabel(glassML: 200, kidMode: true), "+1 cup")
         XCTAssertEqual(RaynaCopy.amountTitle(ml: 500, glassML: 250, kidMode: true), "2 cups")

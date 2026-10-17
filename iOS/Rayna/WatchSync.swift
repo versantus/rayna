@@ -21,24 +21,40 @@ final class WatchSync: NSObject, WCSessionDelegate {
     func push() {
         guard WCSession.isSupported(), WCSession.default.activationState == .activated,
               WCSession.default.isPaired, WCSession.default.isWatchAppInstalled else { return }
-        try? WCSession.default.updateApplicationContext(context())
+        let ctx = context()
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(ctx, replyHandler: nil) { _ in
+                try? WCSession.default.updateApplicationContext(ctx)
+            }
+        } else {
+            try? WCSession.default.updateApplicationContext(ctx)
+        }
     }
 
-    private func applyAdd() {
+    /// One entry per glass the watch queued. A missing count still means a single glass.
+    private func glasses(in payload: [String: Any]) -> Int {
+        guard payload[WatchKeys.addGlass] != nil else { return 0 }
+        return min(20, max(1, payload[WatchKeys.addGlass] as? Int ?? 1))
+    }
+
+    private func applyAdds(_ payload: [String: Any]) {
+        let n = glasses(in: payload)
+        guard n > 0 else { return }
         DispatchQueue.main.async {
-            AppModel.shared.addGlass()
+            for _ in 0..<n { AppModel.shared.addGlass() }
         }
     }
 
     func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
-        guard message[WatchKeys.addGlass] != nil else { replyHandler(context()); return }
+        let n = glasses(in: message)
+        guard n > 0 else { replyHandler(context()); return }
         DispatchQueue.main.async {
-            AppModel.shared.addGlass()
+            for _ in 0..<n { AppModel.shared.addGlass() }
             replyHandler(self.context())
         }
     }
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any] = [:]) {
-        if userInfo[WatchKeys.addGlass] != nil { applyAdd() }
+        applyAdds(userInfo)
     }
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) { push() }
     func sessionDidBecomeInactive(_ session: WCSession) {}

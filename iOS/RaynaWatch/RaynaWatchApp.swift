@@ -12,6 +12,8 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
     @Published var glassML: Int = 250
     @Published var streak: Int = 0
     @Published var wiggle = 0
+    /// Glasses tapped before the session was active. Sent on activation.
+    private var unsentGlasses = 0
 
     var progress: Double { goal > 0 ? min(Double(ml) / Double(goal), 1) : 0 }
 
@@ -44,12 +46,22 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
 
     func addGlass() {
         ml += glassML; wiggle += 1; save()
-        let msg: [String: Any] = [WatchKeys.addGlass: 1]
-        if WCSession.default.activationState == .activated, WCSession.default.isReachable {
-            WCSession.default.sendMessage(msg, replyHandler: { [weak self] ctx in DispatchQueue.main.async { self?.apply(ctx) } },
-                                          errorHandler: { _ in WCSession.default.transferUserInfo(msg) })
+        unsentGlasses += 1
+        relay()
+    }
+
+    /// Reachable: sendMessage, which wakes the phone. Otherwise transferUserInfo, which waits until it is.
+    private func relay() {
+        guard unsentGlasses > 0, WCSession.default.activationState == .activated else { return }
+        let count = unsentGlasses
+        unsentGlasses = 0
+        let msg: [String: Any] = [WatchKeys.addGlass: count]
+        if WCSession.default.isReachable {
+            WCSession.default.sendMessage(msg, replyHandler: { [weak self] ctx in
+                DispatchQueue.main.async { self?.apply(ctx) }
+            }, errorHandler: { _ in WCSession.default.transferUserInfo(msg) })
         } else {
-            WCSession.default.transferUserInfo(msg)   // queued; the phone applies it when it wakes
+            WCSession.default.transferUserInfo(msg)
         }
     }
 
@@ -63,10 +75,16 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
 
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         let ctx = session.receivedApplicationContext
-        if !ctx.isEmpty { DispatchQueue.main.async { self.apply(ctx) } }
+        DispatchQueue.main.async {
+            if !ctx.isEmpty { self.apply(ctx) }
+            self.relay()
+        }
     }
     func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
         DispatchQueue.main.async { self.apply(applicationContext) }
+    }
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        DispatchQueue.main.async { self.apply(message) }
     }
 }
 

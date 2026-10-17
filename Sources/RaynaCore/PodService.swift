@@ -55,6 +55,11 @@ public final class PodService: ObservableObject {
     /// Called after a roster refresh so the app can award the pod-wide badge from local prefs.
     public var onRoster: (@MainActor ([PodMember]) -> Void)?
     private var currentShare: CKShare?
+    /// Records already seen in this zone, so a push can apply a change-token delta instead of rereading history.
+    private var recordCache: [CKRecord.ID: CKRecord] = [:]
+    private var fetching = false
+    private var fetchAgain = false
+    private var podSubscribed = false
 
     private let d = UserDefaults.standard
     private lazy var container = CKContainer(identifier: PodService.containerID)
@@ -96,6 +101,7 @@ public final class PodService: ObservableObject {
             isOwner = ownerFlag
             if zoneID == nil { status = .noPod; return }
             status = .inPod
+            await ensurePodSubscriptions()
             await fetch()
         } catch {
             status = .unavailable("iCloud isn't reachable right now.")
@@ -175,6 +181,8 @@ public final class PodService: ObservableObject {
     private func withZoneRecovery(_ op: () async throws -> Void) async throws {
         do { try await op() } catch where isZoneMissing(error) {
             if ownerFlag {
+                recordCache.removeAll()
+                savePodToken(nil)
                 try await createOwnerPod(name: d.string(forKey: "podName") ?? (podName.isEmpty ? "My pod" : podName))
                 try await op()
             } else {
@@ -185,6 +193,9 @@ public final class PodService: ObservableObject {
     }
 
     private func resetLocal() {
+        if let key = podTokenKey { d.removeObject(forKey: key) }
+        recordCache.removeAll()
+        podSubscribed = false
         zoneOwner = nil; ownerFlag = false; members = []; pendingInvites = []; currentShare = nil
         shareURL = nil; podName = ""; podStreak = 0
         isOwner = false; status = .noPod
@@ -208,18 +219,37 @@ public final class PodService: ObservableObject {
         }
     }
 
-    /// All records in the pod zone, without queries (so no CloudKit indexes are needed).
-    private func zoneRecords(_ z: CKRecordZone.ID) async throws -> [CKRecord] {
-        var out: [CKRecord] = []
-        var token: CKServerChangeToken? = nil
+    private var podTokenKey: String? { zoneOwner.map { "podZoneToken-\($0)" } }
+
+    /// Changes since the stored token. A nil token reads the zone from the start (still one paged fetch, not a query).
+    private func zoneChanges(_ z: CKRecordZone.ID, since start: CKServerChangeToken?) async throws -> (changed: [CKRecord], deleted: [CKRecord.ID], token: CKServerChangeToken?) {
+        var token = start
+        var changed: [CKRecord] = []
+        var deleted: [CKRecord.ID] = []
         var more = true
+        var latest: CKServerChangeToken?
         while more {
-            let changes = try await db.recordZoneChanges(inZoneWith: z, since: token)
-            out += changes.modificationResultsByID.values.compactMap { try? $0.get().record }
+            let changes: (modificationResultsByID: [CKRecord.ID: Result<CKDatabase.RecordZoneChange.Modification, Error>],
+                          deletions: [CKDatabase.RecordZoneChange.Deletion], changeToken: CKServerChangeToken, moreComing: Bool)
+                = try await db.recordZoneChanges(inZoneWith: z, since: token)
+            changed += changes.modificationResultsByID.values.compactMap { try? $0.get().record }
+            deleted += changes.deletions.map(\.recordID)
             token = changes.changeToken
+            latest = changes.changeToken
             more = changes.moreComing
         }
-        return out
+        return (changed, deleted, latest)
+    }
+
+    private func loadPodToken() -> CKServerChangeToken? {
+        guard let key = podTokenKey, let data = d.data(forKey: key) else { return nil }
+        return try? NSKeyedUnarchiver.unarchivedObject(ofClass: CKServerChangeToken.self, from: data)
+    }
+
+    private func savePodToken(_ token: CKServerChangeToken?) {
+        guard let key = podTokenKey else { return }
+        guard let token else { d.removeObject(forKey: key); return }
+        d.set(try? NSKeyedArchiver.archivedData(withRootObject: token, requiringSecureCoding: true), forKey: key)
     }
 
     // MARK: Create / join / leave
@@ -291,35 +321,86 @@ public final class PodService: ObservableObject {
         } catch { lastError = Self.friendly(error) }
     }
 
+    /// Foreground, menu-bar open, and wake. A demo pod has no zone, so it is left alone.
+    public func catchUp() async {
+        guard Self.isEntitled else { return }
+        if case .inPod = status, zoneID == nil { return }
+        if status == .unknown || zoneID == nil {
+            await refreshStatus()
+            return
+        }
+        await ensurePodSubscriptions()
+        await fetch()
+    }
+
     public func fetch() async {
         guard zoneID != nil else { return }
+        if fetching { fetchAgain = true; return }
+        fetching = true
+        defer { fetching = false }
+        repeat {
+            fetchAgain = false
+            await fetchOnce()
+        } while fetchAgain
+    }
+
+    private func fetchOnce() async {
+        guard zoneID != nil else { return }
         do {
-            var recs: [CKRecord] = []
-            try await withZoneRecovery { if let z = self.zoneID { recs = try await self.zoneRecords(z) } }
-            guard status == .inPod else { return }
-            if let pod = recs.first(where: { $0.recordType == "Pod" }) {
-                podName = pod["name"] as? String ?? "Pod"
-                d.set(podName, forKey: "podName")
-                podStreak = pod["podStreak"] as? Int ?? 0
+            var page: (changed: [CKRecord], deleted: [CKRecord.ID], token: CKServerChangeToken?) = ([], [], nil)
+            var replace = true
+            try await withZoneRecovery {
+                guard let z = self.zoneID else { return }
+                let stored = self.recordCache.isEmpty ? nil : self.loadPodToken()
+                replace = stored == nil
+                do {
+                    page = try await self.zoneChanges(z, since: stored)
+                } catch let e as CKError where e.code == .changeTokenExpired {
+                    self.recordCache.removeAll()
+                    self.savePodToken(nil)
+                    replace = true
+                    page = try await self.zoneChanges(z, since: nil)
+                }
             }
-            if let share = recs.first(where: { $0 is CKShare }) as? CKShare {
-                currentShare = share
-                if let url = share.url { shareURL = url }
-                pendingInvites = invites(from: share)
+            guard status == .inPod, zoneID != nil else { return }
+            if replace || recordCache.isEmpty {
+                recordCache = [:]
+                for r in page.changed { recordCache[r.recordID] = r }
             } else {
-                currentShare = nil
-                pendingInvites = []
+                for r in page.changed { recordCache[r.recordID] = r }
+                for id in page.deleted { recordCache.removeValue(forKey: id) }
             }
-            members = recs.filter { $0.recordType == "Member" }.map { r in
-                PodMember(id: r["userID"] as? String ?? r.recordID.recordName, name: r["name"] as? String ?? "?",
-                          glasses: r["glasses"] as? Int ?? 0, ml: r["ml"] as? Int ?? 0, goal: r["goal"] as? Int ?? 2500,
-                          streak: r["streak"] as? Int ?? 0, updated: r["updated"] as? Date ?? .distantPast,
-                          isKid: (r["isKid"] as? Int ?? 0) == 1)
-            }.sorted { $0.id == myID ? true : ($1.id == myID ? false : $0.name < $1.name) }
-            onRoster?(members)
+            savePodToken(page.token)
+            applyRoster(Array(recordCache.values))
             await updatePodStreak()
-            await checkNudges(in: recs)
-        } catch { lastError = Self.friendly(error) }
+            await checkNudges(in: page.changed)
+        } catch {
+            lastError = Self.friendly(error)
+        }
+    }
+
+    private func applyRoster(_ recs: [CKRecord]) {
+        guard status == .inPod else { return }
+        if let pod = recs.first(where: { $0.recordType == "Pod" }) {
+            podName = pod["name"] as? String ?? "Pod"
+            d.set(podName, forKey: "podName")
+            podStreak = pod["podStreak"] as? Int ?? 0
+        }
+        if let share = recs.first(where: { $0 is CKShare }) as? CKShare {
+            currentShare = share
+            if let url = share.url { shareURL = url }
+            pendingInvites = invites(from: share)
+        } else {
+            currentShare = nil
+            pendingInvites = []
+        }
+        members = recs.filter { $0.recordType == "Member" }.map { r in
+            PodMember(id: r["userID"] as? String ?? r.recordID.recordName, name: r["name"] as? String ?? "?",
+                      glasses: r["glasses"] as? Int ?? 0, ml: r["ml"] as? Int ?? 0, goal: r["goal"] as? Int ?? 2500,
+                      streak: r["streak"] as? Int ?? 0, updated: r["updated"] as? Date ?? .distantPast,
+                      isKid: (r["isKid"] as? Int ?? 0) == 1)
+        }.sorted { $0.id == myID ? true : ($1.id == myID ? false : $0.name < $1.name) }
+        onRoster?(members)
     }
 
     /// The share to hand to UICloudSharingController / NSSharingService, if we have fetched it.
@@ -434,19 +515,30 @@ public final class PodService: ObservableObject {
             try? await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: r.recordID.recordName, content: c, trigger: nil))
         }
         #endif
-        _ = try? await db.modifyRecords(saving: [], deleting: recs.map(\.recordID))
+        let ids = recs.map(\.recordID)
+        if (try? await db.modifyRecords(saving: [], deleting: ids)) != nil {
+            for id in ids { recordCache.removeValue(forKey: id) }
+        }
     }
 
     // MARK: Push
 
-    private func subscribe() async {
-        let id = ownerFlag ? "rayna-private-db" : "rayna-shared-db"
-        let sub = CKDatabaseSubscription(subscriptionID: id)
-        let info = CKSubscription.NotificationInfo()
-        info.shouldSendContentAvailable = true
-        sub.notificationInfo = info
-        _ = try? await db.modifySubscriptions(saving: [sub], deleting: [])
+    /// Silent database subscription plus a zone subscription for RaynaPod, on the private or shared database.
+    private func ensurePodSubscriptions() async {
+        guard !podSubscribed, let z = zoneID else { return }
+        let database = CKDatabaseSubscription(subscriptionID: ownerFlag ? RaynaSilentPush.privateDatabase : RaynaSilentPush.sharedDatabase)
+        database.notificationInfo = RaynaSilentPush.info()
+        let zone = CKRecordZoneSubscription(zoneID: z, subscriptionID: ownerFlag ? RaynaSilentPush.podZonePrivate : RaynaSilentPush.podZoneShared)
+        zone.notificationInfo = RaynaSilentPush.info()
+        do {
+            _ = try await db.modifySubscriptions(saving: [database, zone], deleting: [])
+            podSubscribed = true
+        } catch {
+            podSubscribed = false
+        }
     }
+
+    private func subscribe() async { await ensurePodSubscriptions() }
 
     /// Call from the app delegate's remote-notification handler.
     public func handlePush() async {

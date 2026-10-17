@@ -13,15 +13,23 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         RaynaFrames.preloadForLaunch(progress: RaynaStore.shared.progress)
         DispatchQueue.global(qos: .utility).async { ReminderScheduler.registerCategories() }
         application.registerForRemoteNotifications()
-        WatchSync.shared.start()   // silent CloudKit pushes for pods
+        WatchSync.shared.start()
         RaynaCloudSync.configure(defaults: RaynaStore.shared.defaults) {
             // Remote intake/settings landed in the store: refresh UI, widgets, watch (no re-sync loop).
             RaynaStore.shared.reconcileGoal()   // synced glasses may have completed today's goal
             AppModel.shared.refresh()
             AppModel.shared.afterRemoteChange()
         }
-        RaynaCloudSync.shared.syncNow()
+        Task { await RaynaCloudSync.shared?.catchUp() }
         return true
+    }
+
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        Task { @MainActor in RaynaCloudSync.shared?.noteRemoteNotifications(available: true) }
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        Task { @MainActor in RaynaCloudSync.shared?.noteRemoteNotifications(available: false) }
     }
 
     func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession,
@@ -75,7 +83,10 @@ struct RaynaIOSApp: App {
             ContentView()
                 .environmentObject(model)
                 .onChange(of: scenePhase) { _, phase in
-                    if phase == .active { model.refresh(); RaynaCloudSync.shared?.syncNow() }
+                    if phase == .active {
+                        model.refresh()
+                        Task { await RaynaCloudSync.shared?.catchUp() }
+                    }
                 }
         }
     }

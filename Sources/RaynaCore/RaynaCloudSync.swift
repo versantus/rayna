@@ -68,6 +68,23 @@ public struct SyncLocalDefaults {
     }
 }
 
+// MARK: - Silent pushes
+
+/// Subscription ids shared by the private log and the pod. Silent only: no alert, badge or sound.
+enum RaynaSilentPush {
+    static let privateDatabase = "rayna-private-db"
+    static let sharedDatabase = "rayna-shared-db"
+    static let syncZone = "rayna-zone-sync"
+    static let podZonePrivate = "rayna-zone-pod-private"
+    static let podZoneShared = "rayna-zone-pod-shared"
+
+    static func info() -> CKSubscription.NotificationInfo {
+        let info = CKSubscription.NotificationInfo()
+        info.shouldSendContentAvailable = true
+        return info
+    }
+}
+
 // MARK: - CloudKit
 
 /// Syncs the user's own log between their devices through their **private** CloudKit database
@@ -93,6 +110,10 @@ public final class RaynaCloudSync: ObservableObject {
     }
 
     public static let zoneName = "RaynaSync"
+    /// A burst of taps uploads once, at most this long after the last one. Not a background timer.
+    public static let saveDebounceSeconds: TimeInterval = 1
+    /// Used only when remote-notification registration failed. Pushes are the fast path.
+    public static let fallbackPollSeconds: TimeInterval = 60
     public static let enabledKey = "icloudSyncOn"
     static let ledgerKey = "icloudSyncLedger", tokenKey = "icloudSyncToken", zoneReadyKey = "icloudSyncZoneReady",
                deviceKey = "icloudSyncDevice", userKey = "icloudSyncUser", lastSyncKey = "icloudSyncLast"
@@ -108,6 +129,8 @@ public final class RaynaCloudSync: ObservableObject {
     private let onApply: () -> Void
     private var running = false, again = false
     private var debounce: Task<Void, Never>?
+    private var privateSubscribed = false
+    private var fallbackTimer: Timer?
     private lazy var container = CKContainer(identifier: PodService.containerID)
     private var db: CKDatabase { container.privateCloudDatabase }
     private var zoneID: CKRecordZone.ID { CKRecordZone.ID(zoneName: Self.zoneName, ownerName: CKCurrentUserDefaultName) }
@@ -116,6 +139,7 @@ public final class RaynaCloudSync: ObservableObject {
         d = defaults; self.onApply = onApply
         d.register(defaults: [Self.enabledKey: true])
         if let t = d.object(forKey: Self.lastSyncKey) as? Date, enabled { status = .synced(t) }
+        noteRemoteNotifications(available: false)
     }
 
     /// "Sync with iCloud" (on by default; only does anything when an iCloud account is available).
@@ -134,15 +158,34 @@ public final class RaynaCloudSync: ObservableObject {
         set { d.set(try? JSONEncoder().encode(newValue), forKey: Self.ledgerKey) }
     }
 
-    /// Call after any local change; batches bursts of taps.
+    /// Call after any local change. The upload starts within `saveDebounceSeconds`, not on a timer.
     public func syncSoon() {
         guard enabled else { return }
         debounce?.cancel()
-        debounce = Task { try? await Task.sleep(nanoseconds: 2_000_000_000); if !Task.isCancelled { await sync() } }
+        let delay = UInt64(Self.saveDebounceSeconds * 1_000_000_000)
+        debounce = Task { try? await Task.sleep(nanoseconds: delay); if !Task.isCancelled { await sync() } }
     }
     public func syncNow() { Task { await sync() } }
-    /// Call from the remote-notification handler (the private-database subscription covers this zone).
+    /// Private log and pod roster. Foreground, menu-bar open, and wake call this.
+    public func catchUp() async {
+        let pod = Task { @MainActor in await PodService.shared.catchUp() }
+        if enabled { await sync() }
+        await pod.value
+    }
+    /// Call from the remote-notification handler. Fetches with the stored change token.
     public func handlePush() async { await sync() }
+
+    /// Silent pushes are best-effort, so a one-minute poll stays even after registration succeeds.
+    /// It replaces the old five-minute timer. Saves do not wait for it.
+    public func noteRemoteNotifications(available: Bool) {
+        _ = available
+        fallbackTimer?.invalidate()
+        let timer = Timer(timeInterval: Self.fallbackPollSeconds, repeats: true) { _ in
+            Task { @MainActor in await RaynaCloudSync.shared?.catchUp() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        fallbackTimer = timer
+    }
 
     // MARK: Engine
 
@@ -168,6 +211,7 @@ public final class RaynaCloudSync: ObservableObject {
                 var l = ledger; l.markAllDirty(); ledger = l
             }
             try await ensureZone()
+            await ensurePrivateSubscriptions()
             // 1. Local changes → ledger
             let local = SyncLocalDefaults(d)
             var l = ledger
@@ -194,13 +238,22 @@ public final class RaynaCloudSync: ObservableObject {
         guard !d.bool(forKey: Self.zoneReadyKey) else { return }
         let (saved, _) = try await db.modifyRecordZones(saving: [CKRecordZone(zoneID: zoneID)], deleting: [])
         for r in saved.values { if case .failure(let e) = r { throw e } }
-        // Silent pushes: Pods already subscribe to the private database ("rayna-private-db") for the pod owner;
-        // this one makes sure every syncing device gets them.
-        let sub = CKDatabaseSubscription(subscriptionID: "rayna-sync-private-db")
-        let info = CKSubscription.NotificationInfo(); info.shouldSendContentAvailable = true
-        sub.notificationInfo = info
-        _ = try? await db.modifySubscriptions(saving: [sub], deleting: [])
         d.set(true, forKey: Self.zoneReadyKey)
+    }
+
+    /// Silent pushes for the whole private database and for the RaynaSync zone. Retried until it sticks.
+    private func ensurePrivateSubscriptions() async {
+        guard !privateSubscribed else { return }
+        let database = CKDatabaseSubscription(subscriptionID: RaynaSilentPush.privateDatabase)
+        database.notificationInfo = RaynaSilentPush.info()
+        let zone = CKRecordZoneSubscription(zoneID: zoneID, subscriptionID: RaynaSilentPush.syncZone)
+        zone.notificationInfo = RaynaSilentPush.info()
+        do {
+            _ = try await db.modifySubscriptions(saving: [database, zone], deleting: [])
+            privateSubscribed = true
+        } catch {
+            privateSubscribed = false
+        }
     }
 
     private func fetchChanges() async throws {
