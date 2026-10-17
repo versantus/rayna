@@ -23,6 +23,8 @@ final class AppState: ObservableObject {
     @Published var quietStartMin: Int { didSet { d.set(quietStartMin, forKey: "quietStartMin"); localChanged() } }
     @Published var quietEndMin: Int { didSet { d.set(quietEndMin, forKey: "quietEndMin"); localChanged() } }
     @Published var eveningSwap: Bool { didSet { d.set(eveningSwap, forKey: "eveningSwap"); localChanged() } }
+    @Published var exerciseExtraOn: Bool { didSet { d.set(exerciseExtraOn, forKey: "exerciseExtraOn"); localChanged(); checkGoal() } }
+    @Published var runBonusML: Int { didSet { d.set(runBonusML, forKey: "runBonusML"); localChanged(); checkGoal() } }
     @Published var streak: Int { didSet { d.set(streak, forKey: "streak") } }
     @Published var systemNotifications: Bool { didSet { d.set(systemNotifications, forKey: "systemNotifications"); if systemNotifications { NotificationManager.shared.requestAuth() } } }
     @Published var glassEvent = 0
@@ -80,6 +82,9 @@ final class AppState: ObservableObject {
         quietStartMin = d.integer(forKey: "quietStartMin")
         quietEndMin = d.integer(forKey: "quietEndMin")
         eveningSwap = d.bool(forKey: "eveningSwap")
+        exerciseExtraOn = d.object(forKey: "exerciseExtraOn") == nil ? true : d.bool(forKey: "exerciseExtraOn")
+        let storedBonus = d.integer(forKey: "runBonusML")
+        runBonusML = storedBonus > 0 ? storedBonus : 500
         streak = d.integer(forKey: "streak")
         systemNotifications = d.bool(forKey: "systemNotifications")
         dayKey = d.string(forKey: "dayKey") ?? AppState.key(for: Date())
@@ -113,6 +118,11 @@ final class AppState: ObservableObject {
         if newLog != log { log = newLog }
         if runDay != d.bool(forKey: "runDay") { runDay = d.bool(forKey: "runDay") }
         if eveningSwap != d.bool(forKey: "eveningSwap") { eveningSwap = d.bool(forKey: "eveningSwap") }
+        let extra = d.object(forKey: "exerciseExtraOn") == nil ? true : d.bool(forKey: "exerciseExtraOn")
+        if exerciseExtraOn != extra { exerciseExtraOn = extra }
+        let bonus = d.integer(forKey: "runBonusML")
+        let cleanBonus = bonus > 0 ? bonus : 500
+        if runBonusML != cleanBonus { runBonusML = cleanBonus }
         lastGoalDay = d.string(forKey: "lastGoalDay") ?? lastGoalDay
         // Synced glasses can complete the goal without a local +1, so record the goal day/streak here too
         // (otherwise the streak could read 0 days on a device that never saw its own glass hit the goal).
@@ -125,9 +135,10 @@ final class AppState: ObservableObject {
     func localChanged() { if !reloading { MainActor.assumeIsolated { RaynaCloudSync.shared?.syncSoon() } } }
 
     // MARK: Derived
-    var runBonusML: Int { let v = d.integer(forKey: "runBonusML"); return v > 0 ? v : 500 }
     /// Kid mode has no exercise-day bonus, matching the iPhone. The flag stays `runDay`.
-    var effectiveGoal: Int { goalML + (runDay && !extras.kidMode ? runBonusML : 0) }
+    var effectiveGoal: Int {
+        ExerciseDay.goal(base: goalML, extraOn: exerciseExtraOn, exerciseDay: runDay, bonus: runBonusML, kidMode: extras.kidMode)
+    }
     var kidMode: Bool { extras.kidMode }
     var glasses: Int { glassML > 0 ? totalML / glassML : 0 }
     var progress: Double { effectiveGoal > 0 ? min(Double(totalML) / Double(effectiveGoal), 1) : 0 }

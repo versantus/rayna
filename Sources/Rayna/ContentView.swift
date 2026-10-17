@@ -18,15 +18,19 @@ struct ContentView: View {
                     header
                     quipBubble
                     RaynaView(progress: state.progress, wiggleAt: wiggleAt, flipAt: flipAt,
-                              size: RaynaStage.side(width: 352, height: 310), accessories: state.accessories)
+                              size: RaynaStage.side(width: 352, height: 380), accessories: state.accessories)
                         .frame(maxWidth: .infinity)
-                        .frame(height: RaynaStage.side(width: 352, height: 310))
+                        .frame(height: RaynaStage.side(width: 352, height: 380))
                     amount
                     if pod.status == .inPod && !pod.visibleMembers.isEmpty { podCard }
                     if state.showSwap { swapCard }
                     buttons
                     GlassSizeQuickAdd(glassML: $state.glassML)
-                    if !state.kidMode { runDayToggle }
+                    if state.runDay && state.exerciseExtraOn && !state.kidMode {
+                        Label("Exercise day +\(state.runBonusML) ml", systemImage: RaynaCopy.exerciseDaySymbol)
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .foregroundColor(.secondary)
+                    }
                     HStack {
                         Spacer()
                         Button("Quit Rayna") { NSApp.terminate(nil) }
@@ -198,16 +202,6 @@ struct ContentView: View {
         }
     }
 
-    private var runDayToggle: some View {
-        Toggle(isOn: $state.runDay) {
-            Label(RaynaCopy.runDayLabel(bonusML: state.runBonusML), systemImage: RaynaCopy.exerciseDaySymbol)
-                .font(.system(size: 13, weight: .semibold, design: .rounded))
-        }
-        .toggleStyle(.switch)
-        .padding(.horizontal, 12).padding(.vertical, 8)
-        .background(.ultraThinMaterial, in: Capsule())
-    }
-
     private func party() {
         confettiID += 1
         showConfetti = true
@@ -281,6 +275,21 @@ struct SettingsView: View {
                         Stepper("", value: $state.goalML, in: 1000...5000, step: 250).labelsHidden()
                     }
                     GlassSizePicker(glassML: $state.glassML)
+                }
+                BrandCard(title: "Exercise days", symbol: "dumbbell.fill", tint: RaynaBrand.blue) {
+                    BrandRow(symbol: "dumbbell.fill", tint: RaynaBrand.blue, title: "Add extra water on exercise days") {
+                        Toggle("", isOn: $state.exerciseExtraOn).labelsHidden().toggleStyle(.switch)
+                    }
+                    if state.exerciseExtraOn {
+                        BrandRow(symbol: "drop.fill", tint: RaynaBrand.aqua, title: "Extra water: +\(state.runBonusML) ml") {
+                            Stepper("", value: $state.runBonusML, in: 250...1500, step: 250).labelsHidden()
+                        }
+                        BrandRow(symbol: "checkmark.circle.fill", tint: .green, title: "Today is an exercise day") {
+                            Toggle("", isOn: $state.runDay).labelsHidden().toggleStyle(.switch)
+                        }
+                    }
+                    Text("On an exercise day Rayna adds the extra water to today's goal. An iPhone can turn the day on from Apple Health. This Mac follows that, and you can switch today on or off here. There is no Health connection on the Mac.")
+                        .font(.system(size: 11)).foregroundColor(.secondary)
                 }
                 BrandCard(title: "Sounds", symbol: "speaker.wave.2.fill", tint: .pink) {
                     BrandRow(symbol: "speaker.wave.2.fill", tint: .pink, title: "Sounds") {
