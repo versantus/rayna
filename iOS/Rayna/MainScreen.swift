@@ -12,7 +12,9 @@ struct PhoneHome: View {
     var layoutOverride: MainLayout? = nil
     @State private var showCustomSize = false
 
-    private var compact: Bool { UIScreen.main.bounds.height < 700 }
+    @Environment(\.raynaWindowHeight) private var windowHeight
+    /// Short windows (iPhone SE / mini, a small iPhone Mirroring window): tighter spacing.
+    private var compact: Bool { windowHeight < 700 }
     private var ink: Color { scheme == .dark ? .white : Color(red: 0.03, green: 0.2, blue: 0.4) }
     private var layout: MainLayout { layoutOverride ?? model.store.mainLayout }
 
@@ -457,4 +459,9 @@ private struct ScrollingAspect: ViewModifier {
     func body(content: Content) -> some View {
         if let ratio { content.aspectRatio(ratio, contentMode: .fit) } else { content }
     }
+}
+
+extension EnvironmentValues {
+    /// The window's full height (safe areas included), set by ContentView as the window resizes.
+    @Entry var raynaWindowHeight: CGFloat = 1000
 }

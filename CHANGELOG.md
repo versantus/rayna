@@ -3,6 +3,7 @@
 All notable changes to Rayna (macOS menu-bar app + iOS app). macOS versions are listed; the iOS app ships as 1.0 (unreleased).
 
 ## Unreleased
+- Ready for iPhone Duo (and resizable iPhone Mirroring): the short-screen spacing now follows the window's height (`raynaWindowHeight`, from `onGeometryChange`) instead of `UIScreen.main`, so folding or unfolding mid-session lays the screen out again. Built with the iOS 27.1 SDK, so the app fills both displays; layouts already choose by available space, not device or orientation.
 - Apple Watch is immersive: the whole screen is the sea, rising with today's progress, with Rayna floating in it (waves and bubbles pause when the watch dims). +250 ml and a new Undo sit together at the bottom; Undo takes back the last glass on the phone (`undoGlass`), and a + and Undo not yet sent cancel out. The scene worn on the phone appears in the watch sea (`scene` in the watch context), drawn with the same `SeaSceneLayout` file the iPhone uses (compact: smaller moon beside the litres, seabed things at the edges). The watch still takes its goal (with any exercise-day bonus) and glass size from the phone.
 - iPad held upright uses the iPhone layouts (Immersive, Hero, Balanced, and the press-and-hold picker); landscape keeps the two columns.
 - The 30-day baby ray buddy is one of the new baby-ray sprites instead of the old flat drawing.

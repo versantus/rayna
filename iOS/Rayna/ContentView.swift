@@ -13,7 +13,10 @@ struct ContentView: View {
 
     /// Text colour on the water scene: deep navy by day, white in Dark Mode.
     /// Short screens (iPhone SE / mini): tighter spacing.
-    private var compact: Bool { UIScreen.main.bounds.height < 700 }
+    /// Height of the window Rayna is in, safe areas included. Follows the window, not the device: an iPhone Duo
+    /// folding or unfolding, Split View or iPhone Mirroring resize it mid-session.
+    @State private var windowHeight: CGFloat = 1000
+    private var compact: Bool { windowHeight < 700 }
     private var ink: Color { scheme == .dark ? .white : Color(red: 0.03, green: 0.2, blue: 0.4) }
     private var bubbleFill: Color { scheme == .dark ? Color(red: 0.06, green: 0.16, blue: 0.28).opacity(0.9) : .white.opacity(0.85) }
 
@@ -77,6 +80,10 @@ struct ContentView: View {
                 ConfettiView()
             }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.height + $0.safeAreaInsets.top + $0.safeAreaInsets.bottom } action: {
+            windowHeight = $0
+        }
+        .environment(\.raynaWindowHeight, windowHeight)
         .animation(.spring(response: 0.4, dampingFraction: 0.75), value: model.unlockBanner)
         .fullScreenCover(item: $model.factPage) { f in
             RayFactPage(fact: f, onDone: { model.factPage = nil })
