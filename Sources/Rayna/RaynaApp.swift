@@ -149,7 +149,7 @@ final class MacPodShareDelegate: NSObject, NSSharingServiceDelegate {
         service = nil
         Task { @MainActor in await PodService.shared.fetch() }
     }
-    func sharingService(_ sharingService: NSSharingService, didFailToShare items: [Any], error: Error) {
+    func sharingService(_ sharingService: NSSharingService, didFailToShareItems items: [Any], error: Error) {
         service = nil
         Task { @MainActor in PodService.shared.presentCloudError(error) }
     }

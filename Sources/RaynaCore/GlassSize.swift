@@ -61,12 +61,26 @@ public struct GlassSizePicker: View {
                 GlassSizeCustomField(glassML: $glassML)
             }
         }
-        .onChange(of: glassML) { newValue in
-            // A synced or typed preset closes Custom. A non-preset size (including one
-            // arriving while a preset was showing) opens Custom. Selecting Custom itself
-            // does not change glassML, so this does not snap the field shut.
+        .modifier(GlassSizeSync(glassML: glassML, choosingCustom: $choosingCustom))
+    }
+}
+
+/// iOS 17 uses the current `onChange`. macOS 13, this package's other deployment target, keeps the older form.
+private struct GlassSizeSync: ViewModifier {
+    var glassML: Int
+    @Binding var choosingCustom: Bool
+
+    func body(content: Content) -> some View {
+        #if os(macOS)
+        content.onChange(of: glassML) { newValue in
             choosingCustom = !GlassSize.isPreset(newValue)
         }
+        #else
+        content.onChange(of: glassML) { _, newValue in
+            // A synced or typed preset closes Custom. A non-preset size opens it.
+            choosingCustom = !GlassSize.isPreset(newValue)
+        }
+        #endif
     }
 }
 
