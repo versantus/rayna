@@ -34,13 +34,15 @@ struct ContentView: View {
                 if wide {
                     twoColumn(width: geo.size.width)
                 } else {
-                    if typeSize.isAccessibilitySize {
-                        ScrollView { PhoneHome(scrolling: true) }.scrollBounceBehavior(.basedOnSize)
-                    } else {
-                        ViewThatFits(in: .vertical) {
-                            PhoneHome(scrolling: false)
-                            ScrollView { PhoneHome(scrolling: true) }
-                                .scrollBounceBehavior(.basedOnSize)
+                    Group {
+                        if typeSize.isAccessibilitySize {
+                            ScrollView { PhoneHome(scrolling: true) }.scrollBounceBehavior(.basedOnSize)
+                        } else {
+                            ViewThatFits(in: .vertical) {
+                                PhoneHome(scrolling: false)
+                                ScrollView { PhoneHome(scrolling: true) }
+                                    .scrollBounceBehavior(.basedOnSize)
+                            }
                         }
                     }
                     .frame(maxWidth: 600)

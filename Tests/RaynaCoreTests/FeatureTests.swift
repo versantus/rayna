@@ -15,7 +15,7 @@ final class FeatureTests: XCTestCase {
         return RaynaCopy.dayKey(for: date)
     }
 
-    func testPodJoinHidesRawCloudKitErrors() {
+    @MainActor func testPodJoinHidesRawCloudKitErrors() {
         XCTAssertTrue(PodJoin.isOwnInvite(role: .owner, ownerRecordName: "owner", currentRecordName: "someone"))
         XCTAssertTrue(PodJoin.isOwnInvite(role: .privateUser, ownerRecordName: "me", currentRecordName: "me"))
         XCTAssertFalse(PodJoin.isOwnInvite(role: .privateUser, ownerRecordName: "owner", currentRecordName: "friend"))
