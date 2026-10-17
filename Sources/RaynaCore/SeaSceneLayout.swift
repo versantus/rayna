@@ -57,17 +57,45 @@ public enum SeaSceneLayout {
         return height * (1 - (0.06 + 0.88 * p))
     }
 
+    /// Creatures with a swim-cycle animation (RaynaFrames/scene/anim/<loop>/NNN.png, a 5-second loop):
+    /// sprite name → (loop folder, frame count). Babies and look-alikes share a loop.
+    static let loops: [String: (loop: String, frames: Int)] = [
+        "clown-big": ("clown", 40), "clown-small": ("clown", 40), "tang-blue": ("tang-blue", 40), "tang-yellow": ("tang-yellow", 40),
+        "jelly-pink": ("jelly-pink", 40), "jelly-lilac": ("jelly-lilac", 40), "jelly-aqua": ("jelly-aqua", 40),
+        "octopus": ("octopus", 40), "turtle": ("turtle", 40), "turtle-baby": ("turtle", 40), "seahorse": ("seahorse", 40),
+        "fish-yellow": ("fish-yellow", 40), "fish-coral": ("fish-coral", 40), "fish-mint": ("fish-mint", 40), "fish-lilac": ("fish-lilac", 40),
+        "ray-mint": ("ray-mint", 40), "ray-lilac": ("ray-lilac", 40), "ray-blue": ("ray-blue", 40),
+    ]
+    /// Seconds one loop takes, so limbs move at their natural speed.
+    static let loopSeconds = 5.0
+
+    /// The frame of `name`'s swim cycle at time `t` ("loop#NN"), or `name` itself when it has no animation.
+    /// `phase` offsets each creature so two of the same kind don't flap in time.
+    public static func animated(_ name: String, at t: Double, phase: Double = 0) -> String {
+        guard let l = loops[name] else { return name }
+        let k = ((t + phase * 1.37) / loopSeconds).truncatingRemainder(dividingBy: 1)
+        let i = Int((k < 0 ? k + 1 : k) * Double(l.frames)) % l.frames
+        return "\(l.loop)#\(i)"
+    }
+
+    /// The still sprite for an animated frame name (the Watch draws stills).
+    public static func base(_ name: String) -> String {
+        guard let hash = name.firstIndex(of: "#") else { return name }
+        let loop = String(name[..<hash])
+        return loops.first { $0.value.loop == loop }?.key ?? loop
+    }
+
     /// Width / height of each sprite, so layout needs no image decoding.
     static let aspect: [String: CGFloat] = [
-        "fish-yellow": 1.30, "fish-coral": 1.29, "fish-mint": 1.27, "fish-lilac": 1.27,
+        "fish-yellow": 1.028, "fish-coral": 1.31, "fish-mint": 1.236, "fish-lilac": 1.215,
         "grass-tall": 0.346, "grass-mid": 0.419, "grass-short": 0.839,
         "moon": 1.02, "shell-scallop": 1.06, "shell-spiral": 0.78, "starfish": 0.97,
-        "ray-lilac": 0.72, "ray-mint": 0.72, "ray-blue": 0.73,
+        "ray-lilac": 0.855, "ray-mint": 0.855, "ray-blue": 0.855,
         "reef-bed": 3.52, "wreck-bed": 3.05, "lagoon-bed": 4.09,
-        "clown-big": 1.48, "clown-small": 1.38, "tang-blue": 1.51, "tang-yellow": 1.22,
-        "jelly-pink": 0.574, "jelly-lilac": 0.55, "jelly-aqua": 0.533,
-        "chest": 0.97, "coins": 1.57, "octopus": 0.97, "clam": 0.94,
-        "turtle": 1.69, "turtle-baby": 1.37, "seahorse": 0.52,
+        "clown-big": 1.333, "clown-small": 1.333, "tang-blue": 1.606, "tang-yellow": 1.229,
+        "jelly-pink": 0.677, "jelly-lilac": 0.686, "jelly-aqua": 0.668,
+        "chest": 0.97, "coins": 1.57, "octopus": 1.279, "clam": 0.94,
+        "turtle": 1.317, "turtle-baby": 1.317, "seahorse": 0.5,
     ]
 
     /// Everything to draw for `scene` at time `t` (seconds; 0 when Reduce Motion is on).
@@ -75,6 +103,16 @@ public enum SeaSceneLayout {
     /// edges so the buttons along the bottom don't sit on top of them.
     public static func items(for scene: SeaSceneKind, progress: Double, size: CGSize, time t: Double,
                              compact: Bool = false) -> [SeaSceneItem] {
+        var list = layout(for: scene, progress: progress, size: size, time: t, compact: compact)
+        // Every creature plays its swim cycle; each gets its own offset (its place in the list) so they're not in step.
+        for i in list.indices where loops[list[i].sprite] != nil {
+            list[i].sprite = animated(list[i].sprite, at: t, phase: Double(i))
+        }
+        return list
+    }
+
+    private static func layout(for scene: SeaSceneKind, progress: Double, size: CGSize, time t: Double,
+                               compact: Bool) -> [SeaSceneItem] {
         let w = size.width, h = size.height
         guard w > 0, h > 0 else { return [] }
         let u = min(w, 520)                                   // sprite scale; an iPad doesn't get giant fish

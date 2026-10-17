@@ -251,6 +251,7 @@ struct WatchSea: View {
 
     /// The iPhone's drawing (SeaSceneDraw.swift is compiled into the Watch app too), with the Watch's own sprites.
     private func draw(_ item: SeaSceneItem, in ctx: GraphicsContext) {
-        SeaSceneDraw.draw(item, in: ctx) { Image("scene-\($0)") }
+        // The Watch keeps stills (its swim cycles would cost too much space): frame names map back to the still.
+        SeaSceneDraw.draw(item, in: ctx) { Image("scene-\(SeaSceneLayout.base($0))") }
     }
 }

@@ -32,15 +32,27 @@ extension SeaSceneLayout {
 /// Decoded scene sprites (small, decoded once).
 enum SeaSprites {
     private static let lock = NSLock()
-    private static var cache: [String: CGImage] = [:]
+    /// Swim cycles add hundreds of small frames, so the cache is bounded and lets the system trim it.
+    private static let cache: NSCache<NSString, CGImage> = {
+        let c = NSCache<NSString, CGImage>()
+        c.countLimit = 320
+        return c
+    }()
 
     static func image(_ name: String) -> CGImage? {
         lock.lock(); defer { lock.unlock() }
-        if let c = cache[name] { return c }
-        guard let url = RaynaFrames.root?.appendingPathComponent("scene/\(name).png"),
+        if let c = cache.object(forKey: name as NSString) { return c }
+        // "loop#NN" is frame NN of a swim cycle in scene/anim/<loop>/; anything else is a still.
+        let path: String
+        if let hash = name.firstIndex(of: "#"), let n = Int(name[name.index(after: hash)...]) {
+            path = "scene/anim/\(name[..<hash])/" + String(format: "%03d", n + 1) + ".png"
+        } else {
+            path = "scene/\(name).png"
+        }
+        guard let url = RaynaFrames.root?.appendingPathComponent(path),
               let src = CGImageSourceCreateWithURL(url as CFURL, nil),
-              let img = CGImageSourceCreateImageAtIndex(src, 0, nil) else { return nil }
-        cache[name] = img
+              let img = CGImageSourceCreateImageAtIndex(src, 0, [kCGImageSourceShouldCacheImmediately: true] as CFDictionary) else { return nil }
+        cache.setObject(img, forKey: name as NSString)
         return img
     }
 }
