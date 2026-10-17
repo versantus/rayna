@@ -472,6 +472,7 @@ public final class PodService: ObservableObject {
 // MARK: - Pod UI (shared)
 
 /// The shared tank: everyone's Rayna at their own water level, nudge buttons and the pod streak.
+@MainActor
 public struct PodView: View {
     @ObservedObject var pod: PodService
     var onInvite: ((URL) -> Void)?
@@ -479,7 +480,11 @@ public struct PodView: View {
     @State private var selectedInvite: PodPendingInvite?
     @State private var showInviteActions = false
     @State private var confirmCancel = false
-    public init(pod: PodService = .shared, onInvite: ((URL) -> Void)? = nil) { self.pod = pod; self.onInvite = onInvite }
+    /// The shared service is read in the body. A default argument is nonisolated, so `= .shared` warns.
+    public init(pod: PodService? = nil, onInvite: ((URL) -> Void)? = nil) {
+        self.pod = pod ?? PodService.shared
+        self.onInvite = onInvite
+    }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 14) {

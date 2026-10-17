@@ -395,6 +395,7 @@ final class JourneyWindowController {
     }
 }
 /// Full pod screen: the same `PodView` as iPhone Settings → Pods.
+@MainActor
 final class PodWindowController {
     static let shared = PodWindowController()
     private var window: NSWindow?
