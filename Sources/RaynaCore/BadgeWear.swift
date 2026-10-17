@@ -1,14 +1,19 @@
 import Foundation
 
 /// Where a badge sits on Rayna. At most one badge is worn in each slot.
+/// Scene is not on her body: it is the water around her (ripples, tide, flood, her pod).
 public enum BadgeSlot: String, CaseIterable, Codable, Equatable, Hashable {
-    case head, chest, fin
+    case head, chest, fin, scene
+
+    /// The slots that ride her body and follow her in the animation.
+    public static let onBody: [BadgeSlot] = [.head, .chest, .fin]
 
     public var title: String {
         switch self {
         case .head: return "Head"
         case .chest: return "Chest"
         case .fin: return "Fin"
+        case .scene: return "Scene"
         }
     }
 }
@@ -17,9 +22,10 @@ extension RaynaUnlock {
     /// One slot per badge. Wearing a second badge in that slot swaps the first one out.
     public var slot: BadgeSlot {
         switch self {
-        case .headband, .over30, .tide: return .head          // headband, crown, moon
+        case .headband, .over30: return .head                 // headband, crown
         case .medal, .over7, .over3: return .chest            // medal, rosette, milestone
-        case .bubbles, .baby, .surge, .flood, .personalBest, .podWave: return .fin
+        case .bubbles, .baby, .personalBest: return .fin
+        case .surge, .tide, .flood, .podWave: return .scene   // ripples, moon and tide, flood, her pod
         }
     }
 }

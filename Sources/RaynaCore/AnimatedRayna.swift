@@ -18,10 +18,10 @@ public enum RaynaClip: String, CaseIterable {
     public var frameCount: Int {
         switch self {
         case .idleHappy: return 48
-        case .idleThirsty: return 60
+        case .idleThirsty: return 62
         case .wiggle: return 15
         case .swimIn: return 49
-        case .swimOff: return 37
+        case .swimOff: return 46
         case .poutSwimOff: return 49
         }
     }
@@ -189,14 +189,16 @@ public struct RaynaView: View {
     public var body: some View {
         Group {
             if reduceMotion {
-                RaynaStill(progress: progress).overlay(RaynaAccessories(unlocks: accessories, date: .distantPast, brighten: brightenAccessories))
+                RaynaStill(progress: progress).overlay(RaynaAccessories(unlocks: accessories, date: .distantPast, brighten: brightenAccessories,
+                                                                         poses: RaynaAnchors.still(progress: progress)))
             } else {
                 TimelineView(.animation(minimumInterval: 1.0 / 30)) { tl in
-                    if let img = frame(at: tl.date) {
+                    if let shown = shown(at: tl.date) {
                         let _ = LaunchTiming.mark("firstAnimatedFrame")
                         let sp = spin(at: tl.date)
-                        Image(decorative: img, scale: 1).resizable().interpolation(.high).aspectRatio(contentMode: .fit)
-                            .overlay(RaynaAccessories(unlocks: accessories, date: tl.date, brighten: brightenAccessories))
+                        Image(decorative: shown.image, scale: 1).resizable().interpolation(.high).aspectRatio(contentMode: .fit)
+                            .overlay(RaynaAccessories(unlocks: accessories, date: tl.date, brighten: brightenAccessories,
+                                                      poses: RaynaAnchors.poses(shown.clip, frame: shown.index)))
                             .rotationEffect(.degrees(sp.angle))
                             .scaleEffect(sp.scale)
                             .offset(y: sp.lift * size)
@@ -227,15 +229,22 @@ public struct RaynaView: View {
 
     private var idle: RaynaClip { progress >= 0.45 ? .idleHappy : .idleThirsty }
 
-    private func pick(_ clip: RaynaClip, _ age: Double) -> CGImage? {
+    /// One decoded frame and where it sits in its clip (the badges look up their poses by that).
+    struct Shown {
+        var image: CGImage
+        var clip: RaynaClip
+        var index: Int
+    }
+
+    private func pick(_ clip: RaynaClip, _ age: Double) -> Shown? {
         let f = RaynaFrames.frames(clip)
         guard !f.isEmpty else { return nil }
         var i = Int(age * clip.fps)
         i = clip.loops ? ((i % f.count) + f.count) % f.count : min(max(i, 0), f.count - 1)
-        return f[i]
+        return Shown(image: f[i], clip: clip, index: i)
     }
 
-    func frame(at date: Date) -> CGImage? {
+    func shown(at date: Date) -> Shown? {
         if let s = script {
             var age = date.timeIntervalSince(s.start)
             for c in s.clips {
@@ -243,7 +252,7 @@ public struct RaynaView: View {
                 age -= c.duration
             }
             if let t = s.then { return pick(t, age) }
-            return s.clips.last.flatMap { RaynaFrames.frames($0).last }
+            return s.clips.last.flatMap { pick($0, $0.duration) }
         }
         if let f = flipAt, date.timeIntervalSince(f) >= 0, date.timeIntervalSince(f) < Self.spinDuration {
             return pick(.idleHappy, date.timeIntervalSince(f))   // wings keep flapping while she spins

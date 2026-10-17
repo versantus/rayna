@@ -63,10 +63,10 @@ public enum RaynaUnlock: String, CaseIterable, Identifiable, Codable {
         case .podWave: return "person.3.fill"
         }
     }
-    /// Full-frame art (tide's moon and water, flood, the pod wave). Worn alone, never on top of a headband or medal.
+    /// Full-frame water art (ripples, tide's moon and water, flood, the pod wave): the Scene slot.
     public var isSceneOverlay: Bool {
         switch self {
-        case .tide, .flood, .podWave: return true
+        case .surge, .tide, .flood, .podWave: return true
         default: return false
         }
     }

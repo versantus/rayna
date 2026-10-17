@@ -8,11 +8,13 @@ struct PhoneHome: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.dynamicTypeSize) private var typeSize
     var scrolling: Bool
+    /// The layout picker draws each layout without changing the saved one.
+    var layoutOverride: MainLayout? = nil
     @State private var showCustomSize = false
 
     private var compact: Bool { UIScreen.main.bounds.height < 700 }
     private var ink: Color { scheme == .dark ? .white : Color(red: 0.03, green: 0.2, blue: 0.4) }
-    private var layout: MainLayout { model.store.mainLayout }
+    private var layout: MainLayout { layoutOverride ?? model.store.mainLayout }
 
     var body: some View {
         Group {
@@ -43,7 +45,7 @@ struct PhoneHome: View {
             pool(fraction: 1, ring: false)
                 .layoutPriority(scrolling ? 0 : 1)
                 .frame(minHeight: scrolling ? nil : (compact ? 260 : 320))
-                .aspectRatio(scrolling ? 0.92 : nil, contentMode: .fit)
+                .modifier(ScrollingAspect(ratio: scrolling ? 0.92 : nil))
             amountLine
             if model.showSwap { swapButton }
             VStack(spacing: 8) {
@@ -133,7 +135,7 @@ struct PhoneHome: View {
             pool(fraction: 0.78 / RaynaStage.widthFraction, ring: true)
                 .layoutPriority(scrolling ? 0 : 1)
                 .frame(minHeight: scrolling ? nil : (compact ? 240 : 300))
-                .aspectRatio(scrolling ? 1.05 : nil, contentMode: .fit)
+                .modifier(ScrollingAspect(ratio: scrolling ? 1.05 : nil))
             amountLine
             podAvatarRow
             if model.showSwap { swapButton }
@@ -151,6 +153,7 @@ struct PhoneHome: View {
         return ZStack {
             (scheme == .dark ? Color(red: 0.04, green: 0.14, blue: 0.28).opacity(0.88) : Color.white.opacity(0.55))
             WaterBackground(progress: model.progress)
+            SeaScene(worn: model.accessories, progress: model.progress)
             GeometryReader { g in
                 let side = RaynaStage.side(width: g.size.width * fraction, height: g.size.height * 0.92)
                 RaynaView(progress: model.progress, wiggleAt: model.wiggleAt, flipAt: model.flipAt,
@@ -444,5 +447,14 @@ struct PhoneHome: View {
         }
         .buttonStyle(.plain)
         .foregroundStyle(ink)
+    }
+}
+
+/// A fixed shape for the water card only when the screen scrolls. `.aspectRatio(nil, ...)` is not "no
+/// ratio": it keeps the card's natural proportions, which stopped it filling the screen in Hero and Balanced.
+private struct ScrollingAspect: ViewModifier {
+    var ratio: CGFloat?
+    func body(content: Content) -> some View {
+        if let ratio { content.aspectRatio(ratio, contentMode: .fit) } else { content }
     }
 }

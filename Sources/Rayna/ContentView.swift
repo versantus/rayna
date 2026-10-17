@@ -42,6 +42,7 @@ struct ContentView: View {
             .background {
                 ZStack {
                     WaterBackground(progress: state.progress)
+                    SeaScene(worn: state.accessories, progress: state.progress)
                     if state.kidMode { RayVisitorsLayer(visitors: RayVisitor.visiting(streak: state.streak)) }
                 }
             }

@@ -83,12 +83,10 @@ enum BadgePixels {
         return rendered.cropping(to: CGRect(x: left, y: top, width: right - left, height: bottom - top))
     }
 
-    /// `makeImage()` after a flipped draw keeps the top of the artwork as the first row.
+    /// A plain draw already keeps the top of the artwork as the first row of the bitmap.
+    /// (Flipping the context here turned every cropped badge upside down.)
     private static func upright(_ image: CGImage, in ctx: CGContext) -> CGImage? {
-        let height = CGFloat(image.height)
-        ctx.translateBy(x: 0, y: height)
-        ctx.scaleBy(x: 1, y: -1)
-        ctx.draw(image, in: CGRect(x: 0, y: 0, width: CGFloat(image.width), height: height))
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: CGFloat(image.width), height: CGFloat(image.height)))
         return ctx.makeImage()
     }
 }
@@ -97,29 +95,53 @@ enum BadgePixels {
 /// Positions match the Higgsfield framing: disc top ≈ 0.09, eyes ≈ 0.18, disc widest ≈ 0.35, tail tip ≈ 0.92.
 /// Over-achiever badges use the transparent overlay imageset in that same square. A single missing asset
 /// falls back to its SF Symbol.
+/// Each slot is laid out in the resting pose and then moved to `poses` (the frame being shown), so a badge
+/// rides her head, chest or wing as she moves. Bubbles and the baby ray swim alongside, so they follow
+/// her chest without turning. Scene badges are not drawn here: SeaScene puts them in the water.
 public struct RaynaAccessories: View {
     public var unlocks: Set<RaynaUnlock>
     public var date: Date
     /// Immersive lays Rayna in the ocean. A little brightness keeps a badge readable under the water.
     public var brighten: Bool
-    public init(unlocks: Set<RaynaUnlock>, date: Date = Date(), brighten: Bool = false) {
-        self.unlocks = unlocks; self.date = date; self.brighten = brighten
+    /// Where each slot is in the frame under the badges. Nil is the resting pose.
+    public var poses: RaynaSlotPoses?
+    public init(unlocks: Set<RaynaUnlock>, date: Date = Date(), brighten: Bool = false, poses: RaynaSlotPoses? = nil) {
+        self.unlocks = unlocks; self.date = date; self.brighten = brighten; self.poses = poses
     }
+
+    private static let companions: Set<RaynaUnlock> = [.bubbles, .baby]
 
     public var body: some View {
         ZStack {
-            drawn
-            pictured
-            symbolFallbacks
+            layer(drawn(unlocks.intersection(Self.companions)), slot: .chest, turns: false)
+            ForEach(BadgeSlot.onBody, id: \.self) { slot in
+                let worn = unlocks.filter { $0.slot == slot }.subtracting(Self.companions)
+                if !worn.isEmpty {
+                    layer(ZStack { drawn(worn); pictured(worn); symbolFallbacks(worn) }, slot: slot, turns: true)
+                }
+            }
         }
+        .aspectRatio(1, contentMode: .fit)              // same square as the frame she's drawn in
         .brightness(brighten ? 0.18 : 0)
         .shadow(color: brighten ? .white.opacity(0.8) : .clear, radius: brighten ? 2 : 0)
         .allowsHitTesting(false)
     }
 
-    /// Each worn imageset sits on its slot: head above the eyes, chest under the smile, fin by her right fin.
+    /// Moves a slot's layer from its resting anchor to this frame's pose: turn about the anchor, then shift.
+    private func layer(_ content: some View, slot: BadgeSlot, turns: Bool) -> some View {
+        GeometryReader { geo in
+            let rest = RaynaSlotPose.rest(slot)
+            let pose = poses?[slot] ?? rest
+            content
+                .rotationEffect(.degrees(turns ? pose.degrees : 0), anchor: UnitPoint(x: rest.x, y: rest.y))
+                .offset(x: (pose.x - rest.x) * geo.size.width, y: (pose.y - rest.y) * geo.size.height)
+                .opacity(pose.opacity)
+        }
+    }
+
+    /// Each worn imageset sits on its slot: head above the eyes, chest under the smile, fin on her right wing.
     /// The art is cropped to the badge, so a scene overlay does not cover her face.
-    private var pictured: some View {
+    private func pictured(_ unlocks: Set<RaynaUnlock>) -> some View {
         GeometryReader { geo in
             let side = min(geo.size.width, geo.size.height)
             ForEach(RaynaUnlock.allCases.filter { unlocks.contains($0) }) { unlock in
@@ -136,10 +158,10 @@ public struct RaynaAccessories: View {
     }
 
     /// Symbol at the slot anchor when this target has no overlay imageset. Head stays above the eyes.
-    private var symbolFallbacks: some View {
+    private func symbolFallbacks(_ unlocks: Set<RaynaUnlock>) -> some View {
         GeometryReader { geo in
             let side = min(geo.size.width, geo.size.height)
-            ForEach(RaynaUnlock.allCases.filter { self.needsSymbol($0) }) { unlock in
+            ForEach(RaynaUnlock.allCases.filter { unlocks.contains($0) && self.needsSymbol($0) }) { unlock in
                 if let name = unlock.symbolName {
                     Image(systemName: name)
                         .font(.system(size: side * 0.14, weight: .bold))
@@ -159,13 +181,10 @@ public struct RaynaAccessories: View {
         return BadgeArt.image(named: name) == nil
     }
 
-    /// Head sits on top of the disc, above the eyes. Chest is below the smile. Fin is out by her right fin.
+    /// Head sits on top of the disc, above the eyes. Chest is below the smile. Fin is on her right wing.
     static func anchor(_ slot: BadgeSlot, in size: CGSize) -> CGPoint {
-        switch slot {
-        case .head: return CGPoint(x: size.width * 0.50, y: size.height * 0.07)
-        case .chest: return CGPoint(x: size.width * 0.50, y: size.height * 0.44)
-        case .fin: return CGPoint(x: size.width * 0.78, y: size.height * 0.64)
-        }
+        let rest = RaynaSlotPose.rest(slot)
+        return CGPoint(x: size.width * rest.x, y: size.height * rest.y)
     }
 
     static func iconScale(_ slot: BadgeSlot) -> CGFloat {
@@ -173,10 +192,11 @@ public struct RaynaAccessories: View {
         case .head: return 0.20
         case .chest: return 0.18
         case .fin: return 0.16
+        case .scene: return 1
         }
     }
 
-    private var drawn: some View {
+    private func drawn(_ unlocks: Set<RaynaUnlock>) -> some View {
         Canvas { ctx, size in
             let s = min(size.width, size.height)
             let ox = (size.width - s) / 2, oy = (size.height - s) / 2
@@ -312,7 +332,7 @@ public struct RaynaJourneyView: View {
         HStack(alignment: .center, spacing: 12) {
             ZStack {
                 RaynaStill(progress: 0.8)
-                RaynaAccessories(unlocks: worn)
+                RaynaAccessories(unlocks: worn, poses: RaynaAnchors.still(progress: 0.8))
             }
             .frame(width: 132, height: 148)
             .accessibilityElement(children: .ignore)
@@ -567,7 +587,9 @@ struct BadgeMark: View {
     var size: CGFloat
     var body: some View {
         Group {
-            if let name = unlock.overlayAssetName, let icon = BadgeArt.icon(named: name) {
+            if unlock.slot == .scene {
+                SeaSceneMark(scene: unlock)
+            } else if let name = unlock.overlayAssetName, let icon = BadgeArt.icon(named: name) {
                 icon.resizable().scaledToFit()
             } else if let symbol = unlock.symbolName {
                 Image(systemName: symbol)
@@ -586,12 +608,14 @@ struct BadgeArtwork: View {
     var unlock: RaynaUnlock
     var body: some View {
         Group {
-            if let name = unlock.overlayAssetName, let icon = BadgeArt.icon(named: name) {
+            if unlock.slot == .scene {
+                SeaSceneCard(scene: unlock)
+            } else if let name = unlock.overlayAssetName, let icon = BadgeArt.icon(named: name) {
                 icon.resizable().scaledToFit()
             } else {
                 ZStack {
                     RaynaStill(progress: 0.8)
-                    RaynaAccessories(unlocks: [unlock])
+                    RaynaAccessories(unlocks: [unlock], poses: RaynaAnchors.still(progress: 0.8))
                 }
                 .scaleEffect(unlock.slot == .fin ? 1.35 : 1.8)
                 .offset(y: unlock.slot == .head ? 28 : (unlock.slot == .chest ? 8 : -8))
@@ -614,8 +638,9 @@ public struct RaynaUnlockBanner: View {
             Text("New for Rayna!").font(.system(.footnote, design: .rounded, weight: .heavy)).foregroundStyle(.secondary)
             TimelineView(.animation) { tl in
                 ZStack {
+                    if unlock.slot == .scene { SeaSceneCard(scene: unlock) }
                     RaynaStill(progress: 1)
-                    RaynaAccessories(unlocks: [unlock], date: tl.date)
+                    RaynaAccessories(unlocks: [unlock], date: tl.date, poses: RaynaAnchors.still(progress: 1))
                 }
             }
             .frame(width: 120, height: 120)

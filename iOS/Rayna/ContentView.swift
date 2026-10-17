@@ -9,6 +9,7 @@ struct ContentView: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.horizontalSizeClass) private var hSize
     @ScaledMetric(relativeTo: .largeTitle) private var amountSize: CGFloat = 40
+    @State private var choosingLayout = false
 
     /// Text colour on the water scene: deep navy by day, white in Dark Mode.
     /// Short screens (iPhone SE / mini): tighter spacing.
@@ -18,17 +19,14 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(colors: scheme == .dark
-                                ? [Color(red: 0.02, green: 0.10, blue: 0.20), Color(red: 0.03, green: 0.22, blue: 0.38)]
-                                : [Color(red: 0.88, green: 0.96, blue: 1.0), Color(red: 0.62, green: 0.84, blue: 0.98)],
-                           startPoint: .top, endPoint: .bottom)
-                .ignoresSafeArea()
+            Self.backdrop(scheme).ignoresSafeArea()
             GeometryReader { geo in
                 let wide = hSize == .regular && geo.size.width >= 700 && !typeSize.isAccessibilitySize
                 // Immersive is the ocean itself. Hero and Balanced keep the water inside their card.
                 // iPad uses the two-column layout and keeps the full-screen water.
                 if wide || model.store.mainLayout == .immersive {
                     WaterBackground(progress: model.progress).ignoresSafeArea()
+                    SeaScene(worn: model.accessories, progress: model.progress).ignoresSafeArea()
                 }
                 if model.kidMode { RayVisitorsLayer(visitors: RayVisitor.visiting(streak: model.streak)).ignoresSafeArea() }
                 if wide {
@@ -47,9 +45,23 @@ struct ContentView: View {
                     }
                     .frame(maxWidth: 600)
                     .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+                    // Press and hold to swipe between Immersive, Hero and Balanced.
+                    .onLongPressGesture(minimumDuration: 0.5) {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) { choosingLayout = true }
+                    }
+                    .accessibilityAction(named: "Change layout") { choosingLayout = true }
                 }
             }
             .animation(.smooth, value: hSize)
+            .animation(.smooth, value: model.store.mainLayout)
+            .scaleEffect(choosingLayout ? 0.92 : 1)
+
+            if choosingLayout {
+                LayoutPicker(shown: $choosingLayout, current: model.store.mainLayout)
+                    .transition(.opacity.combined(with: .scale(scale: 1.08)))
+                    .zIndex(1)
+            }
 
 
             if model.celebrate {
@@ -86,6 +98,14 @@ struct ContentView: View {
             JourneySheet().environmentObject(model)
         }
         .onAppear { model.checkUnlocks() }
+    }
+
+    /// The sky-to-sea gradient behind every layout (also drawn in the layout picker's cards).
+    static func backdrop(_ scheme: ColorScheme) -> LinearGradient {
+        LinearGradient(colors: scheme == .dark
+                            ? [Color(red: 0.02, green: 0.10, blue: 0.20), Color(red: 0.03, green: 0.22, blue: 0.38)]
+                            : [Color(red: 0.88, green: 0.96, blue: 1.0), Color(red: 0.62, green: 0.84, blue: 0.98)],
+                       startPoint: .top, endPoint: .bottom)
     }
 
     /// Two-column layout: Rayna + water on the left, progress / pod / journey on the right.

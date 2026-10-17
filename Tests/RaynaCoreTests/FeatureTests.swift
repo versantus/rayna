@@ -312,7 +312,7 @@ final class FeatureTests: XCTestCase {
         XCTAssertTrue(RaynaUnlock.flood.isSceneOverlay)
         XCTAssertTrue(RaynaUnlock.podWave.isSceneOverlay)
         XCTAssertFalse(RaynaUnlock.headband.isSceneOverlay)
-        XCTAssertFalse(RaynaUnlock.surge.isSceneOverlay)
+        XCTAssertTrue(RaynaUnlock.surge.isSceneOverlay)
         XCTAssertFalse(RaynaUnlock.personalBest.isSceneOverlay)
         XCTAssertTrue(SyncLocalDefaults.intSettings.contains(WornBadge.prefsKey))
 
@@ -337,7 +337,11 @@ final class FeatureTests: XCTestCase {
         XCTAssertEqual(RaynaUnlock.medal.slot, .chest)
         XCTAssertEqual(RaynaUnlock.over7.slot, .chest)
         XCTAssertEqual(RaynaUnlock.personalBest.slot, .fin)
-        XCTAssertEqual(RaynaUnlock.podWave.slot, .fin)
+        XCTAssertEqual(RaynaUnlock.podWave.slot, .scene)
+        XCTAssertEqual(RaynaUnlock.surge.slot, .scene)
+        XCTAssertEqual(RaynaUnlock.tide.slot, .scene)
+        XCTAssertTrue(RaynaUnlock.allCases.filter { $0.slot == .scene }.allSatisfy(\.isSceneOverlay))
+        XCTAssertEqual(WornSet.toggling([.over30, .personalBest], .flood).set, [.over30, .personalBest, .flood], "a scene is worn alongside body badges")
         XCTAssertEqual(WornSet.normalized(Set(RaynaUnlock.allCases)).count, BadgeSlot.allCases.count)
 
         var wearing: Set<RaynaUnlock> = [.headband, .medal]

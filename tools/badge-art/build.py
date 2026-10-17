@@ -19,6 +19,7 @@ import shutil
 from pathlib import Path
 
 from new import *
+from trim import TRIM, keep_main
 from PIL import Image, ImageDraw, ImageFont
 
 HERE = Path(__file__).resolve().parent
@@ -37,6 +38,8 @@ def imageset(name, fn, bg):
     render(fn, bg=str(bg) if bg else None, out=str(png))
     im = Image.open(png).convert("RGBA")
     im.save(png, optimize=True)
+    if name in TRIM:
+        keep_main(png)
     (d / "Contents.json").write_text(json.dumps(
         {"images": [{"filename": f"{name}.png", "idiom": "universal"}],
          "info": {"author": "xcode", "version": 1}},

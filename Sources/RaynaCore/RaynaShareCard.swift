@@ -64,7 +64,7 @@ public struct RaynaShareCard: View {
                     .multilineTextAlignment(.center)
                 ZStack {
                     RaynaStill(progress: 1)
-                    RaynaAccessories(unlocks: info.unlocks, date: .distantPast)
+                    RaynaAccessories(unlocks: info.unlocks, date: .distantPast, poses: RaynaAnchors.still(progress: 1))
                 }
                 .frame(width: square ? 560 : 820, height: square ? 560 : 820)
                 .shadow(color: .black.opacity(0.25), radius: 30, y: 20)
