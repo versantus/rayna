@@ -18,6 +18,13 @@ private struct PodSnapshot: Equatable {
 }
 
 /// One member's shared numbers.
+/// A nudge that reached me: who sent it and when.
+public struct PodNudge: Identifiable, Equatable {
+    public let id: String
+    public let from: String
+    public let at: Date
+}
+
 public struct PodMember: Identifiable, Equatable {
     public let id: String
     public var name: String
@@ -103,6 +110,10 @@ public final class PodService: ObservableObject {
     @Published public private(set) var lastPodFetch: Date?
     /// Named invites that have not been accepted yet. Accepted people show up as member tiles instead.
     @Published public private(set) var pendingInvites: [PodPendingInvite] = []
+    /// Nudges that reached me today, newest first (kept for the day so the pod screen can list them).
+    @Published public private(set) var nudgesToday: [PodNudge] = []
+    /// The nudge to show inside the app right now. The UI clears it after a few seconds.
+    @Published public var nudgeToast: PodNudge?
     /// Presents the system share sheet for the existing CKShare (iOS UICloudSharingController, Mac cloud sharing).
     public var presentShare: (@MainActor (CKShare) -> Void)?
     /// Called after a roster refresh so the app can award the pod-wide badge from local prefs.
@@ -609,6 +620,7 @@ public final class PodService: ObservableObject {
     }
 
     public func fetch() async {
+        loadNudgesToday()
         guard zoneID != nil else { return }
         if fetching { fetchAgain = true; return }
         fetching = true
@@ -805,17 +817,51 @@ public final class PodService: ObservableObject {
             _ = try await db.modifyRecords(saving: [r], deleting: [], savePolicy: .allKeys)
             let k = "nudges-\(RaynaCopy.dayKey(for: Date()))-\(m.id)"
             d.set(d.integer(forKey: k) + 1, forKey: k)
+            d.set(Date(), forKey: "nudgeSent-\(RaynaCopy.dayKey(for: Date()))-\(m.id)")
             objectWillChange.send()
         } catch { presentCloudError(error) }
     }
 
-    /// Turns new nudges addressed to me into local notifications, then deletes them.
+    /// When I last nudged this person today, once it had saved to iCloud.
+    public func nudgeSent(to memberID: String) -> Date? {
+        d.object(forKey: "nudgeSent-\(RaynaCopy.dayKey(for: Date()))-\(memberID)") as? Date
+    }
+
+    private var nudgesTodayKey: String { "nudgesIn-\(RaynaCopy.dayKey(for: Date()))" }
+
+    /// Today's received nudges from storage (a new day starts empty).
+    public func loadNudgesToday() {
+        let raw = d.array(forKey: nudgesTodayKey) as? [[String: Any]] ?? []
+        nudgesToday = raw.compactMap { r in
+            guard let id = r["id"] as? String, let from = r["from"] as? String, let at = r["at"] as? Double else { return nil }
+            return PodNudge(id: id, from: from, at: Date(timeIntervalSince1970: at))
+        }.sorted { $0.at > $1.at }
+    }
+
+    /// Debug builds: pretend a nudge arrived (RAYNA_NUDGE=Sophie), to see the banner and list without two phones.
+    public func debugReceiveNudge(from name: String) {
+        remember([PodNudge(id: "debug-\(UUID().uuidString)", from: name, at: Date())])
+    }
+
+    private func remember(_ nudges: [PodNudge]) {
+        loadNudgesToday()
+        let known = Set(nudgesToday.map(\.id))
+        let fresh = nudges.filter { !known.contains($0.id) }
+        guard !fresh.isEmpty else { return }
+        nudgesToday = (fresh + nudgesToday).sorted { $0.at > $1.at }
+        d.set(nudgesToday.map { ["id": $0.id, "from": $0.from, "at": $0.at.timeIntervalSince1970] as [String: Any] }, forKey: nudgesTodayKey)
+        nudgeToast = fresh.max { $0.at < $1.at }
+    }
+
+    /// Turns new nudges addressed to me into local notifications and an in-app banner, then deletes them.
     public func checkNudges() async { await fetch() }
 
     private func checkNudges(in all: [CKRecord]) async {
         guard !myID.isEmpty else { return }
         let recs = all.filter { $0.recordType == "Nudge" && ($0["to"] as? String) == myID }
         guard !recs.isEmpty else { return }
+        remember(recs.map { PodNudge(id: $0.recordID.recordName, from: $0["fromName"] as? String ?? "A friend",
+                                     at: $0["created"] as? Date ?? Date()) })
         #if canImport(UserNotifications)
         for r in recs.prefix(3) {
             let c = UNMutableNotificationContent()
@@ -1011,6 +1057,16 @@ public struct PodView: View {
                     }
                 }
                 tank
+                if !pod.nudgesToday.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Nudged you today").font(.subheadline.weight(.semibold))
+                        ForEach(pod.nudgesToday) { n in
+                            Text("👋 \(n.from) · \(n.at.formatted(date: .omitted, time: .shortened))").font(.subheadline)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 8)
+                }
                 PodNameField(pod: pod)
                 Button(role: .destructive) { Task { await pod.leavePod() } } label: {
                     Label(pod.isOwner ? "End pod" : "Leave pod", systemImage: "xmark.circle")
@@ -1134,6 +1190,10 @@ public struct PodView: View {
                             Text(left > 0 ? "Nudge 👋" : "Nudged").font(.subheadline.weight(.semibold)).frame(maxWidth: .infinity, minHeight: 36)
                         }
                         .buttonStyle(.bordered).frame(minHeight: 44).disabled(left == 0 || shown.todayProgress >= 1)
+                        if let sent = pod.nudgeSent(to: shown.id) {
+                            Text("Sent ✓ \(sent.formatted(date: .omitted, time: .shortened))")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
                     }
                 }
                 .accessibilityElement(children: .contain)
@@ -1190,5 +1250,36 @@ struct PodNameField: View {
         }
         .onAppear { draft = pod.displayName }
         .padding(.top, 8)
+    }
+}
+
+/// "Sophie nudged you 👋": a banner that drops in when a nudge arrives while Rayna is open (or when it next opens),
+/// so a nudge is never only a notification someone might have turned off.
+public struct PodNudgeBanner: View {
+    @ObservedObject var pod: PodService
+    var onShow: (() -> Void)?
+    public init(pod: PodService = .shared, onShow: (() -> Void)? = nil) { self.pod = pod; self.onShow = onShow }
+    public var body: some View {
+        VStack {
+            if let n = pod.nudgeToast {
+                Text("👋 \(n.from) nudged you. Time for a glass!")
+                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                    .padding(.horizontal, 16).padding(.vertical, 10)
+                    .background(.regularMaterial, in: Capsule())
+                    .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
+                    .onTapGesture { pod.nudgeToast = nil }
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .task(id: n.id) {
+                        onShow?()
+                        try? await Task.sleep(nanoseconds: 4_000_000_000)
+                        if pod.nudgeToast == n { pod.nudgeToast = nil }
+                    }
+                    .accessibilityAddTraits(.isStaticText)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.top, 6)
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: pod.nudgeToast)
+        .allowsHitTesting(pod.nudgeToast != nil)
     }
 }

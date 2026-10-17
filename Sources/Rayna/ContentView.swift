@@ -47,6 +47,8 @@ struct ContentView: View {
                 }
             }
 
+            PodNudgeBanner()
+
             if showConfetti {
                 ConfettiView().id(confettiID)
                 if state.kidMode { ConfettiView().id(confettiID + 1).scaleEffect(1.6) }

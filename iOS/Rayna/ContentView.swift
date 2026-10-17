@@ -69,6 +69,8 @@ struct ContentView: View {
             }
 
 
+            PodNudgeBanner { model.wiggleAt = Date() }
+
             if model.celebrate {
                 ConfettiView().id(confettiID)
                 if model.kidMode { ConfettiView().id(confettiID.uuidString + "k").scaleEffect(1.6) }   // bigger party for kids

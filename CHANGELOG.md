@@ -3,6 +3,8 @@
 All notable changes to Rayna (macOS menu-bar app + iOS app). macOS versions are listed; the iOS app ships as 1.0 (unreleased).
 
 ## Unreleased
+- Apple Watch: Rayna now installs on watchOS 10 and later. The project never set a watchOS minimum, so Xcode used its newest (27.0) and Watches on older watchOS (e.g. 10.6) couldn't install it.
+- Nudges are visible inside Rayna, not only as a notification: a banner drops in ("Sophie nudged you. Time for a glass!") and Rayna wiggles; the pod screen lists "Nudged you today" with times; and the sender sees "Sent ✓ 14:32" once the nudge has saved to iCloud. Debug launch setting `RAYNA_NUDGE=<name>` fakes one.
 - Pods: people who joined from an invite never got nudges pushed to them. The shared database only accepts database subscriptions, and asking for a zone subscription too failed the whole save; the zone one is now only made in the owner's private database. Starting or joining a pod asks for notification permission (nudges are notifications).
 - Pods: someone who joined from a link showed as "Me". Your name now defaults to your iCloud first name when you join, "Your name in the pod" can be changed on the pod screen at any time (published straight away), and older tiles saved as "Me" show the person's iCloud name from the share.
 - Scenes have their own tab on the Badges screen, with two free scenes from the start: Seabed (shells and a starfish) and Seagrass meadow (low swaying seagrass). Earned scenes keep their rules. Free scenes are never worn automatically. New badges are appended, so every older badge keeps its code in `wornSet`. Debug launch settings `RAYNA_WEAR` and `RAYNA_JOURNEY_TAB=scenes`.
