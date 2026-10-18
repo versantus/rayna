@@ -168,7 +168,8 @@ struct PodScreen: View {
             .task {
                 guard !model.demoMode else { return }
                 let s = model.store
-                await PodService.shared.openPod(glasses: s.glasses, ml: s.totalML, goal: s.effectiveGoal, streak: s.streak, isKid: s.extras.kidMode)
+                await PodService.shared.openPod(glasses: s.glasses, ml: s.totalML, goal: s.effectiveGoal, streak: s.streak, isKid: s.extras.kidMode,
+                                                appearance: PodAppearance(skin: s.skin, worn: s.extras.wornBadges))
             }
     }
 }

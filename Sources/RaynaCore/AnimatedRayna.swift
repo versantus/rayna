@@ -123,13 +123,30 @@ public enum RaynaFrames {
     public static func isReady(_ clip: RaynaClip) -> Bool { cached(clip.rawValue).map { !$0.isEmpty } ?? false }
 
     /// One 512 px still: small enough to decode synchronously, so something shows on the very first frame.
+    /// Painted with the signed-in colour (`RaynaFrames.skin`).
     public static func still(_ band: RaynaBand) -> CGImage? {
         let key = "stills/" + band.file
         if let c = cached(key) { return c.first }
-        guard let root, let raw = decode(root.appendingPathComponent("stills/\(band.file).png")) else { return nil }
+        guard let raw = rawStill(band) else { return nil }
         let img = SkinPainter.paint(raw, skin)
         lock.lock(); cache[key] = [img]; lock.unlock()
         return img
+    }
+
+    /// The same still, painted as `skin` instead of the signed-in colour. A separate cache, so a friend's
+    /// Coral ray does not replace yours. Classic is the unpainted art (the fallback when a look isn't known).
+    public static func still(_ band: RaynaBand, skin paint: RaynaSkin) -> CGImage? {
+        let key = "stills/\(band.file)/\(paint.rawValue)"
+        if let c = cached(key) { return c.first }
+        guard let raw = rawStill(band) else { return nil }
+        let img = SkinPainter.paint(raw, paint)
+        lock.lock(); cache[key] = [img]; lock.unlock()
+        return img
+    }
+
+    private static func rawStill(_ band: RaynaBand) -> CGImage? {
+        guard let root else { return nil }
+        return decode(root.appendingPathComponent("stills/\(band.file).png"))
     }
     /// Warm clips in the background, in the order given (put the visible idle loop first).
     public static func preload(_ clips: [RaynaClip]) { clips.forEach { loadAsync($0.rawValue) } }
@@ -143,9 +160,16 @@ public enum RaynaFrames {
 /// A still Rayna for the given progress band (widgets, Reduce Motion).
 public struct RaynaStill: View {
     public var progress: Double
-    public init(progress: Double) { self.progress = progress }
+    /// Nil paints the signed-in colour. A value paints that colour only, and leaves the shared cache alone.
+    public var skin: RaynaSkin?
+    public init(progress: Double, skin: RaynaSkin? = nil) {
+        self.progress = progress
+        self.skin = skin
+    }
     public var body: some View {
-        if let img = RaynaFrames.still(RaynaBand(progress: progress)) {
+        let band = RaynaBand(progress: progress)
+        let img = skin.map { RaynaFrames.still(band, skin: $0) } ?? RaynaFrames.still(band)
+        if let img {
             Image(decorative: img, scale: 1).resizable().interpolation(.high).aspectRatio(contentMode: .fit)
         } else {
             Color.clear

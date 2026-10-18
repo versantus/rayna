@@ -400,6 +400,7 @@ final class JourneyWindowController {
                     state.extras.wornBadges = set
                     state.objectWillChange.send()
                     state.localChanged()
+                    state.publishToPod()
                 }, onSkin: { state.skin = $0 }) {
                     ShareWindowController.shared.show(info: state.shareInfo(state.streak >= 3 ? .streak(state.streak) : .recap))
                 }
@@ -440,7 +441,8 @@ final class PodWindowController {
         RaynaBrand.present(window)
         let s = AppState.shared
         Task { @MainActor in
-            await PodService.shared.openPod(glasses: s.glasses, ml: s.totalML, goal: s.effectiveGoal, streak: s.streak, isKid: s.extras.kidMode)
+            await PodService.shared.openPod(glasses: s.glasses, ml: s.totalML, goal: s.effectiveGoal, streak: s.streak, isKid: s.extras.kidMode,
+                                            appearance: PodAppearance(skin: s.skin, worn: s.extras.wornBadges))
         }
     }
 }

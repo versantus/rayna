@@ -12,9 +12,11 @@ DEFINE SCHEMA
         goal            INT64,
         ml              INT64,
         name            STRING,
+        raynaSkin       STRING,
         streak          INT64,
         updated         TIMESTAMP,
         userID          STRING,
+        wornSet         INT64,
         GRANT WRITE TO "_creator",
         GRANT CREATE TO "_icloud",
         GRANT READ TO "_world"

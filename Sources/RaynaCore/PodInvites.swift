@@ -58,6 +58,37 @@ public enum PodInviteList {
     }
 }
 
+/// How a member's Ray looks: the same colour and worn badges the Badges screen stores
+/// (`raynaSkin` and `wornSet`). An older app that never wrote them is the classic turquoise ray, wearing nothing.
+public struct PodAppearance: Equatable {
+    public var skin: RaynaSkin
+    public var worn: Set<RaynaUnlock>
+
+    /// Classic turquoise, nothing worn. Used when a Member record has no look yet.
+    public static let classic = PodAppearance()
+
+    public init(skin: RaynaSkin = .classic, worn: Set<RaynaUnlock> = []) {
+        self.skin = skin
+        self.worn = WornSet.normalized(worn)
+    }
+
+    /// Bit mask stored on the Member record. Same encoding as the prefs payload.
+    public var wornBits: Int { WornSet.bits(worn) }
+
+    /// Badges that sit on her body. A scene is the water on the main screen, not part of the pod tank.
+    public var onRay: Set<RaynaUnlock> {
+        worn.filter { BadgeSlot.onBody.contains($0.slot) }
+    }
+
+    /// `skin` nil and `wornBits` nil means the record never carried a look (an older app).
+    /// An unknown colour name is classic. Unknown badge bits are ignored.
+    public static func decoded(skin raw: String?, wornBits: Int?) -> PodAppearance {
+        let skin = raw.flatMap(RaynaSkin.init(rawValue:)) ?? .classic
+        let worn = wornBits.map { WornSet.badges(from: $0) } ?? []
+        return PodAppearance(skin: skin, worn: worn)
+    }
+}
+
 /// Today's on-device numbers. The local tile paints these before CloudKit answers.
 public struct PodLive: Equatable {
     public var glasses: Int
@@ -65,12 +96,15 @@ public struct PodLive: Equatable {
     public var goal: Int
     public var streak: Int
     public var isKid: Bool
-    public init(glasses: Int, ml: Int, goal: Int, streak: Int, isKid: Bool) {
+    /// This device's Ray. The local tile keeps it even when the shared record is stale or has no look.
+    public var appearance: PodAppearance
+    public init(glasses: Int, ml: Int, goal: Int, streak: Int, isKid: Bool, appearance: PodAppearance = .classic) {
         self.glasses = glasses
         self.ml = ml
         self.goal = goal
         self.streak = streak
         self.isKid = isKid
+        self.appearance = appearance
     }
 }
 
@@ -90,7 +124,8 @@ public enum PodTile {
         return id == myID || id == "member-\(myID)"
     }
 
-    /// Copies live ml, goal, glasses and streak onto the local member and marks the tile as updated today.
+    /// Copies live ml, goal, glasses, streak and this device's Ray onto the local member, and marks the tile as updated today.
+    /// Everyone else's look stays the one on their Member record.
     public static func shown(_ member: PodMember, myID: String, live: PodLive?, now: Date = Date()) -> PodMember {
         guard isCurrentUser(id: member.id, myID: myID), let live else { return member }
         var copy = member
@@ -99,8 +134,15 @@ public enum PodTile {
         copy.goal = live.goal
         copy.streak = live.streak
         copy.isKid = live.isKid
+        copy.appearance = live.appearance
         copy.updated = now
         return copy
+    }
+
+    /// Nil keeps the signed-in still (the local tile does not switch painter). Any other member uses their own colour,
+    /// or classic when the record has no look yet.
+    public static func stillSkin(mine: Bool, appearance: PodAppearance) -> RaynaSkin? {
+        mine ? nil : appearance.skin
     }
 }
 
@@ -145,9 +187,12 @@ public enum PodFakeRoster {
     /// Varied tanks: one part full, one kid, one over goal, one in between.
     public static func members(now: Date = Date()) -> [PodMember] {
         [
-            PodMember(id: "fake-sam", name: "Sam", glasses: 4, ml: 1000, goal: 3200, streak: 2, updated: now),
-            PodMember(id: "fake-priya", name: "Priya", glasses: 3, ml: 600, goal: 1500, streak: 4, updated: now, isKid: true),
-            PodMember(id: "fake-tom", name: "Tom", glasses: 11, ml: 2750, goal: 2500, streak: 9, updated: now),
+            PodMember(id: "fake-sam", name: "Sam", glasses: 4, ml: 1000, goal: 3200, streak: 2, updated: now,
+                      appearance: PodAppearance(skin: .coral, worn: [.headband])),
+            PodMember(id: "fake-priya", name: "Priya", glasses: 3, ml: 600, goal: 1500, streak: 4, updated: now, isKid: true,
+                      appearance: PodAppearance(skin: .mint, worn: [.medal])),
+            PodMember(id: "fake-tom", name: "Tom", glasses: 11, ml: 2750, goal: 2500, streak: 9, updated: now,
+                      appearance: PodAppearance(skin: .classic, worn: [.bubbles])),
             PodMember(id: "fake-noor", name: "Noor", glasses: 5, ml: 1600, goal: 2800, streak: 1, updated: now)
         ]
     }

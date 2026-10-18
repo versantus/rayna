@@ -1,4 +1,5 @@
 import CloudKit
+import CoreGraphics
 import XCTest
 @testable import RaynaCore
 
@@ -544,6 +545,85 @@ final class FeatureTests: XCTestCase {
         let codes: [RaynaUnlock: Int] = [.bubbles: 1, .headband: 2, .medal: 3, .baby: 4, .surge: 5, .tide: 6, .flood: 7,
                                          .over3: 8, .over7: 9, .over30: 10, .personalBest: 11, .podWave: 12]
         for (badge, code) in codes { XCTAssertEqual(WornBadge.code(for: badge), code, badge.rawValue) }
+    }
+
+    func testPodTilesUseEachMembersRay() {
+        defer { RaynaFrames.skin = .classic }
+        let now = Date()
+        let nikLook = PodAppearance(skin: .coral, worn: [.headband, .meadow])
+        let sophieLook = PodAppearance(skin: .mint, worn: [.medal])
+        XCTAssertEqual(nikLook.onRay, [.headband], "a scene stays in the main-screen water, not on the pod ray")
+        XCTAssertEqual(sophieLook.onRay, [.medal])
+        XCTAssertNotEqual(nikLook.skin, sophieLook.skin)
+        XCTAssertNotEqual(nikLook.onRay, sophieLook.onRay)
+
+        // The shared record still has someone else's look. This device's tile keeps its own.
+        let stale = PodMember(id: "nik", name: "Nik", glasses: 5, ml: 1250, goal: 3000, streak: 1, updated: now, appearance: sophieLook)
+        let live = PodLive(glasses: 5, ml: 1250, goal: 3000, streak: 1, isKid: false, appearance: nikLook)
+        let mine = PodTile.shown(stale, myID: "nik", live: live, now: now)
+        XCTAssertEqual(mine.ml, 1250)
+        XCTAssertEqual(mine.appearance, nikLook)
+        XCTAssertNil(PodTile.stillSkin(mine: true, appearance: mine.appearance))
+
+        let sophie = PodMember(id: "sophie", name: "Sophie", glasses: 3, ml: 750, goal: 1750, streak: 2, updated: now, appearance: sophieLook)
+        let hers = PodTile.shown(sophie, myID: "nik", live: live, now: now)
+        XCTAssertEqual(hers.appearance, sophieLook, "a friend's tile is not replaced with the local Ray")
+        XCTAssertEqual(PodTile.stillSkin(mine: false, appearance: hers.appearance), .mint)
+        XCTAssertEqual(PodTile.stillSkin(mine: false, appearance: mine.appearance), .coral)
+        XCTAssertNotEqual(PodTile.stillSkin(mine: false, appearance: mine.appearance),
+                          PodTile.stillSkin(mine: false, appearance: hers.appearance))
+
+        let older = PodAppearance.decoded(skin: nil, wornBits: nil)
+        XCTAssertEqual(older, .classic)
+        XCTAssertTrue(older.onRay.isEmpty)
+        XCTAssertEqual(PodTile.stillSkin(mine: false, appearance: older), .classic)
+        XCTAssertEqual(PodAppearance.decoded(skin: "not-a-colour", wornBits: 1 << 60).skin, .classic)
+        XCTAssertTrue(PodAppearance.decoded(skin: "not-a-colour", wornBits: 1 << 60).onRay.isEmpty)
+        let round = PodAppearance.decoded(skin: nikLook.skin.rawValue, wornBits: nikLook.wornBits)
+        XCTAssertEqual(round, nikLook)
+
+        RaynaFrames.skin = .classic
+        let raw = tealSwatch()
+        XCTAssertEqual(checksum(SkinPainter.paint(raw, .classic)), checksum(raw))
+        let coralPx = checksum(SkinPainter.paint(raw, .coral))
+        let mintPx = checksum(SkinPainter.paint(raw, .mint))
+        XCTAssertNotEqual(coralPx, mintPx)
+        XCTAssertNotEqual(coralPx, checksum(raw))
+
+        let band = RaynaBand(progress: 0.42)
+        guard let coral = RaynaFrames.still(band, skin: .coral),
+              let mint = RaynaFrames.still(band, skin: .mint),
+              let fallback = RaynaFrames.still(band, skin: .classic),
+              let shared = RaynaFrames.still(band) else {
+            XCTFail("pod tiles need the band stills")
+            return
+        }
+        XCTAssertNotEqual(checksum(coral), checksum(mint), "same progress band, different colours")
+        XCTAssertNotEqual(checksum(coral), checksum(fallback))
+        XCTAssertEqual(checksum(fallback), checksum(shared), "classic is the still the local tile already uses")
+        RaynaFrames.skin = .coral
+        guard let local = RaynaFrames.still(band) else { XCTFail("local still"); return }
+        XCTAssertEqual(checksum(local), checksum(coral), "the signed-in tile stays on that colour")
+        XCTAssertNotEqual(checksum(local), checksum(mint))
+    }
+
+    private func tealSwatch() -> CGImage {
+        let space = CGColorSpace(name: CGColorSpace.sRGB)!
+        let ctx = CGContext(data: nil, width: 2, height: 2, bitsPerComponent: 8, bytesPerRow: 8,
+                            space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        ctx.setFillColor(CGColor(srgbRed: 0.12, green: 0.62, blue: 0.66, alpha: 1))
+        ctx.fill(CGRect(x: 0, y: 0, width: 2, height: 2))
+        return ctx.makeImage()!
+    }
+
+    private func checksum(_ image: CGImage) -> [UInt8] {
+        let w = image.width, h = image.height
+        var bytes = [UInt8](repeating: 0, count: w * h * 4)
+        let space = CGColorSpace(name: CGColorSpace.sRGB)!
+        guard let ctx = CGContext(data: &bytes, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+                                  space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return [] }
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
+        return bytes
     }
 
     func testNewUnlockNamesSyncAsProfileUnion() {

@@ -124,7 +124,8 @@ enum MacPodInvite {
         pod.presentShare = { @MainActor share in present(share) }
         pod.supplyLocal = { @MainActor in
             let s = AppState.shared
-            return PodLive(glasses: s.glasses, ml: s.totalML, goal: s.effectiveGoal, streak: s.streak, isKid: s.extras.kidMode)
+            return PodLive(glasses: s.glasses, ml: s.totalML, goal: s.effectiveGoal, streak: s.streak, isKid: s.extras.kidMode,
+                           appearance: PodAppearance(skin: s.skin, worn: s.extras.wornBadges))
         }
         pod.onRoster = { @MainActor members in
             let state = AppState.shared
