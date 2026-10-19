@@ -5,7 +5,9 @@ The app reads the zone with `recordZoneChanges` (no queries), so no extra indexe
 
 Pending invites, custom glass size and over-achiever badges do not add record types or fields.
 Invites are `CKShare` participants. Custom size is the existing `glassML` integer inside the `RaynaPrefs` `payload` JSON.
-Badges are raw strings inside the `RaynaProfile` `payload` JSON (`unlocks`). Which badge Rayna wears is `wornBadge` inside the existing `RaynaPrefs` `payload` JSON. Pod-wide over-achievement compares existing `Member.ml` and `Member.goal`.
+Badges are raw strings inside the `RaynaProfile` `payload` JSON (`unlocks`). Which badge Rayna wears on her own devices is `wornSet` inside the existing `RaynaPrefs` `payload` JSON. Pod-wide over-achievement compares existing `Member.ml` and `Member.goal`.
+
+A pod tile needs that look on the shared record, because prefs sync is private to one Apple ID. `Member` carries the same two values: `raynaSkin` (String) and `wornSet` (Int64). No new record type and no new index. Deploy the schema to Production before a TestFlight build that writes them. A member saved by an older app omits both fields; the tile shows the classic ray.
 
 Development: the types are created automatically the first time a development build (Xcode Run) starts a pod.
 Production (TestFlight/App Store) never auto-creates types. Deploy before testing pods in TestFlight:

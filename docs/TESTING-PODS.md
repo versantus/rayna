@@ -45,10 +45,10 @@ Open [CloudKit Console](https://icloud.developer.apple.com) with the team that o
 3. Open **Data**.
 4. The owner's records are in their **Private Database**, custom zone **RaynaPod**.
    - `Pod` is the root (`name`, `podStreak`, `podStreakDay`).
-   - `Member` is one person (`userID`, `name`, `glasses`, `ml`, `goal`, `streak`, `isKid`, `updated`). `updated` is the day. There is no separate day field.
+   - `Member` is one person (`userID`, `name`, `glasses`, `ml`, `goal`, `streak`, `isKid`, `updated`, `raynaSkin`, `wornSet`). `updated` is the day. There is no separate day field. `raynaSkin` and `wornSet` are that person's Ray (colour and worn badges). A row from an older app has neither; the tile shows the classic ray.
    - `Nudge` is `to`, `from`, `fromName`, `created`.
 5. The participant sees the same zone under **Shared Database**, not in their private database.
 6. The share is the `CKShare` in that zone. Its participants list pending and accepted people. A grey tile in the app is a pending participant. A member tile is a `Member` record.
-7. **Schema → Record Types** is only to confirm nothing new was added. This work does not need a schema deploy.
+7. **Schema → Record Types → Member** includes `raynaSkin` (String) and `wornSet` (Int64). Development adds them the first time this build saves a member. Production does not: deploy Development → Production before a TestFlight build that writes them. Older rows simply omit the fields.
 
-If a Member row stays at `ml` 0 while that person's main screen shows water, they have not published since the pod was created. Opening the pod screen or logging a glass writes `ml`, `goal` and `updated`.
+If a Member row stays at `ml` 0 while that person's main screen shows water, they have not published since the pod was created. Opening the pod screen or logging a glass writes `ml`, `goal`, `updated`, `raynaSkin` and `wornSet`.

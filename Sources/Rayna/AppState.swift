@@ -47,13 +47,14 @@ final class AppState: ObservableObject {
             let s = d.string(forKey: RaynaSkin.storageKey).flatMap(RaynaSkin.init(rawValue:)) ?? .classic
             return RaynaFeatures.rayColours && s.isAvailable ? s : .classic
         }
-        set { d.set(newValue.rawValue, forKey: RaynaSkin.storageKey); RaynaFrames.skin = newValue; objectWillChange.send(); localChanged() }
+        set { d.set(newValue.rawValue, forKey: RaynaSkin.storageKey); RaynaFrames.skin = newValue; objectWillChange.send(); localChanged(); publishToPod() }
     }
     func publishToPod() {
         guard PodService.isEntitled else { return }
         let g = glasses, ml = totalML, goal = effectiveGoal, st = streak, kid = extras.kidMode
         Task { @MainActor in
-            await PodService.shared.publish(glasses: g, ml: ml, goal: goal, streak: st, isKid: kid)
+            await PodService.shared.publish(glasses: g, ml: ml, goal: goal, streak: st, isKid: kid,
+                                             appearance: PodAppearance(skin: skin, worn: extras.wornBadges))
         }
     }
 
@@ -138,6 +139,7 @@ final class AppState: ObservableObject {
         checkGoal()
         RaynaFrames.skin = skin
         objectWillChange.send()
+        publishToPod()
     }
     /// True while applying synced values (so it doesn't count as a local edit).
     private var reloading = false

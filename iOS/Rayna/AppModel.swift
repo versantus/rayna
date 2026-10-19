@@ -204,7 +204,8 @@ final class AppModel: ObservableObject {
         guard !demoMode else { return }
         let s = store
         Task { @MainActor in
-            await PodService.shared.publish(glasses: s.glasses, ml: s.totalML, goal: s.effectiveGoal, streak: s.streak, isKid: s.extras.kidMode)
+            await PodService.shared.publish(glasses: s.glasses, ml: s.totalML, goal: s.effectiveGoal, streak: s.streak, isKid: s.extras.kidMode,
+                                             appearance: PodAppearance(skin: s.skin, worn: s.extras.wornBadges))
         }
     }
 

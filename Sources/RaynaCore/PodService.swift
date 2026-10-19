@@ -16,6 +16,7 @@ private struct PodSnapshot: Equatable {
     var goal: Int
     var streak: Int
     var isKid: Bool
+    var appearance: PodAppearance
 }
 
 /// One member's shared numbers.
@@ -36,6 +37,8 @@ public struct PodMember: Identifiable, Equatable {
     public var updated: Date
     /// Family pods: members using kid mode are shown as kids (with cups) so grown-ups can follow along.
     public var isKid: Bool = false
+    /// Colour and worn badges. Missing on the record (an older app) is the classic ray.
+    public var appearance: PodAppearance = .classic
     public var progress: Double { goal > 0 ? min(Double(ml) / Double(goal), 1) : 0 }
     public var isToday: Bool { Calendar.current.isDateInToday(updated) }
     /// Today's progress, or 0 if they haven't synced today.
@@ -218,7 +221,7 @@ public final class PodService: ObservableObject {
         return zone.zoneID
     }
 
-    private func memberRecord(zone z: CKRecordZone.ID, glasses: Int, ml: Int, goal: Int, streak: Int) -> CKRecord {
+    private func memberRecord(zone z: CKRecordZone.ID, glasses: Int, ml: Int, goal: Int, streak: Int, appearance: PodAppearance) -> CKRecord {
         let r = CKRecord(recordType: "Member", recordID: CKRecord.ID(recordName: "member-\(myID)", zoneID: z))
         r.setParent(CKRecord.ID(recordName: "pod", zoneID: z))
         r["userID"] = myID as CKRecordValue
@@ -229,6 +232,7 @@ public final class PodService: ObservableObject {
         r["streak"] = streak as CKRecordValue
         r["updated"] = Date() as CKRecordValue
         r["isKid"] = (meIsKid ? 1 : 0) as CKRecordValue
+        writeAppearance(r, appearance)
         return r
     }
 
@@ -242,7 +246,7 @@ public final class PodService: ObservableObject {
         let share = CKShare(rootRecord: pod)   // a share of a record lives in that record's zone
         share[CKShare.SystemFieldKey.title] = "Join my Rayna pod 🌊" as CKRecordValue
         share.publicPermission = .readWrite
-        let me = memberRecord(zone: z, glasses: 0, ml: 0, goal: 2500, streak: 0)
+        let me = memberRecord(zone: z, glasses: 0, ml: 0, goal: 2500, streak: 0, appearance: live?.appearance ?? .classic)
         try await save([pod, share, me], in: container.privateCloudDatabase)
         currentShare = share
         shareURL = share.url
@@ -331,7 +335,7 @@ public final class PodService: ObservableObject {
         do {
             if myID.isEmpty { myID = try await container.userRecordID().recordName }
             if let local = supplyLocal?() {
-                noteLocal(glasses: local.glasses, ml: local.ml, goal: local.goal, streak: local.streak, isKid: local.isKid)
+                noteLocal(glasses: local.glasses, ml: local.ml, goal: local.goal, streak: local.streak, isKid: local.isKid, appearance: local.appearance)
             }
             try await createOwnerPod(name: name)
             isOwner = true
@@ -339,7 +343,7 @@ public final class PodService: ObservableObject {
             await subscribe()
             await fetch()
             if let local = live {
-                await publish(glasses: local.glasses, ml: local.ml, goal: local.goal, streak: local.streak, isKid: local.isKid)
+                await publish(glasses: local.glasses, ml: local.ml, goal: local.goal, streak: local.streak, isKid: local.isKid, appearance: local.appearance)
             }
         } catch {
             if ownerFlag && zoneOwner != nil && shareURL == nil { resetLocal() }
@@ -447,7 +451,7 @@ public final class PodService: ObservableObject {
     private func adopt(_ metadata: CKShare.Metadata, asOwner: Bool) async {
         if myID.isEmpty { myID = await currentUserRecordName() }
         if let local = supplyLocal?() {
-            noteLocal(glasses: local.glasses, ml: local.ml, goal: local.goal, streak: local.streak, isKid: local.isKid)
+            noteLocal(glasses: local.glasses, ml: local.ml, goal: local.goal, streak: local.streak, isKid: local.isKid, appearance: local.appearance)
         }
         zoneOwner = metadata.share.recordID.zoneID.ownerName
         ownerFlag = asOwner
@@ -459,7 +463,7 @@ public final class PodService: ObservableObject {
         await subscribe()
         await fetch()
         if let local = live {
-            await publish(glasses: local.glasses, ml: local.ml, goal: local.goal, streak: local.streak, isKid: local.isKid)
+            await publish(glasses: local.glasses, ml: local.ml, goal: local.goal, streak: local.streak, isKid: local.isKid, appearance: local.appearance)
         }
     }
 
@@ -506,10 +510,10 @@ public final class PodService: ObservableObject {
     private var meIsKid = false
 
     /// Paints the open pod tile from the local log. Call this before any network wait.
-    public func noteLocal(glasses: Int, ml: Int, goal: Int, streak: Int, isKid: Bool) {
+    public func noteLocal(glasses: Int, ml: Int, goal: Int, streak: Int, isKid: Bool, appearance: PodAppearance) {
         let kid = isKid && RaynaFeatures.kidMode
         meIsKid = kid
-        live = PodLive(glasses: glasses, ml: ml, goal: goal, streak: streak, isKid: kid)
+        live = PodLive(glasses: glasses, ml: ml, goal: goal, streak: streak, isKid: kid, appearance: appearance)
     }
 
     /// Member as drawn. The local user always shows `live`, including right after +1 or undo.
@@ -522,19 +526,19 @@ public final class PodService: ObservableObject {
     }
 
     /// Pod screen opened: paint the local tile, refresh iCloud status, then write today's Member record.
-    public func openPod(glasses: Int, ml: Int, goal: Int, streak: Int, isKid: Bool) async {
+    public func openPod(glasses: Int, ml: Int, goal: Int, streak: Int, isKid: Bool, appearance: PodAppearance) async {
         if case .inPod = status, zoneID == nil { return }
-        noteLocal(glasses: glasses, ml: ml, goal: goal, streak: streak, isKid: isKid)
+        noteLocal(glasses: glasses, ml: ml, goal: goal, streak: streak, isKid: isKid, appearance: appearance)
         if status != .inPod { await refreshStatus() }
-        await publish(glasses: glasses, ml: ml, goal: goal, streak: streak, isKid: isKid)
+        await publish(glasses: glasses, ml: ml, goal: goal, streak: streak, isKid: isKid, appearance: appearance)
     }
 
-    /// Writes ml, goal, glasses, streak and `updated` (the day) onto the existing Member record.
+    /// Writes ml, goal, glasses, streak, `updated` (the day) and this Ray's look onto the existing Member record.
     /// A demo pod has no zone and is left alone. Latest tap wins if several publishes overlap.
-    public func publish(glasses: Int, ml: Int, goal: Int, streak: Int, isKid: Bool = false) async {
+    public func publish(glasses: Int, ml: Int, goal: Int, streak: Int, isKid: Bool = false, appearance: PodAppearance) async {
         if case .inPod = status, zoneID == nil { return }
-        noteLocal(glasses: glasses, ml: ml, goal: goal, streak: streak, isKid: isKid)
-        queuedPublish = PodSnapshot(glasses: glasses, ml: ml, goal: goal, streak: streak, isKid: meIsKid)
+        noteLocal(glasses: glasses, ml: ml, goal: goal, streak: streak, isKid: isKid, appearance: appearance)
+        queuedPublish = PodSnapshot(glasses: glasses, ml: ml, goal: goal, streak: streak, isKid: meIsKid, appearance: appearance)
         if publishing { return }
         publishing = true
         defer { publishing = false }
@@ -598,6 +602,13 @@ public final class PodService: ObservableObject {
         record["streak"] = snap.streak as CKRecordValue
         record["updated"] = Date() as CKRecordValue
         record["isKid"] = (snap.isKid ? 1 : 0) as CKRecordValue
+        writeAppearance(record, snap.appearance)
+    }
+
+    /// Same keys as the prefs payload (`raynaSkin`, `wornSet`), on the shared Member record.
+    private func writeAppearance(_ record: CKRecord, _ appearance: PodAppearance) {
+        record[RaynaSkin.storageKey] = appearance.skin.rawValue as CKRecordValue
+        record[WornSet.prefsKey] = appearance.wornBits as CKRecordValue
     }
 
     private func serverRecord(from error: CKError) -> CKRecord? {
@@ -695,7 +706,9 @@ public final class PodService: ObservableObject {
                       glasses: PodTile.cloudInt(r["glasses"]) ?? 0, ml: PodTile.cloudInt(r["ml"]) ?? 0,
                       goal: PodTile.cloudInt(r["goal"]) ?? 2500, streak: PodTile.cloudInt(r["streak"]) ?? 0,
                       updated: r["updated"] as? Date ?? .distantPast,
-                      isKid: (PodTile.cloudInt(r["isKid"]) ?? 0) == 1)
+                      isKid: (PodTile.cloudInt(r["isKid"]) ?? 0) == 1,
+                      appearance: PodAppearance.decoded(skin: r[RaynaSkin.storageKey] as? String,
+                                                       wornBits: PodTile.cloudInt(r[WornSet.prefsKey])))
         }.sorted { PodTile.isCurrentUser(id: $0.id, myID: myID) ? true : (PodTile.isCurrentUser(id: $1.id, myID: myID) ? false : $0.name < $1.name) }
         onRoster?(members)
     }
@@ -722,7 +735,7 @@ public final class PodService: ObservableObject {
     public func rename(_ name: String) async {
         displayName = name.trimmingCharacters(in: .whitespaces)
         guard status == .inPod, let local = supplyLocal?() else { return }
-        await publish(glasses: local.glasses, ml: local.ml, goal: local.goal, streak: local.streak, isKid: local.isKid)
+        await publish(glasses: local.glasses, ml: local.ml, goal: local.goal, streak: local.streak, isKid: local.isKid, appearance: local.appearance)
     }
 
     /// The share to hand to UICloudSharingController / NSSharingService, if we have fetched it.
@@ -1171,6 +1184,15 @@ public struct PodView: View {
         selectedInvite = nil
     }
 
+    /// This member's Ray. The signed-in tile keeps the same still the rest of the app already paints
+    /// (their colour, from `RaynaFrames.skin`). Everyone else is recoloured from their Member record.
+    /// Worn badges sit on the ray either way. A record with no look yet is the classic ray, wearing nothing.
+    private func memberRay(progress: Double, appearance: PodAppearance, mine: Bool) -> some View {
+        RaynaStill(progress: progress, skin: PodTile.stillSkin(mine: mine, appearance: appearance))
+            .overlay(RaynaAccessories(unlocks: appearance.onRay, date: .distantPast,
+                                      poses: RaynaAnchors.still(progress: progress)))
+    }
+
     /// Sample kid tiles show cups even while kid mode is switched off, so the layout is visible in a debug build.
     private func tileCaption(_ member: PodMember) -> String {
         guard PodFakeRoster.isFake(member.id), member.isKid else { return RaynaCopy.podTileLabel(member) }
@@ -1194,7 +1216,7 @@ public struct PodView: View {
                             let side = min(g.size.width * 1.0, g.size.height * 0.85)
                             let waterTop = g.size.height * (1 - (0.08 + 0.84 * p))
                             let y = min(max(waterTop - side * 0.3, -side * 0.08), g.size.height - side * 0.92)
-                            RaynaStill(progress: p)
+                            memberRay(progress: p, appearance: shown.appearance, mine: pod.isCurrentUser(shown.id))
                                 .frame(width: side, height: side)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                                 .offset(y: y)
@@ -1228,7 +1250,7 @@ public struct PodView: View {
                     VStack(spacing: 6) {
                         ZStack {
                             RoundedRectangle(cornerRadius: 18).fill(Color.gray.opacity(0.16))
-                            RaynaStill(progress: 0.15)
+                            RaynaStill(progress: 0.15, skin: .classic)
                                 .opacity(0.38)
                                 .saturation(0)
                                 .grayscale(1)
