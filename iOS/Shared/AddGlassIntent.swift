@@ -10,7 +10,9 @@ struct AddGlassIntent: AppIntent {
     static var description = IntentDescription("Adds one glass to today's total and makes Rayna happy.")
 
     func perform() async throws -> some IntentResult {
-        RaynaStore.shared.addGlass()
+        let store = RaynaStore.shared
+        store.addGlass()
+        store.extras.noteQuietMilestone(progress: store.progress)
         ReminderScheduler.reschedule()
         WidgetCenter.shared.reloadAllTimelines()
         return .result()

@@ -82,11 +82,24 @@ public struct ProgressRing: View {
     }
 }
 
+public enum ConfettiPalette: Equatable {
+    case ocean, halloween
+}
+
 public struct ConfettiView: View {
-    public init() {}
+    public var palette: ConfettiPalette
+    public init(palette: ConfettiPalette = .ocean) { self.palette = palette }
     @State private var burst = false
-    private let colors: [Color] = [Color(red: 0.35, green: 0.78, blue: 0.98), Color(red: 1, green: 0.56, blue: 0.69),
-                                   .yellow, .green, .purple]
+    private var colors: [Color] {
+        switch palette {
+        case .ocean:
+            return [Color(red: 0.35, green: 0.78, blue: 0.98), Color(red: 1, green: 0.56, blue: 0.69),
+                    .yellow, .green, .purple]
+        case .halloween:
+            return [Color(red: 0.20, green: 0.16, blue: 0.48), Color(red: 1, green: 0.72, blue: 0),
+                    Color(red: 1, green: 0.56, blue: 0.69)]
+        }
+    }
     private let pieces: [(CGFloat, CGFloat, Double)] = (0..<40).map { _ in
         (CGFloat.random(in: -180...180), CGFloat.random(in: -160...120), Double.random(in: 0...360))
     }

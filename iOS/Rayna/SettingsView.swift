@@ -49,8 +49,19 @@ struct SettingsView: View {
                     Picker("Layout", selection: model.binding(\.mainLayout)) {
                         ForEach([MainLayout.immersive, .hero, .balanced], id: \.self) { Text($0.title).tag($0) }
                     }
+                    if SeasonGate.settingsAvailable() {
+                        Toggle(SeasonCopy.toggleTitle, isOn: Binding(
+                            get: { model.store.extras.halloweenCostumeOn },
+                            set: { model.objectWillChange.send(); model.store.extras.setHalloweenCostume($0) }))
+                        .accessibilityHint(SeasonCopy.footer(SeasonGate.phase()))
+                    }
                 } header: { Text("Appearance") } footer: {
-                    Text("Immersive fills the screen with the ocean. Hero puts Rayna in a glass card. Balanced adds a progress ring and pod portraits. iPad keeps the wide layout.")
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Immersive fills the screen with the ocean. Hero puts Rayna in a glass card. Balanced adds a progress ring and pod portraits. iPad keeps the wide layout.")
+                        if SeasonGate.settingsAvailable() {
+                            Text(SeasonCopy.footer(SeasonGate.phase()))
+                        }
+                    }
                 }
                 Section {
                     Toggle("Add extra water on exercise days", isOn: model.binding(\.exerciseExtraOn))
@@ -118,7 +129,7 @@ struct SettingsView: View {
                 Section {
                     Button("Unlock all badges") { model.unlockBadgesForTesting() }
                 } header: { Text("Debug") } footer: {
-                    Text("Debug builds only. Launch with RAYNA_BADGES=all, or a comma-separated list: surge, tide, flood, over3, over7, over30, personalBest, podWave.")
+                    Text("Debug builds only. Launch with RAYNA_BADGES=all, or a comma-separated list: surge, tide, flood, over3, over7, over30, personalBest, podWave. RAYNA_SEASON=halloween shows the cape, RAYNA_SEASON=off hides it.")
                 }
                 #endif
                 Section {

@@ -15,11 +15,12 @@ public enum RaynaCopy {
         exerciseDay: Bool = false,
         salt: Int = 0,
         kidMode: Bool = false,
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        seasonal: Bool = false
     ) -> String {
         QuipPicker.shared.statusLine(
             progress: progress, at: date, exerciseDay: exerciseDay,
-            salt: salt, kidMode: kidMode, calendar: calendar)
+            salt: salt, kidMode: kidMode, calendar: calendar, seasonal: seasonal)
     }
 
     public static func kidQuip(for progress: Double, at date: Date = Date(), salt: Int = 0, calendar: Calendar = .current) -> String {

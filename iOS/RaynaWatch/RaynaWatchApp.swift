@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import WatchConnectivity
 import WidgetKit
 
@@ -16,6 +17,8 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
     @Published var scene = ""
     /// Rayna's colour from the phone ("classic" or a colour name).
     @Published var skin = "classic"
+    /// "halloween" when the phone says the cape is on. Empty otherwise. Not a colour.
+    @Published var season = ""
     /// band0…band4, or band<n>-<colour> when a colour is chosen.
     func band(_ n: Int) -> String { skin.isEmpty || skin == "classic" ? "band\(n)" : "band\(n)-\(skin)" }
     /// True from opening until the phone has answered (or a few seconds pass), so an old number never looks final.
@@ -43,11 +46,13 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
         streak = d.integer(forKey: WatchKeys.streak)
         scene = d.string(forKey: WatchKeys.scene) ?? ""
         skin = d.string(forKey: WatchKeys.skin) ?? "classic"
+        season = d.string(forKey: WatchKeys.season) ?? ""
     }
 
     private func save() {
         d.set(ml, forKey: WatchKeys.ml); d.set(goal, forKey: WatchKeys.goal); d.set(glassML, forKey: WatchKeys.glassML)
         d.set(streak, forKey: WatchKeys.streak); d.set(Self.today, forKey: WatchKeys.day); d.set(scene, forKey: WatchKeys.scene); d.set(skin, forKey: WatchKeys.skin)
+        d.set(season, forKey: WatchKeys.season)
         WidgetCenter.shared.reloadAllTimelines()
     }
 
@@ -105,6 +110,8 @@ final class WatchModel: NSObject, ObservableObject, WCSessionDelegate {
         if let v = ctx[WatchKeys.streak] as? Int { streak = v }
         if let v = ctx[WatchKeys.scene] as? String { scene = v }
         if let v = ctx[WatchKeys.skin] as? String { skin = v }
+        // A payload with no season key is an older phone: leave the ray uncostumed.
+        season = ctx[WatchKeys.season] as? String ?? ""
         updating = false
         save()
     }
@@ -148,13 +155,19 @@ struct WatchHome: View {
         GeometryReader { geo in
             let side = min(geo.size.width * 1.05, geo.size.height * 0.8)
             ZStack {
-                WatchSea(progress: model.progress, scene: SeaSceneKind(rawValue: model.scene), still: dimmed)
+                WatchSea(progress: model.progress, scene: SeaSceneKind(rawValue: model.scene), still: dimmed,
+                         halloween: model.season == "halloween")
                     .ignoresSafeArea()
                 Image(model.band(raynaBand(model.progress))).resizable().scaledToFit()
                     .frame(width: side, height: side)
+                    .overlay {
+                        if model.season == "halloween" { WatchCape().frame(width: side * 0.72, height: side * 0.34).offset(y: -side * 0.06) }
+                    }
                     .rotationEffect(.degrees(tilt))
                     .position(x: geo.size.width / 2, y: geo.size.height * 0.46)
-                    .accessibilityLabel("Rayna, \(Int(model.progress * 100)) percent of today's goal")
+                    .accessibilityLabel(model.season == "halloween"
+                        ? "Rayna, in a friendly Halloween cape, \(Int(model.progress * 100)) percent of today's goal"
+                        : "Rayna, \(Int(model.progress * 100)) percent of today's goal")
                 VStack(spacing: 0) {
                     Text(String(format: "%.2f / %.1f L", Double(model.ml) / 1000, Double(model.goal) / 1000))
                         .font(.system(.footnote, design: .rounded, weight: .bold))
@@ -203,19 +216,57 @@ struct WatchHome: View {
 
 /// Night sky over a rising sea, with the same waterline as the iPhone (0% near the bottom, 100% near the top).
 /// Waves and bubbles move only while the watch is awake; always-on shows it still.
+/// A small cape on the still. The watch has no frame anchors, so this sits by eye.
+/// The real skin still stays underneath. Missing art falls back to this shape.
+struct WatchCape: View {
+    var body: some View {
+        Group {
+            if UIImage(named: "cape-watch") != nil {
+                Image("cape-watch").resizable().scaledToFit()
+            } else {
+                WatchCapeShape().fill(Color(red: 0.18, green: 0.13, blue: 0.43))
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+private struct WatchCapeShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let w = rect.width, h = rect.height
+        p.move(to: CGPoint(x: 0.05 * w, y: 0.15 * h))
+        p.addQuadCurve(to: CGPoint(x: 0.28 * w, y: 0.95 * h), control: CGPoint(x: 0.02 * w, y: 0.7 * h))
+        p.addQuadCurve(to: CGPoint(x: 0.22 * w, y: 0.2 * h), control: CGPoint(x: 0.26 * w, y: 0.5 * h))
+        p.closeSubpath()
+        p.move(to: CGPoint(x: 0.95 * w, y: 0.15 * h))
+        p.addQuadCurve(to: CGPoint(x: 0.72 * w, y: 0.95 * h), control: CGPoint(x: 0.98 * w, y: 0.7 * h))
+        p.addQuadCurve(to: CGPoint(x: 0.78 * w, y: 0.2 * h), control: CGPoint(x: 0.74 * w, y: 0.5 * h))
+        p.closeSubpath()
+        return p
+    }
+}
+
 struct WatchSea: View {
     var progress: Double
     var scene: SeaSceneKind? = nil
     var still: Bool
+    var halloween = false
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 20, paused: still)) { tl in
             Canvas { ctx, size in
                 let t = still ? 0 : tl.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 3600)
                 let p = max(0, min(1, progress))
                 let level = size.height * (1 - (0.06 + 0.88 * p))
+                let sky = halloween ? Color(red: 0.10, green: 0.08, blue: 0.28) : Color(red: 0.03, green: 0.10, blue: 0.22)
                 ctx.fill(Path(CGRect(origin: .zero, size: size)),
-                         with: .linearGradient(Gradient(colors: [Color(red: 0.03, green: 0.10, blue: 0.22), Color(red: 0.04, green: 0.18, blue: 0.33)]),
+                         with: .linearGradient(Gradient(colors: [sky, Color(red: 0.04, green: 0.18, blue: 0.33)]),
                                                startPoint: .zero, endPoint: CGPoint(x: 0, y: size.height)))
+                if halloween {
+                    let glow = CGRect(x: size.width * 0.70, y: min(level * 0.35, size.height * 0.08), width: 28, height: 28)
+                    ctx.fill(Path(ellipseIn: glow.insetBy(dx: -8, dy: -8)), with: .color(Color.white.opacity(0.12)))
+                    ctx.fill(Path(ellipseIn: glow), with: .color(Color(red: 0.96, green: 0.94, blue: 0.82)))
+                }
                 func wave(_ amp: Double, _ k: Double, _ speed: Double, _ phase: Double) -> Path {
                     var path = Path()
                     path.move(to: CGPoint(x: 0, y: size.height))

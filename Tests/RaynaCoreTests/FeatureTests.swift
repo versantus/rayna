@@ -397,7 +397,7 @@ final class FeatureTests: XCTestCase {
     }
 
     func testQuipCatalogCountsBannedWordsAndShuffle() {
-        let expected = ["start", "ripple", "glide", "halfway", "rising", "almost", "goal", "reminder", "exercise", "kid"]
+        let expected = ["start", "ripple", "glide", "halfway", "rising", "almost", "goal", "reminder", "exercise", "kid", "halloween"]
         XCTAssertEqual(Set(QuipCatalog.categories.map(\.id)), Set(expected))
         XCTAssertGreaterThanOrEqual(QuipCatalog.totalCount, 250)
         XCTAssertTrue(QuipCatalog.allKidSafe)
@@ -417,9 +417,15 @@ final class FeatureTests: XCTestCase {
             "damn", "hell", "crap"
         ]
         for cat in QuipCatalog.categories {
-            XCTAssertGreaterThanOrEqual(cat.lines.count, 30, cat.id)
-            XCTAssertEqual(Set(cat.lines.compactMap(\.time)), Set(["morning", "afternoon", "evening", "night"]), cat.id)
-            XCTAssertTrue(cat.lines.contains { $0.time == nil }, cat.id)
+            if cat.id == "halloween" {
+                XCTAssertEqual(cat.lines.count, 20, cat.id)
+                XCTAssertNil(cat.from)
+                XCTAssertTrue(cat.lines.allSatisfy { $0.time == nil }, cat.id)
+            } else {
+                XCTAssertGreaterThanOrEqual(cat.lines.count, 30, cat.id)
+                XCTAssertEqual(Set(cat.lines.compactMap(\.time)), Set(["morning", "afternoon", "evening", "night"]), cat.id)
+                XCTAssertTrue(cat.lines.contains { $0.time == nil }, cat.id)
+            }
             var own = Set<String>()
             for line in cat.lines {
                 XCTAssertTrue(own.insert(line.text).inserted, "\(cat.id) repeats \(line.text)")

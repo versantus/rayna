@@ -66,7 +66,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
         switch response.actionIdentifier {
         case ReminderScheduler.drankAction:
-            RaynaStore.shared.addGlass()
+            let store = RaynaStore.shared
+            store.addGlass()
+            store.extras.noteQuietMilestone(progress: store.progress)
             WidgetCenter.shared.reloadAllTimelines()
             DispatchQueue.main.async { AppModel.shared.refresh(wiggle: true) }
             ReminderScheduler.reschedule { completionHandler() }

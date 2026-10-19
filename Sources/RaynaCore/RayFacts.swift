@@ -89,6 +89,21 @@ public enum RayFacts {
         ]
         return raw.enumerated().map { RayFact(id: $0.offset, kind: $0.element.0, text: $0.element.1, source: $0.element.2) }
     }()
+
+    /// Shown during Halloween instead of advancing `factsUnlocked`. Ids start at 1000 so they never
+    /// collide with `all`. The leap fact already in `all` (NatGeo-mobula) is not repeated here.
+    public static let halloween: [RayFact] = {
+        let raw: [(RayKind, String, String)] = [
+            (.devil, "Mobula rays are sometimes called devil rays. The little horns are fins beside the mouth, and they help scoop up food.", "NOAA-devil"),
+            (.devil, "Mobula rays eat tiny plankton. They are not hunting anyone.", "NOAA-devil"),
+            (.devil, "Mobula rays don't have a stinging barb on the tail.", "NOAA-devil"),
+            (.devil, "A mobula's mouth is at the front of its head, so it can swim along and scoop dinner as it goes.", "NOAA-devil"),
+            (.devil, "Mobulas like company. They are often seen swimming in groups.", "NatGeo-mobula"),
+            (.devil, "Their wide dark wings are what make a Halloween cape feel so right. They are still gentle.", "NOAA-devil"),
+            (.devil, "A baby mobula is born able to swim. It does not hatch from a mermaid's purse the way a skate does.", "NOAA-devil"),
+        ]
+        return raw.enumerated().map { RayFact(id: 1000 + $0.offset, kind: $0.element.0, text: $0.element.1, source: $0.element.2) }
+    }()
 }
 
 /// Simple vector ray drawn in SwiftUI (no image assets). Shape varies by kind.

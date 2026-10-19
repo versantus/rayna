@@ -72,7 +72,9 @@ public final class RaynaStore {
     public var progress: Double { effectiveGoal > 0 ? min(Double(totalML) / Double(effectiveGoal), 1) : 0 }
     public var glasses: Int { glassML > 0 ? totalML / glassML : 0 }
     public var quip: String {
-        RaynaCopy.quip(for: progress, exerciseDay: runDay && !extras.kidMode, salt: totalML, kidMode: extras.kidMode)
+        if let line = extras.heldTreatLine(salt: totalML) { return line }
+        let seasonal = SeasonGate.showing(defaults: defaults)
+        return RaynaCopy.quip(for: progress, exerciseDay: runDay && !extras.kidMode, salt: totalML, kidMode: extras.kidMode, seasonal: seasonal)
     }
     public var lastLogged: Date? { log.last }
     public func isQuiet(at date: Date) -> Bool { RaynaCopy.isQuiet(date, start: quietStartMin, end: quietEndMin) }
@@ -86,7 +88,9 @@ public final class RaynaStore {
         totalML += glassML
         log = log + [now]
         extras.recordDay(totalML, now: now)
-        return checkGoal(now: now)
+        let hit = checkGoal(now: now)
+        extras.awardMoonleapIfNeeded(ml: totalML, goal: effectiveGoal, now: now)
+        return hit
     }
 
     public func undo(now: Date = Date()) {
@@ -95,6 +99,8 @@ public final class RaynaStore {
         totalML = max(0, totalML - glassML)
         var l = log; if !l.isEmpty { l.removeLast() }; log = l
         extras.recordDay(totalML, now: now)
+        extras.rewindFactMilestone(progress: progress, now: now)
+        extras.clearTreatLine()
     }
 
     /// "I swapped a fizzy drink for water": logs a swap and a glass. Returns true if that glass hit the goal.

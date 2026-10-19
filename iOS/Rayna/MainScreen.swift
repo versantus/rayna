@@ -82,9 +82,10 @@ struct PhoneHome: View {
             let side = RaynaStage.side(width: geo.size.width * 0.94, height: geo.size.height * 0.72)
             ZStack {
                 RaynaView(progress: model.progress, wiggleAt: model.wiggleAt, flipAt: model.flipAt,
-                          size: side, accessories: model.accessories, brightenAccessories: true)
+                          size: side, accessories: model.accessories, brightenAccessories: true,
+                          costume: model.halloweenOn, treat: model.treatBeat, treatID: model.treatID)
                     .position(x: geo.size.width / 2, y: geo.size.height * 0.50)
-                    .accessibilityHidden(true)
+                    .accessibilityHidden(!model.halloweenOn)
                 VStack(spacing: 8) {
                     HStack(alignment: .top) {
                         immersiveTitle
@@ -161,7 +162,8 @@ struct PhoneHome: View {
             GeometryReader { g in
                 let side = RaynaStage.side(width: g.size.width * fraction, height: g.size.height * 0.92)
                 RaynaView(progress: model.progress, wiggleAt: model.wiggleAt, flipAt: model.flipAt,
-                          size: side, accessories: model.accessories)
+                          size: side, accessories: model.accessories,
+                          costume: model.halloweenOn, treat: model.treatBeat, treatID: model.treatID)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             }
             // Balanced keeps the bubble clear of its progress ring in the top-right corner.

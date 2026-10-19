@@ -236,7 +236,14 @@ public struct RaynaExtras {
             let pack = RaynaFeatures.scenePack ? RaynaUnlock.allCases.filter(\.isPremium) : []
             return RaynaUnlock.allCases.filter(\.isFree) + earned + pack
         }
-        nonmutating set { d.set(newValue.map(\.rawValue), forKey: "unlocks") }
+        nonmutating set {
+            // Keep strings this build does not know (the Moonleap stamp) so a new badge cannot drop them.
+            let known = newValue.map(\.rawValue)
+            let extra = (d.stringArray(forKey: "unlocks") ?? []).filter { RaynaUnlock(rawValue: $0) == nil }
+            var merged: [String] = []
+            for id in known + extra where !merged.contains(id) { merged.append(id) }
+            d.set(merged, forKey: "unlocks")
+        }
     }
     /// `wornBadge` in the prefs payload. 0 wears the most recently earned badge, -1 wears nothing, otherwise a badge code.
     public var wornBadgeCode: Int {
@@ -270,14 +277,55 @@ public struct RaynaExtras {
     public var rayFactsOn: Bool { get { d.bool(forKey: "rayFactsOn") } nonmutating set { d.set(newValue, forKey: "rayFactsOn") } }
     /// Milestone facts: Rayna shares a fact when today's progress first crosses 25 / 50 / 75 / 100 %.
     /// Returns the fact to show (a newly unlocked one, or a favourite once all are collected).
-    public func factForMilestone(progress: Double, now: Date = Date()) -> RayFact? {
+    public func factForMilestone(progress: Double, now: Date = Date(), seasonal: Bool? = nil) -> RayFact? {
         guard rayFactsOn else { return nil }
         let day = RaynaCopy.dayKey(for: now)
         let m = min(4, Int((progress + 0.0001) * 4))
         let done = d.string(forKey: "factMilestoneDay") == day ? d.integer(forKey: "factMilestone") : 0
         guard m > done else { return nil }
         d.set(day, forKey: "factMilestoneDay"); d.set(m, forKey: "factMilestone")
+        let show = seasonal ?? SeasonGate.showing(defaults: d, now: now)
+        if show, let fact = nextHalloweenFact() { return fact }
         return unlockNextFact() ?? RayFacts.all.randomElement()
+    }
+
+    /// How many Halloween facts have been shown. Merged with max. Not shown in the UI.
+    public var halloweenFactsShown: Int {
+        get { d.integer(forKey: "halloweenFactsShown") }
+        nonmutating set { d.set(min(max(newValue, 0), RayFacts.halloween.count), forKey: "halloweenFactsShown") }
+    }
+
+    /// The next unshown Halloween fact, without advancing the year-round fact index.
+    private func nextHalloweenFact() -> RayFact? {
+        let n = halloweenFactsShown
+        guard n < RayFacts.halloween.count else { return nil }
+        halloweenFactsShown = n + 1
+        return RayFacts.halloween[n]
+    }
+
+    /// A glass logged while the app was not showing a card. The next open may show one fact.
+    public func noteQuietMilestone(progress: Double, now: Date = Date()) {
+        guard rayFactsOn else { return }
+        let day = RaynaCopy.dayKey(for: now)
+        let m = min(4, Int((progress + 0.0001) * 4))
+        let done = d.string(forKey: "factMilestoneDay") == day ? d.integer(forKey: "factMilestone") : 0
+        if m > done { d.set(true, forKey: "treatPendingFact") }
+    }
+
+    /// Shows the pending fact if the quarter is still crossed. One card, never a queue.
+    public func takePendingFact(progress: Double, now: Date = Date()) -> RayFact? {
+        guard d.bool(forKey: "treatPendingFact") else { return nil }
+        d.set(false, forKey: "treatPendingFact")
+        return factForMilestone(progress: progress, now: now)
+    }
+
+    /// Undo can cross back under a quarter. The next crossing that day may show a fact again.
+    /// Shown Halloween facts stay shown.
+    public func rewindFactMilestone(progress: Double, now: Date = Date()) {
+        let day = RaynaCopy.dayKey(for: now)
+        guard d.string(forKey: "factMilestoneDay") == day else { return }
+        let m = min(4, Int((progress + 0.0001) * 4))
+        if d.integer(forKey: "factMilestone") > m { d.set(m, forKey: "factMilestone") }
     }
     /// How many facts are unlocked (facts unlock in order, one per milestone).
     public var factsUnlocked: Int { get { d.integer(forKey: "factsUnlocked") } nonmutating set { d.set(min(newValue, RayFacts.all.count), forKey: "factsUnlocked") } }
@@ -289,6 +337,64 @@ public struct RaynaExtras {
         let f = RayFacts.all[factsUnlocked]
         factsUnlocked += 1
         return f
+    }
+
+    // MARK: Halloween
+    public var halloweenCostumeOn: Bool { SeasonGate.costumeOn(defaults: d) }
+    public func setHalloweenCostume(_ on: Bool, now: Date = Date(), calendar: Calendar = .current) {
+        SeasonGate.setCostume(on, defaults: d, now: now, calendar: calendar)
+    }
+    public var hasMoonleap: Bool { (d.stringArray(forKey: "unlocks") ?? []).contains(SeasonStamp.id) }
+
+    /// Awards Moonleap the first time today's total meets the goal inside the offered window.
+    /// Returns true only when the string was just added. The celebration flag is set only while the cape is showing.
+    @discardableResult
+    public func awardMoonleapIfNeeded(ml: Int, goal: Int, now: Date = Date(), calendar: Calendar = .current) -> Bool {
+        guard goal > 0, ml >= goal, SeasonGate.canEarn(now: now, calendar: calendar) else { return false }
+        var ids = d.stringArray(forKey: "unlocks") ?? []
+        guard !ids.contains(SeasonStamp.id) else { return false }
+        ids.append(SeasonStamp.id)
+        d.set(ids, forKey: "unlocks")
+        if SeasonGate.showing(defaults: d, now: now, calendar: calendar) { d.set(true, forKey: "moonleapPending") }
+        return true
+    }
+
+    public func takeMoonleapCelebration() -> Bool {
+        guard d.bool(forKey: "moonleapPending") else { return false }
+        d.set(false, forKey: "moonleapPending")
+        return true
+    }
+
+    public func holdTreatLine(_ line: String, salt: Int) {
+        d.set(line, forKey: "treatLine")
+        d.set(salt, forKey: "treatLineSalt")
+    }
+
+    public func heldTreatLine(salt: Int) -> String? {
+        guard d.object(forKey: "treatLine") != nil, d.integer(forKey: "treatLineSalt") == salt else { return nil }
+        return d.string(forKey: "treatLine")
+    }
+
+    public func clearTreatLine() { d.removeObject(forKey: "treatLine") }
+
+    /// One little treat for a glass that is not a fact quarter. Nil once six have played today.
+    /// Does not run when the cape is off. Undo must not call this.
+    public func takeLittleTreat(now: Date = Date(), draw: Int = Int.random(in: 0..<10_000), calendar: Calendar = .current) -> (beat: SeasonBeat, line: String)? {
+        guard SeasonGate.showing(defaults: d, now: now, calendar: calendar) else { return nil }
+        let today = RaynaCopy.dayKey(for: now)
+        let sameDay = d.string(forKey: "treatDay") == today
+        let count = sameDay ? d.integer(forKey: "treatCount") : 0
+        let last = sameDay ? d.string(forKey: "treatLast").flatMap(SeasonBeat.init(rawValue:)) : nil
+        d.set(today, forKey: "treatDay")
+        guard let beat = SeasonTreats.nextBeat(count: count, last: last, draw: draw) else {
+            d.set(count, forKey: "treatCount")
+            return nil
+        }
+        d.set(count + 1, forKey: "treatCount")
+        d.set(beat.rawValue, forKey: "treatLast")
+        let line = SeasonTreats.nextLine(after: d.string(forKey: "treatLastLine"), draw: draw)
+        d.set(line, forKey: "treatLastLine")
+        return (beat, line)
     }
 
     // MARK: Kid mode (1.1)
@@ -516,6 +622,8 @@ public struct RayVisitorsLayer: View {
 /// Feature flags. Kid mode (and family-pod kid marking) is built but hidden until Nik turns it on.
 public enum RaynaFeatures {
     public static let kidMode = false
+    /// Set false to ship a build with Halloween compiled out. The date gate also goes quiet after 15 November.
+    public static let halloween = true
 
     /// Rayna's colours are released: the free ones (turquoise, Coral, Mint) for everyone.
     public static let rayColours = true

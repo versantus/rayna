@@ -69,6 +69,8 @@ Rayna's first splash on iPhone! 🌊
 ## App Review notes
 No login is needed. Tap “+1 glass” to log water; the gear icon opens Settings. Reminders are local notifications (no server). The Home Screen widget's “+1 glass” button uses an App Intent. All data is stored on the device in an App Group shared with the widget. Optional features: Apple Health (Settings → Apple Health; reads today's workouts, writes Dietary Water), Pods (Settings → Friends → Pods; CloudKit sharing, needs iCloud sign-in, no developer server), Apple Watch app (WatchConnectivity), exercise-day Live Activity (Settings). Demo data for review isn't needed: one device can start a pod and see itself in the tank.
 
+A friendly Halloween costume (a cartoon cape and two little fangs, not a horror theme) is on by itself from 17 October through 1 November, and can be turned on in Settings from 2 November through 15 November. After 15 November it puts itself away until next October. There is nothing to buy. Horror/Fear stays None. To see the costume outside those dates, launch a debug build with `RAYNA_SEASON=halloween` (`RAYNA_SEASON=off` hides it). Year-round screenshots stay the ordinary ocean.
+
 ## Age rating
 Answer **None** to every content question (no violence, no mature themes, no gambling, no unrestricted web access, no user-generated content, no medical/treatment information). Result: **4+**. Rayna is general hydration encouragement, not medical advice.
 

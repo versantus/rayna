@@ -6,6 +6,8 @@ import AVFoundation
 /// Ring/Silent switch is on silent.
 public enum RaynaSound: String, CaseIterable {
     case splash, bubbles, chime
+    /// Little Halloween treats. Played only through `RaynaSounds.play`, so Sounds off and the silent switch apply.
+    case flutter, pop, sparkle
 }
 
 public final class RaynaSounds {

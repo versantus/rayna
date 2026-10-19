@@ -65,8 +65,13 @@ enum QuipCatalog {
     }
 
     /// Lines that fit this hour. Untimed lines always fit. Kid mode on an in-progress band also hears the kid list.
-    static func pool(id: String, at date: Date, kidMode: Bool, calendar: Calendar = .current) -> [String] {
+    /// While the Halloween cape is on, every status list before the goal is the halloween list alone.
+    /// Reminders and the goal celebration stay on their own lists.
+    static func pool(id: String, at date: Date, kidMode: Bool, calendar: Calendar = .current, seasonal: Bool = false) -> [String] {
         let part = dayPart(for: date, calendar: calendar)
+        if seasonal && id != "reminder" && id != "goal" {
+            return eligible("halloween", part: part).map(\.text)
+        }
         var chosen = eligible(id, part: part)
         if kidMode {
             let safe = chosen.filter(\.kidSafe)
@@ -142,12 +147,13 @@ final class QuipPicker {
         exerciseDay: Bool,
         salt: Int,
         kidMode: Bool,
-        calendar: Calendar
+        calendar: Calendar,
+        seasonal: Bool = false
     ) -> String {
         let situation = QuipCatalog.situation(for: progress, kidMode: kidMode, exerciseDay: exerciseDay)
         let part = QuipCatalog.dayPart(for: date, calendar: calendar)
-        let key = "\(situation)|\(part)|\(kidMode)"
-        let lines = QuipCatalog.pool(id: situation, at: date, kidMode: kidMode, calendar: calendar)
+        let key = "\(situation)|\(part)|\(kidMode)|\(seasonal)"
+        let lines = QuipCatalog.pool(id: situation, at: date, kidMode: kidMode, calendar: calendar, seasonal: seasonal)
         lock.lock()
         defer { lock.unlock() }
         if cacheKey == key, cacheSalt == salt, let cacheLine { return cacheLine }

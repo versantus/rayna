@@ -5,6 +5,7 @@ Every fact in `Sources/RaynaCore/RayFacts.swift` is tagged with a source key. Fa
 | Key | Source |
 |---|---|
 | NOAA-manta | NOAA Fisheries, *Giant Manta Ray* species page (wingspan up to 26 ft, lifespan up to 45 yrs, pup ~6 ft at birth): https://www.fisheries.noaa.gov/species/giant-manta-ray and the NOAA manta/devil ray ID guide (2025) |
+| NOAA-devil | NOAA Fisheries manta and devil ray identification (the same ID guide as NOAA-manta): cephalic fins beside a terminal mouth, a plankton diet, no stinging barb, a dark dorsal surface, and live young. The skate "mermaid's purse" contrast uses SharkTrust-eggcase. Schooling uses NatGeo-mobula. The sentence about a Halloween cape is Rayna's wording on the dark-wing fact, not a quotation. |
 | NOAA-sawfish | NOAA Fisheries, *Smalltooth Sawfish* (first native marine fish listed under the ESA, 2003; rostrum senses and slashes prey): https://www.fisheries.noaa.gov/species/smalltooth-sawfish |
 | NOAA-largetooth | NOAA Fisheries, *Largetooth Sawfish* (enters freshwater; up to ~7 m): https://www.fisheries.noaa.gov/species/largetooth-sawfish |
 | NOAA-cownose | NOAA Fisheries / NOAA Chesapeake Bay Office, cownose ray migrations along the US Atlantic coast |
