@@ -1,10 +1,29 @@
 # Halloween seasonal release — friendly vampire mobulas
 
-Status: **plan only**. Do not implement from a side edit on `main`. This document is the spec for the work.
+Status: **decided 19 October 2026**. The decisions section below is the spec where it differs from the earlier draft. Do not submit this work to TestFlight or the App Store, and do not deploy a CloudKit schema.
 
 Baseline for every file path below: `cursor/pod-member-ray-appearance-3fc6` at `4e13c995` (PR #8, which contains PR #7). `main` (`0b9796f2`, iOS build 6) does not have skins, worn badges, Ray Facts, the quip catalogue, or the three iPhone layouts. Cut the implementation branch from PR #8 once that stack merges, or stack it on #8 if this has to move first. Merge order of the stack remains `v1.1` ← #3 ← #4 ← #5 ← #7 ← #8.
 
-No CloudKit schema change. No in-app purchase. No App Store or TestFlight upload as part of this plan.
+No CloudKit schema change. No in-app purchase. No App Store or TestFlight upload as part of this work.
+
+## Decisions, 19 October 2026
+
+Nik answered the open questions. These override the draft below where they differ.
+
+1. **Window.** Recurring every year on the device calendar. Automatically on from 17 October through 1 November inclusive. From 2 November through 15 November inclusive it is off by default, and Settings still offers the costume. After 15 November it is unavailable until next 17 October. The year guard stays 2026–2035: outside that, nothing shows and Settings has no row. The build should be ready for a 2026 TestFlight. Nik submits that himself.
+2. **Who it dresses.** Everyone, including while kid mode is still flag-off.
+3. **Speech.** While the costume is showing, the progress bubble uses the Halloween lines only. Ordinary progress lines are not mixed in. Goal lines stay the goal list. Reminders stay the reminder list, so a line chosen on 1 November is not queued for 2 November. The lines say "Ray", not "Rayna". English only.
+4. **Costume.** A cape and two friendly fangs, drawn over the current frames. Not a new skin, not a painted clip set, and not a worn badge. Horns are skipped.
+5. **Moonleap.** A non-worn trophy stamp. It is not a wearable cape badge and it is not a `RaynaUnlock` case.
+6. **Pod tiles.** Friends stay uncostumed. No `Member` field and no CloudKit schema deploy. Your own tile can wear the local cape. Dressing friends' tiles is Sieve task 260, for a later year.
+7. **Sounds.** The Epidemic Sound scream-voices category (https://www.epidemicsound.com/sound-effects/categories/voices/scream/) was considered and rejected. Screams are too frightening for a cute-spooky mode, and the age rating stays 4+ with Horror/Fear at None. A normal Epidemic Sound subscription is for productions and is not a clear licence to embed audio inside a distributed iOS and macOS app. The three treats are original sounds owned by Versantus (`flutter.m4a`, `pop.m4a`, `sparkle.m4a`), played only through `RaynaSounds`, so Sounds off and the iOS silent switch still apply.
+
+Two preference keys live inside the existing `RaynaPrefs` JSON. Last writer wins. Neither is uploaded while it is missing, the same rule as `exerciseExtraOn`. They are not in `boolSettings`, because a missing key would upload as off:
+
+- `halloweenOff` in the automatic window. Missing means on.
+- `halloweenManualOn` from 2 November through 15 November. Missing means off.
+
+An October "on" must not keep the cape on from 2 November, which is why these are two keys. `halloweenFactsShown` is an int on the existing profile payload, merged with max. `moonleap` is a raw string in the existing `unlocks` array. None of that is a new CloudKit field.
 
 ## Decision
 
@@ -20,12 +39,13 @@ The costume is **on by default** for the whole window (adults and children; kid 
 |---|---|
 | Id | `halloween` |
 | First day | **17 October**, local calendar, 00:00 |
-| Last day | **1 November**, local calendar, inclusive |
-| First off day | **2 November**, 00:00 local |
+| Last automatic day | **1 November**, local calendar, inclusive |
+| Manual option | **2 November through 15 November**, inclusive, off unless turned on |
+| Unavailable after | **16 November**, 00:00 local |
 | Recurrence | Every year, same month and day |
 | Time zone | The device calendar (`Calendar.current`), not a fixed UTC instant and not Europe/London |
 
-17 October is the Friday before Halloween week. 1 November is the last day, which matches "mid-October through 1–2 November" and keeps 2 November ordinary. UK clocks go back on Sunday 25 October 2026. Use calendar components (month, day), not a `TimeInterval` from 17 October, so the extra hour does not shorten or lengthen the window.
+17 October is the Friday before Halloween week. The costume is on by itself through 1 November. From 2 November it stays available as a Settings choice through 15 November, then puts itself away. UK clocks go back on Sunday 25 October 2026. Use calendar components (month, day), not a `TimeInterval` from 17 October, so the extra hour does not shorten or lengthen the window.
 
 The gate is pure and testable:
 
@@ -46,16 +66,17 @@ Debug only (never a user control): environment `RAYNA_SEASON=halloween` forces s
 
 ### Manual off switch
 
-Visible only while `inWindow && RaynaFeatures.halloween`. Do not insert the row and hide it; omit the section so VoiceOver and the Mac window have nothing to land on off-season.
+Visible while the season is offered (`settingsAvailable`: automatic or manual phase, feature flag on, year inside 2026–2035). Do not insert the row and hide it; omit it so VoiceOver and the Mac window have nothing to land on after 15 November.
 
 | | |
 |---|---|
 | Copy | **Halloween costume** |
-| Control | Toggle, default **on** |
-| Footer | "A friendly cape for Rayna until 1 November. Turn it off if you'd rather the usual ocean. It puts itself away on 2 November." |
-| Storage | Bool `halloweenOff` in the App Group defaults. **Missing means on.** Same rule as `exerciseExtraOn`: do not upload a missing key as off. |
-| Sync | Add `halloweenOff` to `SyncLocalDefaults.boolSettings` in `Sources/RaynaCore/RaynaCloudSync.swift`. Last writer wins, inside the existing `RaynaPrefs` payload. No new CloudKit field. |
-| Off-season | `isShowing` ignores the key for rendering. The key may stay in defaults. The row comes back next 17 October on whatever value they last set. |
+| Control | Toggle. Default **on** from 17 October through 1 November. Default **off** from 2 November through 15 November. |
+| Footer, automatic | "A friendly cape for Rayna until 1 November. Turn it off if you'd rather the usual ocean. From 2 November it stays off unless you turn it back on, and it puts itself away after 15 November." Plus the clock note. |
+| Footer, manual | "Halloween week is over. You can keep the friendly cape on until 15 November." Plus the clock note. |
+| Storage | `halloweenOff` (automatic; missing means on) and `halloweenManualOn` (manual; missing means off). See the decisions section. |
+| Sync | Both keys inside the existing `RaynaPrefs` payload, only once this device has stored them. No new CloudKit field. |
+| After 15 November | The row is absent. The keys may stay in defaults. Next 17 October the automatic window is on unless `halloweenOff` was left on. |
 
 Places to add the row, and nowhere else:
 
@@ -130,11 +151,11 @@ The speech bubble is the quip, not a separate screen.
 
 Add a category `halloween` with **no** `from` progress, 20 lines, every line `kidSafe: true`. British spelling. First person, the way Rayna already speaks. Warm and silly. Allowed images: cape, fangs that don't bite, pumpkin, moon, bats that are tiny and friendly, mobulas leaping, treats. Banned, and covered by the existing banned-word test in `testQuipCatalogCountsBannedWordsAndShuffle`: blood, gore, death, kill, scary, fright, scream, trick, haunt, zombie, skeleton, devil-as-a-threat, mwah, laugh-as-a-villain, countdown language ("only N days", "last chance", "before it's gone"). Also keep the catalogue's existing bans (alcohol, shame, diets, medical claims).
 
-Do **not** replace the progress band. `QuipCatalog.pool` already appends the kid list onto an in-progress band. Do the same: when `SeasonGate.isShowing`, append the halloween lines to the current band's pool, then let the shuffle bag run. Hydration lines stay in the mix. A redraw with the same salt still returns the cached line (`QuipPicker`'s cache key). Include `isShowing` in that cache key so the first glass inside the window, and the first redraw after 2 November, cannot keep a stale seasonal line.
+While the costume is showing, replace the progress pool with the halloween lines only. Do not mix in the ordinary band, the exercise list, or the kid list. Goal lines stay the goal list. A redraw with the same salt still returns the cached line (`QuipPicker`'s cache key). Include the seasonal flag in that cache key so a line chosen on 1 November is not reused on 2 November for the same salt. Widgets call `RaynaCopy.quip` without the seasonal flag, so they stay on the ordinary lines.
 
 Reminders stay on the `reminder` list only. `QuipPicker.nextReminder` feeds notifications, and `ReminderScheduler` schedules about 48 hours ahead. A Halloween line queued on 1 November would arrive on 2 November. The nudge window (`Sources/Rayna/NudgeController.swift`) uses those reminder lines too. Leave both alone.
 
-Goal lines stay the goal list. Hitting the goal can still say "Happy spin deployed." The halloween lines are in the pool only for in-progress bands (`start` through `almost`), matching how kid lines are added.
+Goal lines stay the goal list. Hitting the goal can still say "Happy spin deployed." The Halloween lines are the whole progress pool until the goal, including the exercise and kid bands, for as long as the costume is showing.
 
 ## Ray Facts
 
@@ -235,7 +256,7 @@ Add three cases, used only by little treats, and only through `RaynaSounds.play`
 
 Mono AAC, a short fade in and out, loudness around −16 LUFS, matching `CREDITS.md`. Seasonal total under 30 KB.
 
-Source: **original audio owned by Versantus**, generated or recorded for Rayna, noted in `CREDITS.md` as original. Do not pull a horror pack, a laugh, or a CC-BY track that needs a credit line in the binary. Do not use the existing harp `chime.m4a` as the sparkle; the goal chime should stay special.
+Source: **original audio owned by Versantus**, generated for Rayna, noted in `CREDITS.md` as original. Epidemic Sound scream-voices were rejected (see the decisions section): too frightening, and not clearly licensable for embedding in the app. Do not pull a horror pack, a laugh, or a CC-BY track that needs a credit line in the binary. Do not use the existing harp `chime.m4a` as the sparkle; the goal chime should stay special.
 
 No seasonal sound on notifications, widgets, Live Activity, or the Watch.
 
@@ -243,7 +264,7 @@ No seasonal sound on notifications, widgets, Live Activity, or the Watch.
 
 Overlays, not a new Higgsfield frame set. Regenerating `idle-happy`, `idle-thirsty`, `wiggle`, `swim-in`, `swim-off`, `pout-swim-off` and the five bands times seven colours would fork the skin pipeline and the Watch stills. The colour cube and the anchors already track the clips.
 
-Canvas is the ray frame: **256×256 PNG with alpha**, the size the clips use. Ship an imageset in both catalogues that already hold badge art: `iOS/Rayna/Assets.xcassets` and `iOS/RaynaMac/Assets.xcassets`. The `./build.sh` menu-bar binary has no asset catalogue (PR #7); seasonal images there fall back to nothing, and the Mac App Store target `RaynaMac` is the one that shows them. Watch assets go in `iOS/RaynaWatch/Assets.xcassets` only if the cape PNG is included.
+Canvas is the ray frame. The overlays ship at **512×512 PNG with alpha** so they stay sharp on the 512 stills; they scale onto the 256 clips. The watch cape is a wide image (`cape-watch`) in the Watch catalog only. Ship an imageset in both catalogues that already hold badge art: `iOS/Rayna/Assets.xcassets` and `iOS/RaynaMac/Assets.xcassets`. The `./build.sh` menu-bar binary has no asset catalogue (PR #7); seasonal images there fall back to nothing, and the Mac App Store target `RaynaMac` is the one that shows them. Watch assets go in `iOS/RaynaWatch/Assets.xcassets` only if the cape PNG is included.
 
 | Asset | Where it is used | Notes |
 |---|---|---|
@@ -321,7 +342,7 @@ Unit tests in `Tests/RaynaCoreTests/FeatureTests.swift` (or a new `SeasonTests.s
 
 Gate:
 
-- 16 October, any year 2026–2035: hidden. 17 October 00:00: showing. 1 November 23:00: showing. 2 November 00:00: hidden.
+- 16 October, any year 2026–2035: hidden, and Settings has no row. 17 October 00:00: showing. 1 November 23:00: showing. 2 November 00:00: off unless `halloweenManualOn`, and the Settings row is still there. 15 November: same manual phase. 16 November: hidden, row absent.
 - A calendar in `Pacific/Auckland` and one in `America/Los_Angeles` on the UTC instant that is still 16 October in London and already 17 October locally: local calendar wins.
 - 25 October 2026, Europe/London, across the DST change: still showing.
 - Year 1970 and year 2040, month October: hidden.
@@ -335,13 +356,13 @@ Costume and sync:
 - An unknown skin string still resolves to classic (existing PR #8 test). Halloween must not write a new skin string.
 - `moonleap` in the middle of `RaynaUnlock.allCases` is a failing test if someone inserts it. If it is a case, the test asserts it is the last case.
 - Profile union keeps `moonleap` from the other device and does not drop unknown unlock strings.
-- Grid filter: stamp present on 31 October if unlocked, absent on 2 November, present again on 17 October the next year without a new earn.
+- Grid filter: stamp card present on 31 October if the costume is showing, absent on 16 November, present again on 17 October the next year without a new earn. Turning the cape off hides the card. The string stays in `unlocks`.
 
 Speech and facts:
 
 - Halloween lines are `kidSafe` and contain none of the banned words.
 - Reminder pool and exercise pool do not gain halloween lines.
-- In-progress pool contains both the band lines and the halloween lines while showing, and only the band lines when hidden.
+- While showing, the in-progress pool is the halloween lines only (exercise and kid bands included). When hidden, it is the ordinary band only. Reminders never gain halloween lines.
 - Cache key changes when the gate flips, so a line chosen on 1 November is not reused on 2 November for the same salt.
 - Crossing 25% while showing does not increment `factsUnlocked` when a Halloween fact is returned. The next ordinary fact index is unchanged.
 - `halloweenFactsShown` merges with max.
@@ -395,7 +416,7 @@ Edit:
 - `Sources/RaynaCore/RayFacts.swift` — `halloween` list only
 - `Sources/RaynaCore/RaynaExtras.swift` — `factForMilestone`, stamp filter, `RaynaFeatures.halloween`
 - `Sources/RaynaCore/RaynaSounds.swift` — three cases
-- `Sources/RaynaCore/RaynaCloudSync.swift` — `halloweenOff` in `boolSettings`
+- `Sources/RaynaCore/RaynaCloudSync.swift` — `halloweenOff` and `halloweenManualOn`, uploaded only once stored (not via `boolSettings`)
 - `Sources/RaynaCore/RaynaSyncLedger.swift` — `halloweenFactsShown` max-merge
 - `Sources/RaynaCore/AnimatedRayna.swift` — overlay the costume
 - `Sources/RaynaCore/RaynaAccessories.swift` — stamp card, no ribbon
@@ -411,6 +432,8 @@ Edit:
 Leave alone: `RaynaSkin.swift`, `BadgeWear.swift` (unless a test needs a one-line assertion that seasonal wear is not a slot), `PodService.swift` record fields, `cloudkit/schema.ckdb`, widget and complication views, `ReminderScheduler.swift`.
 
 ## Open questions for Nik
+
+Answered on 19 October 2026. See **Decisions, 19 October 2026** at the top. The list is kept so the original questions stay next to the answers in git history.
 
 1. **Window.** 17 October through 1 November inclusive, device-local, repeating every year. Is 1 November the last day you want, or should 2 November stay dressed as well?
 2. **2026 versus next year.** The open stack (#3 through #8) is not merged, and iOS 1.1 is not submitted. A build that misses 1 November 2026 simply waits until 17 October 2027. Is a 2026 TestFlight during the window required, or is "ready for next October, previewable with `RAYNA_SEASON`" enough?

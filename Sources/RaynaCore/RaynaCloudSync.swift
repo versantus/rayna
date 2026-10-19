@@ -28,6 +28,11 @@ public struct SyncLocalDefaults {
         if d.object(forKey: "exerciseExtraOn") != nil {
             settings["exerciseExtraOn"] = d.bool(forKey: "exerciseExtraOn") ? 1 : 0
         }
+        // Missing halloweenOff means "cape on". Missing halloweenManualOn means "cape off".
+        // Do not upload either until this device has stored it, or a later writer would clobber the other device.
+        for key in [SeasonGate.halloween.offKey, SeasonGate.halloween.manualOnKey] where d.object(forKey: key) != nil {
+            settings[key] = d.bool(forKey: key) ? 1 : 0
+        }
         var text: [String: String] = [:]
         if let raw = d.string(forKey: MainLayout.storageKey), MainLayout(rawValue: raw) != nil {
             text[MainLayout.storageKey] = raw
@@ -50,6 +55,7 @@ public struct SyncLocalDefaults {
             unlocks: d.stringArray(forKey: "unlocks") ?? [],
             goalDays: d.stringArray(forKey: "goalDays") ?? [],
             factsUnlocked: d.integer(forKey: "factsUnlocked"),
+            halloweenFactsShown: d.integer(forKey: "halloweenFactsShown"),
             text: text)
         s.todayValid = isToday
         return s
@@ -70,7 +76,8 @@ public struct SyncLocalDefaults {
         }
         if s.swaps != old.swaps { d.set(s.swaps, forKey: "swaps") }
         for (k, v) in s.settings where old.settings[k] != v {
-            if Self.boolSettings.contains(k) || k == "exerciseExtraOn" { d.set(v != 0, forKey: k) }
+            if Self.boolSettings.contains(k) || k == "exerciseExtraOn"
+                || k == SeasonGate.halloween.offKey || k == SeasonGate.halloween.manualOnKey { d.set(v != 0, forKey: k) }
             else if k == "glassML" { d.set(GlassSize.sanitize(v), forKey: k) }
             else { d.set(v, forKey: k) }
         }
@@ -81,6 +88,7 @@ public struct SyncLocalDefaults {
         if s.unlocks != old.unlocks { d.set(s.unlocks, forKey: "unlocks") }
         if s.goalDays != old.goalDays { d.set(s.goalDays, forKey: "goalDays") }
         if s.factsUnlocked != old.factsUnlocked { d.set(s.factsUnlocked, forKey: "factsUnlocked") }
+        if s.halloweenFactsShown != old.halloweenFactsShown { d.set(s.halloweenFactsShown, forKey: "halloweenFactsShown") }
         return true
     }
 }

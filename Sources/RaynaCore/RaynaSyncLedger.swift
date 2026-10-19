@@ -99,6 +99,8 @@ public struct SyncProfile: Codable, Equatable {
     public var unlocks: Set<String> = []
     public var goalDays: Set<String> = []
     public var factsUnlocked = 0
+    /// Halloween facts shown. Max-merged so an older device cannot rewind the count. Missing on older records.
+    public var halloweenFactsShown = 0
     public init() {}
     public func merged(with o: SyncProfile) -> SyncProfile {
         var m = self
@@ -108,7 +110,34 @@ public struct SyncProfile: Codable, Equatable {
         m.unlocks.formUnion(o.unlocks)
         m.goalDays.formUnion(o.goalDays)
         m.factsUnlocked = max(factsUnlocked, o.factsUnlocked)
+        m.halloweenFactsShown = max(halloweenFactsShown, o.halloweenFactsShown)
         return m
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case streak, lastGoalDay, bestStreak, unlocks, goalDays, factsUnlocked, halloweenFactsShown
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        streak = try c.decodeIfPresent(Int.self, forKey: .streak) ?? 0
+        lastGoalDay = try c.decodeIfPresent(String.self, forKey: .lastGoalDay) ?? ""
+        bestStreak = try c.decodeIfPresent(Int.self, forKey: .bestStreak) ?? 0
+        unlocks = try c.decodeIfPresent(Set<String>.self, forKey: .unlocks) ?? []
+        goalDays = try c.decodeIfPresent(Set<String>.self, forKey: .goalDays) ?? []
+        factsUnlocked = try c.decodeIfPresent(Int.self, forKey: .factsUnlocked) ?? 0
+        halloweenFactsShown = try c.decodeIfPresent(Int.self, forKey: .halloweenFactsShown) ?? 0
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(streak, forKey: .streak)
+        try c.encode(lastGoalDay, forKey: .lastGoalDay)
+        try c.encode(bestStreak, forKey: .bestStreak)
+        try c.encode(unlocks, forKey: .unlocks)
+        try c.encode(goalDays, forKey: .goalDays)
+        try c.encode(factsUnlocked, forKey: .factsUnlocked)
+        try c.encode(halloweenFactsShown, forKey: .halloweenFactsShown)
     }
 }
 
@@ -176,6 +205,7 @@ public struct SyncLocalSnapshot: Equatable {
     public var unlocks: [String]
     public var goalDays: [String]
     public var factsUnlocked: Int
+    public var halloweenFactsShown: Int = 0
     /// String settings such as `mainLayout`. Absent keys are left alone, so a default is not uploaded.
     public var text: [String: String] = [:]
     /// False when the local store hasn't rolled over to `today` yet (its today fields are stale/empty).
@@ -184,11 +214,11 @@ public struct SyncLocalSnapshot: Equatable {
     public init(today: String, todayML: Int = 0, log: [Date] = [], runDay: Bool = false, runBonusML: Int = 0,
                 history: [String: Int] = [:], swaps: [String: Int] = [:], settings: [String: Int] = [:],
                 streak: Int = 0, lastGoalDay: String = "", bestStreak: Int = 0, unlocks: [String] = [],
-                goalDays: [String] = [], factsUnlocked: Int = 0, text: [String: String] = [:]) {
+                goalDays: [String] = [], factsUnlocked: Int = 0, halloweenFactsShown: Int = 0, text: [String: String] = [:]) {
         self.today = today; self.todayML = todayML; self.log = log; self.runDay = runDay; self.runBonusML = runBonusML
         self.history = history; self.swaps = swaps; self.settings = settings; self.streak = streak
         self.lastGoalDay = lastGoalDay; self.bestStreak = bestStreak; self.unlocks = unlocks
-        self.goalDays = goalDays; self.factsUnlocked = factsUnlocked; self.text = text
+        self.goalDays = goalDays; self.factsUnlocked = factsUnlocked; self.halloweenFactsShown = halloweenFactsShown; self.text = text
     }
 }
 
@@ -250,6 +280,7 @@ public extension SyncLedger {
         var p = SyncProfile()
         p.streak = s.streak; p.lastGoalDay = s.lastGoalDay; p.bestStreak = s.bestStreak
         p.unlocks = Set(s.unlocks); p.goalDays = Set(s.goalDays); p.factsUnlocked = s.factsUnlocked
+        p.halloweenFactsShown = s.halloweenFactsShown
         let mp = profile.merged(with: p)
         if mp != profile { profile = mp; profileDirty = true }
         prune(today: s.today)
@@ -275,7 +306,8 @@ public extension SyncLedger {
         }
         if s.todayML > 0 || h[local.today] != nil { h[local.today] = s.todayML }
         s.history = h; s.swaps = sw
-        for (k, v) in settings.values where s.settings[k] != nil || k == "exerciseExtraOn" || k == WornSet.prefsKey {
+        for (k, v) in settings.values where s.settings[k] != nil || k == "exerciseExtraOn" || k == WornSet.prefsKey
+            || k == SeasonGate.halloween.offKey || k == SeasonGate.halloween.manualOnKey {
             s.settings[k] = v.value
         }
         var texts = s.text
@@ -288,6 +320,7 @@ public extension SyncLedger {
         let goal = Set(local.goalDays).union(profile.goalDays).union(days.filter { $0.value.goalMet }.keys)
         s.goalDays = Array(goal.sorted().suffix(30))
         s.factsUnlocked = max(local.factsUnlocked, profile.factsUnlocked)
+        s.halloweenFactsShown = max(local.halloweenFactsShown, profile.halloweenFactsShown)
         return s
     }
 }

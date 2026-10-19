@@ -11,6 +11,8 @@ enum WatchKeys {
     static let hello = "hello"
     /// Rayna's colour ("classic" or a colour name); the watch has its stills pre-coloured as band<n>-<colour>.
     static let skin = "skin"
+    /// "halloween" while the phone is showing the cape, otherwise "". The complication does not read this.
+    static let season = "season"
     static let watchGroup = "group.co.versantus.raynawater"
 }
 

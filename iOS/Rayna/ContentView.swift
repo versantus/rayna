@@ -81,6 +81,12 @@ struct ContentView: View {
                     .transition(.scale.combined(with: .opacity))
                 ConfettiView()
             }
+            if model.seasonBanner {
+                Color.black.opacity(0.25).ignoresSafeArea().onTapGesture { model.seasonBanner = false }
+                SeasonStampBanner { model.seasonBanner = false }
+                    .transition(.scale.combined(with: .opacity))
+                ConfettiView(palette: .halloween)
+            }
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.height + $0.safeAreaInsets.top + $0.safeAreaInsets.bottom } action: {
             windowHeight = $0
@@ -134,7 +140,8 @@ struct ContentView: View {
                     GeometryReader { g in
                         let side = RaynaStage.side(width: g.size.width, height: g.size.height)
                         RaynaView(progress: model.progress, wiggleAt: model.wiggleAt, flipAt: model.flipAt, size: side,
-                                  accessories: model.accessories)
+                                  accessories: model.accessories,
+                                  costume: model.halloweenOn, treat: model.treatBeat, treatID: model.treatID)
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                     }
                     .layoutPriority(1)

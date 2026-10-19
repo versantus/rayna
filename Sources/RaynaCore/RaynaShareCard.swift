@@ -16,6 +16,8 @@ public struct RaynaShareInfo {
     public var streak: Int
     public var weekL: Double
     public var unlocks: Set<RaynaUnlock>
+    /// Cape on the ray that day. No countdown on the card.
+    public var costume = false
     public init(kind: RaynaShareKind, litres: Double, goalL: Double, streak: Int, weekL: Double, unlocks: Set<RaynaUnlock>) {
         self.kind = kind; self.litres = litres; self.goalL = goalL; self.streak = streak; self.weekL = weekL; self.unlocks = unlocks
     }
@@ -65,6 +67,7 @@ public struct RaynaShareCard: View {
                 ZStack {
                     RaynaStill(progress: 1)
                     RaynaAccessories(unlocks: info.unlocks, date: .distantPast, poses: RaynaAnchors.still(progress: 1))
+                    if info.costume { SeasonCostume(poses: RaynaAnchors.still(progress: 1)) }
                 }
                 .frame(width: square ? 560 : 820, height: square ? 560 : 820)
                 .shadow(color: .black.opacity(0.25), radius: 30, y: 20)

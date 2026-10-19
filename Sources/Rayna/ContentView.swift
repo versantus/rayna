@@ -18,7 +18,8 @@ struct ContentView: View {
                     header
                     quipBubble
                     RaynaView(progress: state.progress, wiggleAt: wiggleAt, flipAt: flipAt,
-                              size: RaynaStage.side(width: 352, height: 380), accessories: state.accessories)
+                              size: RaynaStage.side(width: 352, height: 380), accessories: state.accessories,
+                              costume: state.halloweenOn, treat: state.treatBeat, treatID: state.treatID)
                         .frame(maxWidth: .infinity)
                         .frame(height: RaynaStage.side(width: 352, height: 380))
                     amount
@@ -60,6 +61,11 @@ struct ContentView: View {
                 }) { state.unlockBanner = nil }
                     .scaleEffect(0.9)
             }
+            if state.seasonBanner {
+                SeasonStampBanner { state.seasonBanner = false }
+                    .scaleEffect(0.9)
+                ConfettiView(palette: .halloween)
+            }
         }
         .frame(width: 380, height: 740)
         .sheet(item: $state.factPage) { f in
@@ -72,6 +78,7 @@ struct ContentView: View {
         .onChange(of: state.glassEvent) { _ in wiggleAt = Date() }
         .onAppear {
             if state.celebrate && state.progress >= 1 { party() }
+            state.presentPendingSeason()
             Task { await RaynaCloudSync.shared?.catchUp() }
         }
     }
@@ -279,6 +286,19 @@ struct SettingsView: View {
                     }
                     GlassSizePicker(glassML: $state.glassML)
                 }
+                if SeasonGate.settingsAvailable() {
+                    BrandCard(title: "Appearance", symbol: "theatermasks.fill", tint: .indigo) {
+                        BrandRow(symbol: "moon.stars.fill", tint: .indigo, title: SeasonCopy.toggleTitle) {
+                            Toggle("", isOn: extra({ state.extras.halloweenCostumeOn }, {
+                                state.extras.setHalloweenCostume($0)
+                                state.objectWillChange.send()
+                            })).labelsHidden().toggleStyle(.switch)
+                        }
+                        .accessibilityHint(SeasonCopy.footer(SeasonGate.phase()))
+                        Text(SeasonCopy.footer(SeasonGate.phase()))
+                            .font(.system(size: 11)).foregroundColor(.secondary)
+                    }
+                }
                 BrandCard(title: "Exercise days", symbol: "dumbbell.fill", tint: RaynaBrand.blue) {
                     BrandRow(symbol: "dumbbell.fill", tint: RaynaBrand.blue, title: "Add extra water on exercise days") {
                         Toggle("", isOn: $state.exerciseExtraOn).labelsHidden().toggleStyle(.switch)
@@ -353,7 +373,7 @@ struct SettingsView: View {
                     Button { state.unlockBadgesForTesting() } label: {
                         Label("Unlock all badges", systemImage: "rosette")
                     }
-                    Text("Debug builds only. Launch with RAYNA_BADGES=all, or a comma-separated list: surge, tide, flood, over3, over7, over30, personalBest, podWave.")
+                    Text("Debug builds only. Launch with RAYNA_BADGES=all, or a comma-separated list: surge, tide, flood, over3, over7, over30, personalBest, podWave. RAYNA_SEASON=halloween shows the cape, RAYNA_SEASON=off hides it.")
                         .font(.system(size: 11)).foregroundColor(.secondary)
                 }
                 #endif

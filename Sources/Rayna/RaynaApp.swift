@@ -22,6 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidBecomeActive(_ notification: Notification) {
         Task { @MainActor in await RaynaCloudSync.shared?.catchUp() }
         AppState.shared.publishToPod()
+        AppState.shared.presentPendingSeason()
     }
 
     func application(_ application: NSApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {

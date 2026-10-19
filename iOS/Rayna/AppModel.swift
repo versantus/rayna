@@ -25,6 +25,11 @@ final class AppModel: ObservableObject {
     /// Fact Rayna is currently saying in her bubble (milestones only); tap opens the fact page.
     @Published var bubbleFact: RayFact?
     @Published var factPage: RayFact?
+    /// A little Halloween treat on the ray. Cleared after it plays.
+    @Published var treatBeat: SeasonBeat?
+    @Published var treatID = 0
+    /// Moonleap celebration. Separate from badge banners so the stamp is never wearable.
+    @Published var seasonBanner = false
 
     private init() {
         // Screenshot/demo mode: launch arg `-RaynaDemo <glasses>` or env RAYNA_DEMO=<glasses>
@@ -92,6 +97,8 @@ final class AppModel: ObservableObject {
             }
         }
         checkUnlocks()
+        if bubbleFact == nil, let fact = store.extras.takePendingFact(progress: progress) { bubbleFact = fact }
+        presentSeasonStampIfIdle()
         if wiggle { wiggleAt = Date(); if !demoMode { RaynaSounds.shared.play(.bubbles) } }
         objectWillChange.send()
         publishToPod()
@@ -103,6 +110,7 @@ final class AppModel: ObservableObject {
     var goal: Int { store.effectiveGoal }
     var quip: String { store.quip }
     var kidMode: Bool { store.extras.kidMode }
+    var halloweenOn: Bool { SeasonGate.showing(defaults: store.defaults) }
 
     /// Kid mode: cups, a smaller goal (1.5 L in 200 ml cups) and simpler words. Restores the grown-up goal when off.
     func setKidMode(_ on: Bool) {
@@ -124,8 +132,10 @@ final class AppModel: ObservableObject {
     var showSwap: Bool { store.extras.swapChallenge && (RaynaExtras.isSwapTime() || ProcessInfo.processInfo.environment["RAYNA_SWAP"] == "1") }
 
     func shareInfo(_ kind: RaynaShareKind) -> RaynaShareInfo {
-        RaynaShareInfo(kind: kind, litres: Double(store.totalML) / 1000, goalL: Double(store.effectiveGoal) / 1000,
-                       streak: store.streak, weekL: store.recap.litres, unlocks: accessories)
+        var info = RaynaShareInfo(kind: kind, litres: Double(store.totalML) / 1000, goalL: Double(store.effectiveGoal) / 1000,
+                                  streak: store.streak, weekL: store.recap.litres, unlocks: accessories)
+        info.costume = halloweenOn
+        return info
     }
     func offerShare(_ kind: RaynaShareKind) { share = shareInfo(kind) }
 
@@ -155,7 +165,9 @@ final class AppModel: ObservableObject {
         wiggleAt = Date()
         playGlassSounds(hit: hit)
         revealFact()
+        if bubbleFact == nil { offerLittleTreat() }
         if hit { celebrate = true; flipAt = Date().addingTimeInterval(0.3) }
+        presentSeasonStampIfIdle()
         swapThanks = RaynaCopy.swapThanks.randomElement()
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) { self.swapThanks = nil }
         afterChange()
@@ -178,10 +190,12 @@ final class AppModel: ObservableObject {
         wiggleAt = Date()
         playGlassSounds(hit: hit)
         revealFact()
+        if bubbleFact == nil { offerLittleTreat() }
         if hit {
             celebrate = true
             flipAt = Date().addingTimeInterval(0.3)
         }
+        presentSeasonStampIfIdle()
         afterChange()
         checkUnlocks()
         if !demoMode { requestNotificationsIfNeeded() }
@@ -192,7 +206,25 @@ final class AppModel: ObservableObject {
         store.undo()
         if !demoMode { HealthManager.shared.undoGlass() }
         if store.progress < 1 { celebrate = false }
+        bubbleFact = nil
+        treatBeat = nil
         afterChange()
+    }
+
+    /// Sound plus a short line. A fact quarter is the big treat and does not also take a little one.
+    private func offerLittleTreat() {
+        guard !demoMode, let treat = store.extras.takeLittleTreat() else { return }
+        store.extras.holdTreatLine(treat.line, salt: store.totalML)
+        treatID += 1
+        treatBeat = treat.beat
+        if let sound = RaynaSound(rawValue: treat.beat.rawValue) { RaynaSounds.shared.play(sound) }
+        let token = treatID
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { if self.treatID == token { self.treatBeat = nil } }
+    }
+
+    private func presentSeasonStampIfIdle() {
+        guard unlockBanner == nil, !seasonBanner, store.extras.takeMoonleapCelebration() else { return }
+        seasonBanner = true
     }
 
     func binding<T>(_ kp: ReferenceWritableKeyPath<RaynaStore, T>) -> Binding<T> {

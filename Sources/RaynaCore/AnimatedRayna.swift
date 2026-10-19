@@ -215,21 +215,30 @@ public struct RaynaView: View {
     public var accessories: Set<RaynaUnlock> = []
     /// Brighten badges that sit under the immersive waterline.
     public var brightenAccessories = false
+    /// Friendly Halloween cape and fangs, over the current frames.
+    public var costume = false
+    /// A little treat playing on the cape. Nil in the resting scene.
+    public var treat: SeasonBeat? = nil
+    public var treatID: Int = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(progress: Double, wiggleAt: Date? = nil, flipAt: Date? = nil, pout: Bool = false,
                 size: CGFloat = 100, fullTail: Bool = false, script: RaynaScript? = nil,
-                accessories: Set<RaynaUnlock> = [], brightenAccessories: Bool = false) {
+                accessories: Set<RaynaUnlock> = [], brightenAccessories: Bool = false,
+                costume: Bool = false, treat: SeasonBeat? = nil, treatID: Int = 0) {
         self.progress = progress; self.wiggleAt = wiggleAt; self.flipAt = flipAt; self.pout = pout
         self.size = size; self.fullTail = fullTail; self.script = script; self.accessories = accessories
         self.brightenAccessories = brightenAccessories
+        self.costume = costume; self.treat = treat; self.treatID = treatID
     }
 
     public var body: some View {
         Group {
             if reduceMotion {
-                RaynaStill(progress: progress).overlay(RaynaAccessories(unlocks: accessories, date: .distantPast, brighten: brightenAccessories,
-                                                                         poses: RaynaAnchors.still(progress: progress)))
+                RaynaStill(progress: progress)
+                    .overlay(RaynaAccessories(unlocks: accessories, date: .distantPast, brighten: brightenAccessories,
+                                              poses: RaynaAnchors.still(progress: progress)))
+                    .overlay(costumeLayer(poses: RaynaAnchors.still(progress: progress)))
             } else {
                 TimelineView(.animation(minimumInterval: 1.0 / 30)) { tl in
                     if let shown = shown(at: tl.date) {
@@ -238,6 +247,7 @@ public struct RaynaView: View {
                         Image(decorative: shown.image, scale: 1).resizable().interpolation(.high).aspectRatio(contentMode: .fit)
                             .overlay(RaynaAccessories(unlocks: accessories, date: tl.date, brighten: brightenAccessories,
                                                       poses: RaynaAnchors.poses(shown.clip, frame: shown.index)))
+                            .overlay(costumeLayer(poses: RaynaAnchors.poses(shown.clip, frame: shown.index)))
                             .rotationEffect(.degrees(sp.angle))
                             .scaleEffect(sp.scale)
                             .offset(y: sp.lift * size)
@@ -246,12 +256,21 @@ public struct RaynaView: View {
                     } else {
                         let _ = LaunchTiming.mark("firstStill")
                         RaynaStill(progress: progress)   // shown while the clip decodes
+                            .overlay(costumeLayer(poses: RaynaAnchors.still(progress: progress)))
                     }
                 }
             }
         }
         .frame(width: size, height: fullTail ? size * 1.32 : size)
-        .accessibilityLabel("Rayna the stingray, \(Int(progress * 100)) percent hydrated")
+        .accessibilityLabel(costume
+            ? "Rayna the stingray, in a friendly Halloween cape, \(Int(progress * 100)) percent hydrated"
+            : "Rayna the stingray, \(Int(progress * 100)) percent hydrated")
+    }
+
+    @ViewBuilder private func costumeLayer(poses: RaynaSlotPoses?) -> some View {
+        if costume {
+            SeasonCostume(poses: poses, beat: treat, beatID: treatID)
+        }
     }
 
     /// Goal celebration: a joyful in-plane 360° spin with a little scale-up and bob (code-driven;

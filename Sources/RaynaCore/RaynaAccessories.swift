@@ -407,6 +407,7 @@ public struct RaynaJourneyView: View {
     private var badges: some View {
         VStack(alignment: .leading, spacing: 18) {
             wearingStrip
+            if SeasonStamp.showsCard(showing: SeasonGate.showing(defaults: extras.d)) { moonleapCard }
             grid(RaynaUnlock.allCases.filter { $0.slot != .scene })
                 .preference(key: BadgeSwapToastKey.self, value: swapToast)
             if extras.kidMode {
@@ -496,6 +497,39 @@ public struct RaynaJourneyView: View {
         }
         .accessibilityElement(children: badge == nil ? .combine : .contain)
         .accessibilityLabel(badge == nil ? "\(slot.title), empty" : "\(slot.title), \(badge?.title ?? "")")
+    }
+
+    /// Trophy only. No shirt icon and no wear toggle. Hidden off-season by the caller.
+    private var moonleapCard: some View {
+        let got = extras.hasMoonleap
+        return VStack(alignment: .leading, spacing: 8) {
+            ZStack {
+                if let icon = BadgeArt.icon(named: "stamp-moonleap") {
+                    icon.resizable().scaledToFit()
+                } else {
+                    Image(systemName: "moon.stars.fill")
+                        .font(.system(size: 36))
+                        .foregroundStyle(Color(red: 0.95, green: 0.85, blue: 0.45))
+                        .accessibilityHidden(true)
+                }
+            }
+            .frame(height: 72)
+            .frame(maxWidth: .infinity)
+            .opacity(got ? 1 : 0.35)
+            .saturation(got ? 1 : 0)
+            Text(SeasonCopy.stampTitle)
+                .font(.system(.subheadline, design: .rounded, weight: .bold))
+            Text(got ? SeasonCopy.stampEarned : SeasonCopy.stampHint)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, minHeight: 148, alignment: .topLeading)
+        .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color.primary.opacity(got ? 0.06 : 0.04)))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(SeasonCopy.stampTitle)
+        .accessibilityValue(got ? SeasonCopy.stampEarned : SeasonCopy.stampNotYet)
     }
 
     private func badgeCard(_ u: RaynaUnlock, unlocked got: Bool) -> some View {

@@ -1184,6 +1184,15 @@ public struct PodView: View {
         selectedInvite = nil
     }
 
+    /// iPhone keeps the cape in the App Group. The Mac menu-bar app uses standard defaults.
+    private var seasonDefaults: UserDefaults {
+        #if os(iOS)
+        UserDefaults(suiteName: RaynaStore.appGroup) ?? .standard
+        #else
+        .standard
+        #endif
+    }
+
     /// This member's Ray. The signed-in tile keeps the same still the rest of the app already paints
     /// (their colour, from `RaynaFrames.skin`). Everyone else is recoloured from their Member record.
     /// Worn badges sit on the ray either way. A record with no look yet is the classic ray, wearing nothing.
@@ -1191,6 +1200,12 @@ public struct PodView: View {
         RaynaStill(progress: progress, skin: PodTile.stillSkin(mine: mine, appearance: appearance))
             .overlay(RaynaAccessories(unlocks: appearance.onRay, date: .distantPast,
                                       poses: RaynaAnchors.still(progress: progress)))
+            .overlay {
+                // Friends stay uncostumed. Their capes would need a new Member field.
+                if mine && SeasonGate.showing(defaults: seasonDefaults) {
+                    SeasonCostume(poses: RaynaAnchors.still(progress: progress))
+                }
+            }
     }
 
     /// Sample kid tiles show cups even while kid mode is switched off, so the layout is visible in a debug build.

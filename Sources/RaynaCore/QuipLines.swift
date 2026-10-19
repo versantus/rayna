@@ -346,5 +346,29 @@ enum QuipLines {
             Seed("Little waves count. So do you."),
             Seed("Splash, smile, sip. That's the whole song."),
         ]),
+        // No progress band. While the cape is on, in-progress status lines use only this list.
+        // Every line says Ray, never Rayna. English, child-friendly, no countdown.
+        Category(id: "halloween", from: nil, lines: [
+            Seed("I'm Ray, and my cape is on. Splash me?"),
+            Seed("Ray here. These little fangs are just for smiles."),
+            Seed("The moon looks soft. I'm Ray, and I'd love a sip."),
+            Seed("A tiny bat said hello. Ray waved a fin back."),
+            Seed("Cape's fluttering. I'm Ray, and the next sip helps."),
+            Seed("Pumpkin-coloured bubbles. Ray thinks they're sweet."),
+            Seed("I'm Ray in a friendly cape. One glass, then a glide."),
+            Seed("Moon's out. I'm Ray, and a glass sounds lovely."),
+            Seed("Two friendly fangs, no biting. Ray would like a sip."),
+            Seed("I'm Ray. The cape is short and the smile is wide."),
+            Seed("A little pumpkin sat by the sea. Ray said hello."),
+            Seed("Wings up, cape on. I'm Ray, ready for a ripple."),
+            Seed("Soft moonlight on the water. Ray is grinning."),
+            Seed("I'm Ray. A tiny bat brought a kind little wave."),
+            Seed("The cape is cosy. Ray wants one more gentle sip."),
+            Seed("Fangs for smiling. I'm Ray, and I don't bite."),
+            Seed("I'm Ray under a friendly moon. Shall we splash?"),
+            Seed("Cape on, heart kind. Ray is here for the next glass."),
+            Seed("A mobula leap of joy. I'm Ray, and water helps."),
+            Seed("Pink lining, indigo cape. Ray is ready when you are."),
+        ]),
     ]
 }

@@ -35,6 +35,9 @@ final class AppState: ObservableObject {
     @Published var swapThanks: String?
     @Published var bubbleFact: RayFact?
     @Published var factPage: RayFact?
+    @Published var treatBeat: SeasonBeat?
+    @Published var treatID = 0
+    @Published var seasonBanner = false
     /// History, unlocks and swap-a-fizzy-drink stats (shared logic with iOS).
     let extras = RaynaExtras(defaults: .standard)
     var goalDays: [String] { get { d.stringArray(forKey: "goalDays") ?? [] } set { d.set(Array(newValue.suffix(30)), forKey: "goalDays") } }
@@ -59,9 +62,12 @@ final class AppState: ObservableObject {
     }
 
     func shareInfo(_ kind: RaynaShareKind) -> RaynaShareInfo {
-        RaynaShareInfo(kind: kind, litres: Double(totalML) / 1000, goalL: Double(effectiveGoal) / 1000,
-                       streak: streak, weekL: recap.litres, unlocks: accessories)
+        var info = RaynaShareInfo(kind: kind, litres: Double(totalML) / 1000, goalL: Double(effectiveGoal) / 1000,
+                                  streak: streak, weekL: recap.litres, unlocks: accessories)
+        info.costume = halloweenOn
+        return info
     }
+    var halloweenOn: Bool { SeasonGate.showing(defaults: d) }
     var showSwap: Bool { extras.swapChallenge && (RaynaExtras.isSwapTime() || ProcessInfo.processInfo.environment["RAYNA_SWAP"] == "1") }
 
     private var dayKey: String { didSet { d.set(dayKey, forKey: "dayKey") } }
@@ -160,7 +166,7 @@ final class AppState: ObservableObject {
     static var yesterdayKey: String { RaynaCopy.yesterdayKey() }
 
     // MARK: Actions
-    func addGlass() {
+    func addGlass(presenting: Bool = true) {
         rolloverIfNeeded()
         totalML += glassML
         log.append(Date())
@@ -168,12 +174,40 @@ final class AppState: ObservableObject {
         glassEvent += 1
         let wasHit = progress >= 1 && lastGoalDay == AppState.key(for: Date())
         checkGoal()
-        RaynaSounds.shared.play(.splash)
-        let hitNow = !wasHit && progress >= 1
-        RaynaSounds.shared.play(hitNow ? .chime : .bubbles, after: hitNow ? 0.3 : 0.25)
+        extras.awardMoonleapIfNeeded(ml: totalML, goal: effectiveGoal)
+        if presenting {
+            RaynaSounds.shared.play(.splash)
+            let hitNow = !wasHit && progress >= 1
+            RaynaSounds.shared.play(hitNow ? .chime : .bubbles, after: hitNow ? 0.3 : 0.25)
+            bubbleFact = extras.factForMilestone(progress: progress)
+            if bubbleFact == nil { offerLittleTreat() }
+            presentSeasonStampIfIdle()
+        } else {
+            extras.noteQuietMilestone(progress: progress)
+        }
         publishToPod()
         NotificationManager.shared.resetSchedule()
-        bubbleFact = extras.factForMilestone(progress: progress)   // milestones only
+        objectWillChange.send()
+    }
+
+    func offerLittleTreat() {
+        guard let treat = extras.takeLittleTreat() else { return }
+        extras.holdTreatLine(treat.line, salt: totalML)
+        treatID += 1
+        treatBeat = treat.beat
+        if let sound = RaynaSound(rawValue: treat.beat.rawValue) { RaynaSounds.shared.play(sound) }
+        let token = treatID
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) { if self.treatID == token { self.treatBeat = nil } }
+    }
+
+    func presentSeasonStampIfIdle() {
+        guard unlockBanner == nil, !seasonBanner, extras.takeMoonleapCelebration() else { return }
+        seasonBanner = true
+    }
+
+    func presentPendingSeason() {
+        if bubbleFact == nil, let fact = extras.takePendingFact(progress: progress) { bubbleFact = fact }
+        presentSeasonStampIfIdle()
     }
 
     func undo() {
@@ -185,6 +219,10 @@ final class AppState: ObservableObject {
         totalML = max(0, totalML - glassML)
         if !log.isEmpty { log.removeLast() }
         extras.recordDay(totalML)
+        extras.rewindFactMilestone(progress: progress)
+        extras.clearTreatLine()
+        bubbleFact = nil
+        treatBeat = nil
         if progress < 1 { celebrate = false }
         publishToPod()
     }
@@ -277,7 +315,8 @@ final class AppState: ObservableObject {
 
     // MARK: Quips (shared with iOS via RaynaCore)
     var quip: String {
-        RaynaCopy.quip(for: progress, exerciseDay: runDay && !kidMode, salt: totalML, kidMode: kidMode)
+        if let line = extras.heldTreatLine(salt: totalML) { return line }
+        return RaynaCopy.quip(for: progress, exerciseDay: runDay && !kidMode, salt: totalML, kidMode: kidMode, seasonal: halloweenOn)
     }
     static var reminders: [String] { RaynaCopy.reminders }
     static let swapText = RaynaCopy.swapText

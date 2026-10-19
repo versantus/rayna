@@ -89,7 +89,7 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         let id = response.actionIdentifier
         DispatchQueue.main.async {
             if id == Self.drankAction {
-                AppState.shared.addGlass()
+                AppState.shared.addGlass(presenting: false)
             } else if id == Self.snoozeAction {
                 self.nextReminder = Date().addingTimeInterval(15 * 60)
             }
