@@ -24,17 +24,48 @@ struct SettingsView: View {
                 } header: { Text("Friends") } footer: {
                     Text("Start or join a pod, invite friends, nudge each other and build a pod streak.")
                 }
+                Section {
+                    Toggle(isOn: Binding(get: { model.store.extras.rayFactsOn },
+                                         set: { model.objectWillChange.send(); model.store.extras.rayFactsOn = $0 })) {
+                        Label("Ray Facts", systemImage: "book.closed.fill")
+                    }
+                    if RaynaFeatures.kidMode {
+                        Toggle(isOn: Binding(get: { model.kidMode }, set: { model.setKidMode($0) })) {
+                            Label("Kid mode", systemImage: "figure.and.child.holdinghands")
+                        }
+                    }
+                } header: { Text(RaynaFeatures.kidMode ? "Ray Facts & kids" : "Ray Facts") } footer: {
+                    Text(RaynaFeatures.kidMode
+                         ? "Ray Facts: Rayna shares a real ray fact at 25, 50, 75 and 100% of your goal. Tap her bubble to read it; then it swims off. Kid mode: cups instead of litres, a 1.5 L goal, simpler words, bigger celebrations and ray friends who visit as the streak grows. In a pod, kids are marked so grown-ups can follow along."
+                         : "Rayna shares a real ray fact at 25, 50, 75 and 100% of your goal. Tap her bubble to read it; then it swims off.")
+                }
                 Section("Daily goal") {
                     Stepper(value: model.binding(\.goalML), in: 1000...5000, step: 250) {
                         Text("Goal: \(String(format: "%.2f L", Double(model.store.goalML) / 1000))")
                     }
-                    Picker("Glass size", selection: model.binding(\.glassML)) {
-                        ForEach([150, 200, 250, 330, 400, 500], id: \.self) { Text("\($0) ml").tag($0) }
+                    GlassSizePicker(glassML: model.binding(\.glassML))
+                }
+                Section {
+                    Picker("Layout", selection: model.binding(\.mainLayout)) {
+                        ForEach([MainLayout.immersive, .hero, .balanced], id: \.self) { Text($0.title).tag($0) }
                     }
-                    Toggle("Live Activity on run days", isOn: Binding(
-                        get: { LiveActivityManager.enabled },
-                        set: { model.objectWillChange.send(); LiveActivityManager.enabled = $0; LiveActivityManager.sync(store: model.store) }))
-                    Text("Run days add 500 ml (or more for long runs via Apple Health). The Live Activity shows progress on your Lock Screen and Dynamic Island.").font(.footnote).foregroundStyle(.secondary)
+                } header: { Text("Appearance") } footer: {
+                    Text("Immersive fills the screen with the ocean. Hero puts Rayna in a glass card. Balanced adds a progress ring and pod portraits. iPad keeps the wide layout.")
+                }
+                Section {
+                    Toggle("Add extra water on exercise days", isOn: model.binding(\.exerciseExtraOn))
+                    if model.store.exerciseExtraOn {
+                        Stepper(value: model.binding(\.runBonusML), in: 250...1500, step: 250) {
+                            Text("Extra water: +\(model.store.runBonusML) ml")
+                        }
+                        Toggle("Today is an exercise day", isOn: model.binding(\.runDay))
+                        Toggle("Auto-detect from Apple Health", isOn: healthBinding(\.healthAutoRun, read: true))
+                        Toggle("Live Activity on exercise days", isOn: Binding(
+                            get: { LiveActivityManager.enabled },
+                            set: { model.objectWillChange.send(); LiveActivityManager.enabled = $0; LiveActivityManager.sync(store: model.store) }))
+                    }
+                } header: { Text("Exercise days") } footer: {
+                    Text("On an exercise day Rayna adds the extra water to today's goal. Auto-detect looks at today's workouts in Apple Health (a run, ride, swim, strength session or HIIT, not a walk) and asks to read Health only when you turn it on. The Live Activity shows progress on your Lock Screen and Dynamic Island.")
                 }
                 Section {
                     Toggle(isOn: Binding(get: { RaynaSounds.shared.enabled },
@@ -46,9 +77,7 @@ struct SettingsView: View {
                 }
                 Section {
                     Toggle("Reminders", isOn: model.binding(\.remindersOn))
-                    Picker("Every", selection: model.binding(\.intervalMin)) {
-                        ForEach([30, 45, 60, 90, 120], id: \.self) { Text("\($0) min").tag($0) }
-                    }
+                    ReminderIntervalPicker(minutes: model.binding(\.intervalMin))
                     .disabled(!model.store.remindersOn)
                     DatePicker("Quiet from", selection: timeBinding(\.quietStartMin), displayedComponents: .hourAndMinute)
                     DatePicker("Quiet until", selection: timeBinding(\.quietEndMin), displayedComponents: .hourAndMinute)
@@ -60,11 +89,38 @@ struct SettingsView: View {
                     Text("Rayna nudges you during waking hours only. Tap “Drank one 💧” on a notification to log a glass without opening the app.")
                 }
                 Section {
-                    Toggle("Auto run day from workouts", isOn: healthBinding(\.healthAutoRun, read: true))
                     Toggle("Save water to Health", isOn: healthBinding(\.healthWriteWater, read: false))
                 } header: { Text("Apple Health") } footer: {
-                    Text("Rayna reads today's runs to add your run-day bonus (+500 ml, more for runs over an hour) and can log each glass as Dietary Water. Garmin, Strava and other apps that sync to Apple Health work too; there's no direct Garmin connection.")
+                    Text("Rayna can log each glass as Dietary Water. Garmin, Strava and other apps that sync to Apple Health work too; there's no direct Garmin connection. Workout reading is under Exercise days.")
                 }
+                if let sync = RaynaCloudSync.shared {
+                    Section {
+                        RaynaSyncSettingsRow(sync: sync)
+                    } header: { Text("iCloud") } footer: {
+                        Text("Syncs today's water, your history and settings between your iPhone, Apple Watch and Mac through your private iCloud.")
+                    }
+                }
+                if PodService.shared.debugTools || PodService.shared.testerTools {
+                    Section {
+                        Toggle("Preview the scene & colour pack", isOn: Binding(get: { RaynaFeatures.labs }, set: { on in
+                            model.objectWillChange.send()
+                            RaynaFeatures.labs = on
+                            if !on, model.extras.wornBadges.contains(where: \.isPremium) {
+                                model.extras.wornBadges = model.extras.wornBadges.filter { !$0.isPremium }
+                            }
+                            model.afterChange()
+                        }))
+                    } header: { Text("Labs") } footer: {
+                        Text("Testing only (this switch isn't in App Store builds). Shows the unreleased scenes and Rayna's colours, all unlocked.")
+                    }
+                }
+                #if DEBUG
+                Section {
+                    Button("Unlock all badges") { model.unlockBadgesForTesting() }
+                } header: { Text("Debug") } footer: {
+                    Text("Debug builds only. Launch with RAYNA_BADGES=all, or a comma-separated list: surge, tide, flood, over3, over7, over30, personalBest, podWave.")
+                }
+                #endif
                 Section {
                     Link("Privacy policy", destination: URL(string: "https://rayna-water.netlify.app/privacy.html")!)
                     Link("Rayna for Mac", destination: URL(string: "https://rayna-water.netlify.app")!)
@@ -109,6 +165,10 @@ struct PodScreen: View {
     var body: some View {
         ScrollView { PodView().padding() }
             .navigationTitle("Pod")
-            .task { if !model.demoMode { await PodService.shared.refreshStatus() } }
+            .task {
+                guard !model.demoMode else { return }
+                let s = model.store
+                await PodService.shared.openPod(glasses: s.glasses, ml: s.totalML, goal: s.effectiveGoal, streak: s.streak, isKid: s.extras.kidMode)
+            }
     }
 }

@@ -7,35 +7,73 @@ struct ContentView: View {
     @ObservedObject private var pod = PodService.shared
     @Environment(\.colorScheme) private var scheme
     @Environment(\.dynamicTypeSize) private var typeSize
-    @ScaledMetric(relativeTo: .largeTitle) private var amountSize: CGFloat = 46
+    @Environment(\.horizontalSizeClass) private var hSize
+    @ScaledMetric(relativeTo: .largeTitle) private var amountSize: CGFloat = 40
+    @State private var choosingLayout = false
 
     /// Text colour on the water scene: deep navy by day, white in Dark Mode.
     /// Short screens (iPhone SE / mini): tighter spacing.
-    private var compact: Bool { UIScreen.main.bounds.height < 700 }
+    /// Height of the window Rayna is in, safe areas included. Follows the window, not the device: an iPhone Duo
+    /// folding or unfolding, Split View or iPhone Mirroring resize it mid-session.
+    @State private var windowHeight: CGFloat = 1000
+    private var compact: Bool { windowHeight < 700 }
     private var ink: Color { scheme == .dark ? .white : Color(red: 0.03, green: 0.2, blue: 0.4) }
     private var bubbleFill: Color { scheme == .dark ? Color(red: 0.06, green: 0.16, blue: 0.28).opacity(0.9) : .white.opacity(0.85) }
 
     var body: some View {
         ZStack {
-            LinearGradient(colors: scheme == .dark
-                                ? [Color(red: 0.02, green: 0.10, blue: 0.20), Color(red: 0.03, green: 0.22, blue: 0.38)]
-                                : [Color(red: 0.88, green: 0.96, blue: 1.0), Color(red: 0.62, green: 0.84, blue: 0.98)],
-                           startPoint: .top, endPoint: .bottom)
-                .ignoresSafeArea()
-            WaterBackground(progress: model.progress)
-                .ignoresSafeArea()
-
-            // Fits on one screen when it can (SE → Pro Max); scrolls at large accessibility text sizes.
-            ViewThatFits(in: .vertical) {
-                mainColumn(raynaMin: compact ? 70 : 110, scrolling: false)
-                ScrollView { mainColumn(raynaMin: 180, scrolling: true) }
-                    .scrollBounceBehavior(.basedOnSize)
+            Self.backdrop(scheme).ignoresSafeArea()
+            GeometryReader { geo in
+                // Two columns only in landscape. An iPad held upright gets the iPhone layouts (and the layout picker),
+                // so Rayna is big and central instead of small under an empty sky.
+                let wide = hSize == .regular && geo.size.width >= 700 && geo.size.width > geo.size.height && !typeSize.isAccessibilitySize
+                // Immersive is the ocean itself. Hero and Balanced keep the water inside their card.
+                // iPad uses the two-column layout and keeps the full-screen water.
+                if wide || model.store.mainLayout == .immersive {
+                    WaterBackground(progress: model.progress).ignoresSafeArea()
+                    SeaScene(worn: model.accessories, progress: model.progress).ignoresSafeArea()
+                }
+                if model.kidMode { RayVisitorsLayer(visitors: RayVisitor.visiting(streak: model.streak)).ignoresSafeArea() }
+                if wide {
+                    twoColumn(width: geo.size.width)
+                } else {
+                    Group {
+                        if typeSize.isAccessibilitySize {
+                            ScrollView { PhoneHome(scrolling: true) }.scrollBounceBehavior(.basedOnSize)
+                        } else {
+                            ViewThatFits(in: .vertical) {
+                                PhoneHome(scrolling: false)
+                                ScrollView { PhoneHome(scrolling: true) }
+                                    .scrollBounceBehavior(.basedOnSize)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: 600)
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+                    // Press and hold to swipe between Immersive, Hero and Balanced.
+                    .onLongPressGesture(minimumDuration: 0.5) {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) { choosingLayout = true }
+                    }
+                    .accessibilityAction(named: "Change layout") { choosingLayout = true }
+                }
             }
-            .frame(maxWidth: 600)   // readable width on iPad
-            .frame(maxWidth: .infinity)
+            .animation(.smooth, value: hSize)
+            .animation(.smooth, value: model.store.mainLayout)
+            .scaleEffect(choosingLayout ? 0.92 : 1)
+
+            if choosingLayout {
+                LayoutPicker(shown: $choosingLayout, current: model.store.mainLayout)
+                    .transition(.opacity.combined(with: .scale(scale: 1.08)))
+                    .zIndex(1)
+            }
+
+
+            PodNudgeBanner { model.wiggleAt = Date() }
 
             if model.celebrate {
                 ConfettiView().id(confettiID)
+                if model.kidMode { ConfettiView().id(confettiID.uuidString + "k").scaleEffect(1.6) }   // bigger party for kids
             }
             if let u = model.unlockBanner {
                 Color.black.opacity(0.25).ignoresSafeArea().onTapGesture { model.unlockBanner = nil }
@@ -44,7 +82,14 @@ struct ContentView: View {
                 ConfettiView()
             }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.height + $0.safeAreaInsets.top + $0.safeAreaInsets.bottom } action: {
+            windowHeight = $0
+        }
+        .environment(\.raynaWindowHeight, windowHeight)
         .animation(.spring(response: 0.4, dampingFraction: 0.75), value: model.unlockBanner)
+        .fullScreenCover(item: $model.factPage) { f in
+            RayFactPage(fact: f, onDone: { model.factPage = nil })
+        }
         .sensoryFeedback(.impact(weight: .medium), trigger: model.glassEvent)
         .sensoryFeedback(.success, trigger: model.celebrate) { _, new in new }
         .onChange(of: model.celebrate) { _, new in if new { confettiID = UUID() } }
@@ -63,33 +108,83 @@ struct ContentView: View {
         .sheet(isPresented: $model.showJourney) {
             JourneySheet().environmentObject(model)
         }
-        .onAppear { model.checkUnlocks() }
+        .onAppear {
+            model.checkUnlocks()
+            #if DEBUG   // screenshots: RAYNA_LAYOUTS=1 opens the layout picker
+            if ProcessInfo.processInfo.environment["RAYNA_LAYOUTS"] == "1" { choosingLayout = true }
+            #endif
+        }
     }
 
-    @ViewBuilder
-    private func mainColumn(raynaMin: CGFloat, scrolling: Bool) -> some View {
-        VStack(spacing: compact ? 10 : 18) {
+    /// The sky-to-sea gradient behind every layout (also drawn in the layout picker's cards).
+    static func backdrop(_ scheme: ColorScheme) -> LinearGradient {
+        LinearGradient(colors: scheme == .dark
+                            ? [Color(red: 0.02, green: 0.10, blue: 0.20), Color(red: 0.03, green: 0.22, blue: 0.38)]
+                            : [Color(red: 0.88, green: 0.96, blue: 1.0), Color(red: 0.62, green: 0.84, blue: 0.98)],
+                       startPoint: .top, endPoint: .bottom)
+    }
+
+    /// Two-column layout: Rayna + water on the left, progress / pod / journey on the right.
+    private func twoColumn(width: CGFloat) -> some View {
+        VStack(spacing: 16) {
             header
-            quipBubble
-            if !scrolling { Spacer(minLength: 0) }
-            GeometryReader { geo in
-                let side = min(geo.size.width * 0.86, geo.size.height / 1.32)
-                RaynaView(progress: model.progress, wiggleAt: model.wiggleAt, flipAt: model.flipAt, size: side, fullTail: true,
-                          accessories: model.accessories)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            HStack(alignment: .top, spacing: 28) {
+                VStack(spacing: 16) {
+                    quipBubble
+                    GeometryReader { g in
+                        let side = RaynaStage.side(width: g.size.width, height: g.size.height)
+                        RaynaView(progress: model.progress, wiggleAt: model.wiggleAt, flipAt: model.flipAt, size: side,
+                                  accessories: model.accessories)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    }
+                    .layoutPriority(1)
+                }
+                .frame(maxWidth: .infinity)
+                // Controls sit vertically centred beside Rayna; scroll only if they don't fit.
+                ViewThatFits(in: .vertical) {
+                    rightColumn.frame(maxHeight: .infinity, alignment: .center)
+                    ScrollView { rightColumn }.scrollBounceBehavior(.basedOnSize)
+                }
+                .frame(width: min(440, width * 0.42))
             }
-            .frame(minHeight: raynaMin, idealHeight: scrolling ? raynaMin : nil)
-            .frame(height: scrolling ? raynaMin * 1.4 : nil)
-            .layoutPriority(-1)   // Rayna gives way so the controls always fit (iPhone SE)
-            if !scrolling { Spacer(minLength: 0) }
-            amount
-            if pod.status == .inPod && !pod.members.isEmpty { podCard }
-            if model.showSwap { swapCard }
-            buttons
-            runDayToggle
         }
-        .padding(.horizontal, 22)
+        .padding(.horizontal, 28)
         .padding(.bottom, 8)
+    }
+
+    private var rightColumn: some View {
+        VStack(spacing: 16) {
+            amount.padding(.top, 8)
+            buttons
+            glassSizeRow
+            if pod.status == .inPod && !pod.visibleMembers.isEmpty { podCard }
+            if model.showSwap { swapCard }
+            journeyCard
+        }
+        .padding(.bottom, 12)
+    }
+
+    /// Compact weekly / facts summary for the right column.
+    private var journeyCard: some View {
+        Button { model.showJourney = true } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "trophy.fill").font(.title3).foregroundStyle(Color("AccentColor"))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Badges").font(.system(.subheadline, design: .rounded, weight: .bold))
+                    Text(String(format: "%.1f L this week", model.store.recap.litres))
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .frame(minHeight: 44)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(ink)
+        .accessibilityHint("Opens your weekly recap and collection")
     }
 
     private var headerButtons: some View {
@@ -112,7 +207,7 @@ struct ContentView: View {
                 }
             }
         }
-        .padding(.top, 8)
+        .padding(.top, compact ? 2 : 4)
     }
 
     private var titleBlock: some View {
@@ -120,7 +215,7 @@ struct ContentView: View {
             Text("Rayna").font(.system(.largeTitle, design: .rounded, weight: .heavy))
                 .foregroundStyle(Color("AccentColor"))
                 .accessibilityAddTraits(.isHeader)
-            StreakDots(streak: model.streak, store: model.store)
+            StreakDots(streak: model.streak, goalDays: model.store.goalDays)
         }
     }
 
@@ -138,7 +233,33 @@ struct ContentView: View {
             .accessibilityLabel("Settings")
     }
 
-    private var quipBubble: some View {
+    @ViewBuilder private var quipBubble: some View {
+        if let f = model.bubbleFact {
+            Button { model.factPage = f } label: {
+                VStack(spacing: 6) {
+                    RayFactTag()
+                    Text(f.text)
+                        .font(.system(.body, design: .rounded, weight: .semibold))
+                        .lineLimit(4)
+                        .multilineTextAlignment(.center)
+                    Text("Tap to read more").font(.footnote).foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 18).padding(.vertical, 12)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .foregroundStyle(ink)
+                .background(bubbleFill, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .shadow(color: .black.opacity(0.08), radius: 8, y: 4)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Ray fact: \(f.text)")
+            .accessibilityHint("Opens the full fact")
+            .transition(.opacity.combined(with: .scale(scale: 0.96)))
+        } else {
+            plainQuipBubble
+        }
+    }
+
+    private var plainQuipBubble: some View {
         HStack(spacing: 8) {
             Text(model.quip)
             if model.progress >= 1 {
@@ -148,9 +269,11 @@ struct ContentView: View {
                 .accessibilityLabel("Share your goal")
             }
         }
-            .font(.system(.title3, design: .rounded, weight: .semibold))
+            .font(.system(.callout, design: .rounded, weight: .semibold))
             .multilineTextAlignment(.center)
-            .padding(.horizontal, 18).padding(.vertical, 14)
+            .lineLimit(typeSize.isAccessibilitySize ? nil : 3)
+            .minimumScaleFactor(0.85)
+            .padding(.horizontal, 14).padding(.vertical, compact ? 6 : 8)
             .frame(maxWidth: .infinity)
             .foregroundStyle(ink)
             .background(bubbleFill, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -161,12 +284,12 @@ struct ContentView: View {
 
     private var amount: some View {
         VStack(spacing: 2) {
-            Text(String(format: "%.2f L", Double(model.totalML) / 1000))
+            Text(RaynaCopy.amountTitle(ml: model.totalML, glassML: model.store.glassML, kidMode: model.kidMode))
                 .font(.system(size: amountSize, weight: .heavy, design: .rounded))
                 .minimumScaleFactor(0.6).lineLimit(1)
                 .contentTransition(.numericText())
                 .animation(.snappy, value: model.totalML)
-            Text("of \(String(format: "%.1f", Double(model.goal) / 1000)) L · \(Int((model.progress * 100).rounded()))%")
+            Text(RaynaCopy.amountSubtitle(ml: model.totalML, goal: model.goal, glassML: model.store.glassML, kidMode: model.kidMode))
                 .font(.system(.headline, design: .rounded)).foregroundStyle(.secondary)
         }
         .foregroundStyle(ink)
@@ -175,20 +298,28 @@ struct ContentView: View {
     private var buttons: some View {
         HStack(spacing: 12) {
             Button { model.addGlass() } label: {
-                Label("+1 glass", systemImage: "drop.fill")
+                Label(RaynaCopy.addGlassLabel(glassML: model.store.glassML, kidMode: model.kidMode), systemImage: "drop.fill")
                     .font(.system(.title2, design: .rounded, weight: .bold))
-                    .frame(maxWidth: .infinity).padding(.vertical, compact ? 12 : 16)
+                    .lineLimit(1).minimumScaleFactor(0.7)
+                    .frame(maxWidth: .infinity, minHeight: 44)
             }
             .buttonStyle(.borderedProminent)
             .buttonBorderShape(.capsule)
             Button { model.undo() } label: {
                 Image(systemName: "arrow.uturn.backward")
-                    .font(.system(.title2, weight: .bold)).padding(.vertical, 16).padding(.horizontal, 6)
+                    .font(.system(.title2, weight: .bold))
+                    .frame(minWidth: 44, minHeight: 44)
             }
             .buttonStyle(.bordered).buttonBorderShape(.capsule)
             .disabled(model.totalML == 0)
             .accessibilityLabel("Undo last glass")
         }
+    }
+
+    private var glassSizeRow: some View {
+        GlassSizeQuickAdd(glassML: model.binding(\.glassML))
+            .foregroundStyle(ink)
+            .padding(.horizontal, 4)
     }
 
     /// Compact "Your pod" summary (only when in a pod). Tap opens the full pod screen.
@@ -200,9 +331,10 @@ struct ContentView: View {
                     Text("Your pod · \(pod.podName)")
                         .font(.system(.subheadline, design: .rounded, weight: .bold)).lineLimit(2)
                     HStack(spacing: 6) {
-                        ForEach(pod.members.prefix(6)) { m in
-                            ProgressView(value: m.todayProgress)
-                                .tint(m.todayProgress >= 1 ? .green : Color("AccentColor"))
+                        ForEach(pod.visibleMembers.prefix(6)) { m in
+                            let shown = pod.displayed(m)
+                            ProgressView(value: shown.todayProgress)
+                                .tint(shown.todayProgress >= 1 ? .green : Color("AccentColor"))
                                 .frame(maxWidth: 44)
                                 .accessibilityHidden(true)
                         }
@@ -219,7 +351,10 @@ struct ContentView: View {
         .buttonStyle(.plain)
         .foregroundStyle(ink)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Your pod, \(pod.podName). " + pod.members.map { "\($0.name) \(Int($0.todayProgress * 100)) percent" }.joined(separator: ", "))
+        .accessibilityLabel("Your pod, \(pod.podName). " + pod.visibleMembers.map { m in
+            let shown = pod.displayed(m)
+            return "\(shown.name) \(RaynaCopy.percent(ml: shown.isToday ? shown.ml : 0, goal: shown.goal)) percent"
+        }.joined(separator: ", "))
         .accessibilityHint("Opens the pod screen")
     }
 
@@ -228,11 +363,9 @@ struct ContentView: View {
             HStack(spacing: 10) {
                 Text("🥤➡️💧").font(.title3)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(model.swapThanks ?? "I swapped a fizzy drink for water")
+                    Text(model.swapThanks ?? RaynaCopy.swapButtonTitle)
                         .font(.system(.subheadline, design: .rounded, weight: .bold))
-                    let st = model.extras.swapStreak()
-                    Text(st > 0 ? "Swap streak: \(st) evening\(st == 1 ? "" : "s") · \(model.extras.swapsTotal) total"
-                                : "Optional fizzy-drink challenge. Logs a glass too.")
+                    Text(RaynaCopy.swapDetail(streak: model.extras.swapStreak(), total: model.extras.swapsTotal))
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
@@ -245,37 +378,6 @@ struct ContentView: View {
         .accessibilityHint("Logs a swapped fizzy drink and a glass of water")
     }
 
-    private var runDayToggle: some View {
-        Toggle(isOn: model.binding(\.runDay)) {
-            Label("Run day (+\(model.store.runBonusML) ml)", systemImage: "figure.run")
-                .font(.system(.body, design: .rounded, weight: .semibold))
-        }
-        .padding(.horizontal, 16).padding(.vertical, 10)
-        .background(.ultraThinMaterial, in: Capsule())
-    }
-}
-
-/// Last 7 days: filled dot = goal met.
-struct StreakDots: View {
-    var streak: Int
-    var store: RaynaStore
-    var body: some View {
-        let cal = Calendar.current
-        HStack(spacing: 5) {
-            ForEach((0..<7).reversed(), id: \.self) { back in
-                let day = cal.date(byAdding: .day, value: -back, to: Date()) ?? Date()
-                Circle()
-                    .fill(store.goalMet(on: day) ? Color("AccentColor") : Color.white.opacity(0.7))
-                    .overlay(Circle().stroke(Color("AccentColor").opacity(0.5), lineWidth: 1))
-                    .frame(width: 10, height: 10)
-            }
-            Text(streak > 0 ? "\(streak)-day streak 🔥" : "Start a streak!")
-                .font(.system(.footnote, design: .rounded, weight: .semibold)).foregroundStyle(.secondary)
-                .padding(.leading, 4)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(streak) day streak")
-    }
 }
 
 struct JourneySheet: View {
@@ -283,15 +385,30 @@ struct JourneySheet: View {
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         NavigationStack {
-            ScrollView {
-                RaynaJourneyView(extras: model.extras, recap: model.store.recap, streak: model.streak) {
-                    dismiss()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { model.offerShare(model.streak >= 3 ? .streak(model.streak) : .recap) }
+                ScrollView {
+                    RaynaJourneyView(extras: model.extras, recap: model.store.recap, streak: model.streak, skin: model.store.skin, onWear: { set in
+                        model.objectWillChange.send()
+                        model.extras.wornBadges = set
+                        model.afterChange()
+                    }, onSkin: { model.setSkin($0) }) {
+                        dismiss()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { model.offerShare(model.streak >= 3 ? .streak(model.streak) : .recap) }
+                    }
+                        .padding()
                 }
-                    .padding()
+                .badgeSwapToastOverlay()
+            .navigationTitle("Badges")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                let unlocked = model.extras.unlocked.count
+                let total = RaynaUnlock.allCases.count
+                ToolbarItem(placement: .topBarLeading) {
+                    Label("\(unlocked)/\(total)", systemImage: "trophy.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .accessibilityLabel("\(unlocked) of \(total) badges")
+                }
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
             }
-            .navigationTitle("Rayna's journey")
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
     }
 }

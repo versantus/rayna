@@ -8,6 +8,7 @@ DEFINE SCHEMA
         "___modifiedBy" REFERENCE,
         "___recordID"   REFERENCE QUERYABLE,
         glasses         INT64,
+        isKid           INT64,
         goal            INT64,
         ml              INT64,
         name            STRING,

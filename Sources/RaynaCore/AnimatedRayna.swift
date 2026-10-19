@@ -18,10 +18,10 @@ public enum RaynaClip: String, CaseIterable {
     public var frameCount: Int {
         switch self {
         case .idleHappy: return 48
-        case .idleThirsty: return 60
+        case .idleThirsty: return 62
         case .wiggle: return 15
         case .swimIn: return 49
-        case .swimOff: return 37
+        case .swimOff: return 46
         case .poutSwimOff: return 49
         }
     }
@@ -50,6 +50,18 @@ public enum RaynaFrames {
     private static var loading: Set<String> = []
     /// Frames decode here, one clip at a time, never on the main thread.
     private static let queue = DispatchQueue(label: "co.versantus.rayna.frames", qos: .userInitiated)
+
+    /// Rayna's colour. Frames are painted as they decode; changing it drops the cache so clips repaint.
+    public static var skin: RaynaSkin {
+        get { lock.lock(); defer { lock.unlock() }; return currentSkin }
+        set {
+            let s = RaynaFeatures.rayColours && newValue.isAvailable ? newValue : .classic
+            lock.lock(); let changed = s != currentSkin
+            if changed { currentSkin = s; cache = [:]; loading = [] }
+            lock.unlock()
+        }
+    }
+    private static var currentSkin = RaynaSkin.classic
 
     /// Finds `Rayna_RaynaCore.bundle` wherever the host put it (Xcode app/appex, SwiftPM .app, swift run).
     /// Cheap locations first; only scans loaded bundles as a last resort.
@@ -87,16 +99,18 @@ public enum RaynaFrames {
     private static func loadAsync(_ dir: String) {
         lock.lock()
         if cache[dir] != nil || loading.contains(dir) { lock.unlock(); return }
-        loading.insert(dir); lock.unlock()
+        loading.insert(dir); let skin = currentSkin; lock.unlock()
         queue.async {
             var imgs: [CGImage] = []
             if let root {
                 let d = root.appendingPathComponent(dir)
                 let files = ((try? FileManager.default.contentsOfDirectory(atPath: d.path)) ?? [])
                     .filter { $0.hasSuffix(".png") }.sorted()
-                imgs = files.compactMap { decode(d.appendingPathComponent($0)) }
+                imgs = files.compactMap { decode(d.appendingPathComponent($0)) }.map { SkinPainter.paint($0, skin) }
             }
-            lock.lock(); cache[dir] = imgs; loading.remove(dir); lock.unlock()
+            lock.lock()
+            if skin == currentSkin { cache[dir] = imgs }   // the colour changed while decoding: drop these
+            loading.remove(dir); lock.unlock()
         }
     }
 
@@ -112,7 +126,8 @@ public enum RaynaFrames {
     public static func still(_ band: RaynaBand) -> CGImage? {
         let key = "stills/" + band.file
         if let c = cached(key) { return c.first }
-        guard let root, let img = decode(root.appendingPathComponent("stills/\(band.file).png")) else { return nil }
+        guard let root, let raw = decode(root.appendingPathComponent("stills/\(band.file).png")) else { return nil }
+        let img = SkinPainter.paint(raw, skin)
         lock.lock(); cache[key] = [img]; lock.unlock()
         return img
     }
@@ -150,6 +165,17 @@ public struct RaynaScript: Equatable {
     public var duration: Double { clips.reduce(0) { $0 + $1.duration } }
 }
 
+/// Size of the live ray in the gap between the quip and the stats.
+/// She aims for 90% of that slot's width, and shrinks only when the slot is shorter than that.
+public enum RaynaStage {
+    public static let widthFraction: CGFloat = 0.90
+
+    public static func side(width: CGFloat, height: CGFloat) -> CGFloat {
+        guard width > 0, height > 0 else { return 0 }
+        return min(width * widthFraction, height)
+    }
+}
+
 /// Animated Rayna: picks a clip by state and plays its frames with TimelineView.
 /// idle-happy (progress ≥ 45%) / idle-thirsty loops, wiggle on +1 glass, a code-driven spin at goal,
 /// or an explicit `script` (nudge panel). Reduce Motion shows the band still.
@@ -161,28 +187,33 @@ public struct RaynaView: View {
     public var size: CGFloat = 100
     public var fullTail = false
     public var script: RaynaScript? = nil
-    /// Streak unlocks drawn over her (bubble trail, headband, medal, baby ray).
+    /// Up to one badge in each slot (head, chest, fin).
     public var accessories: Set<RaynaUnlock> = []
+    /// Brighten badges that sit under the immersive waterline.
+    public var brightenAccessories = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(progress: Double, wiggleAt: Date? = nil, flipAt: Date? = nil, pout: Bool = false,
                 size: CGFloat = 100, fullTail: Bool = false, script: RaynaScript? = nil,
-                accessories: Set<RaynaUnlock> = []) {
+                accessories: Set<RaynaUnlock> = [], brightenAccessories: Bool = false) {
         self.progress = progress; self.wiggleAt = wiggleAt; self.flipAt = flipAt; self.pout = pout
         self.size = size; self.fullTail = fullTail; self.script = script; self.accessories = accessories
+        self.brightenAccessories = brightenAccessories
     }
 
     public var body: some View {
         Group {
             if reduceMotion {
-                RaynaStill(progress: progress).overlay(RaynaAccessories(unlocks: accessories, date: .distantPast))
+                RaynaStill(progress: progress).overlay(RaynaAccessories(unlocks: accessories, date: .distantPast, brighten: brightenAccessories,
+                                                                         poses: RaynaAnchors.still(progress: progress)))
             } else {
                 TimelineView(.animation(minimumInterval: 1.0 / 30)) { tl in
-                    if let img = frame(at: tl.date) {
+                    if let shown = shown(at: tl.date) {
                         let _ = LaunchTiming.mark("firstAnimatedFrame")
                         let sp = spin(at: tl.date)
-                        Image(decorative: img, scale: 1).resizable().interpolation(.high).aspectRatio(contentMode: .fit)
-                            .overlay(RaynaAccessories(unlocks: accessories, date: tl.date))
+                        Image(decorative: shown.image, scale: 1).resizable().interpolation(.high).aspectRatio(contentMode: .fit)
+                            .overlay(RaynaAccessories(unlocks: accessories, date: tl.date, brighten: brightenAccessories,
+                                                      poses: RaynaAnchors.poses(shown.clip, frame: shown.index)))
                             .rotationEffect(.degrees(sp.angle))
                             .scaleEffect(sp.scale)
                             .offset(y: sp.lift * size)
@@ -213,15 +244,22 @@ public struct RaynaView: View {
 
     private var idle: RaynaClip { progress >= 0.45 ? .idleHappy : .idleThirsty }
 
-    private func pick(_ clip: RaynaClip, _ age: Double) -> CGImage? {
+    /// One decoded frame and where it sits in its clip (the badges look up their poses by that).
+    struct Shown {
+        var image: CGImage
+        var clip: RaynaClip
+        var index: Int
+    }
+
+    private func pick(_ clip: RaynaClip, _ age: Double) -> Shown? {
         let f = RaynaFrames.frames(clip)
         guard !f.isEmpty else { return nil }
         var i = Int(age * clip.fps)
         i = clip.loops ? ((i % f.count) + f.count) % f.count : min(max(i, 0), f.count - 1)
-        return f[i]
+        return Shown(image: f[i], clip: clip, index: i)
     }
 
-    func frame(at date: Date) -> CGImage? {
+    func shown(at date: Date) -> Shown? {
         if let s = script {
             var age = date.timeIntervalSince(s.start)
             for c in s.clips {
@@ -229,7 +267,7 @@ public struct RaynaView: View {
                 age -= c.duration
             }
             if let t = s.then { return pick(t, age) }
-            return s.clips.last.flatMap { RaynaFrames.frames($0).last }
+            return s.clips.last.flatMap { pick($0, $0.duration) }
         }
         if let f = flipAt, date.timeIntervalSince(f) >= 0, date.timeIntervalSince(f) < Self.spinDuration {
             return pick(.idleHappy, date.timeIntervalSince(f))   // wings keep flapping while she spins

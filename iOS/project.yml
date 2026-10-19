@@ -4,13 +4,15 @@ options:
   bundleIdPrefix: co.versantus.rayna
   deploymentTarget:
     iOS: "17.0"
+    macOS: "13.0"
+    watchOS: "10.0"     # without this Xcode used its newest (27.0), so older Watches couldn't install Rayna
   createIntermediateGroups: true
 settings:
   base:
     DEVELOPMENT_TEAM: F9MJXEKGAR
     CODE_SIGN_STYLE: Automatic
-    MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: "6"
+    MARKETING_VERSION: "1.2"
+    CURRENT_PROJECT_VERSION: "15"
     SWIFT_VERSION: "5.0"
     TARGETED_DEVICE_FAMILY: "1,2"
     ENABLE_USER_SCRIPT_SANDBOXING: YES
@@ -43,7 +45,7 @@ targets:
     info:
       path: Rayna/Info.plist
       properties:
-        NSHealthShareUsageDescription: Rayna reads today's running workouts to add your run-day water bonus automatically.
+        NSHealthShareUsageDescription: Rayna reads today's workouts to add your heavy-exercise water bonus automatically.
         NSHealthUpdateUsageDescription: Rayna can save each glass you log as Dietary Water in Apple Health.
         CKSharingSupported: true
         NSSupportsLiveActivities: true
@@ -102,6 +104,8 @@ targets:
     sources:
       - RaynaWatch
       - WatchShared
+      - path: ../Sources/RaynaCore/SeaSceneLayout.swift
+      - path: ../Sources/RaynaCore/SeaSceneDraw.swift
     dependencies:
       - target: RaynaWatchWidget
     entitlements:
@@ -148,7 +152,60 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: co.versantus.raynawater.ios.watchkitapp.widget
         PRODUCT_NAME: RaynaWatchWidget
         SKIP_INSTALL: YES
+  RaynaMac:
+    type: application
+    platform: macOS
+    sources:
+      - path: ../Sources/Rayna
+      - path: RaynaMac/Assets.xcassets
+      - path: RaynaMac/Resources
+        buildPhase: resources
+    dependencies:
+      - package: RaynaCore
+        product: RaynaCore
+    entitlements:
+      path: RaynaMac/RaynaMac.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.application-groups: [group.co.versantus.raynawater]
+        com.apple.developer.icloud-container-identifiers: [iCloud.co.versantus.raynawater]
+        com.apple.developer.icloud-services: [CloudKit]
+        com.apple.developer.aps-environment: production
+    info:
+      path: RaynaMac/Info.plist
+      properties:
+        CFBundleName: Rayna
+        CFBundleDisplayName: Rayna
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSUIElement: true
+        LSMinimumSystemVersion: "13.0"
+        LSApplicationCategoryType: public.app-category.healthcare-fitness
+        NSUserNotificationAlertStyle: alert
+        NSHighResolutionCapable: true
+        CKSharingSupported: true
+        ITSAppUsesNonExemptEncryption: false
+        NSHumanReadableCopyright: "© 2026 Versantus IT Services Ltd"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: co.versantus.raynawater.ios
+        PRODUCT_NAME: Rayna
+        MARKETING_VERSION: "2.2.2"
+        CURRENT_PROJECT_VERSION: "11"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_HARDENED_RUNTIME: YES
+        TARGETED_DEVICE_FAMILY: ""
+        ARCHS: "$(ARCHS_STANDARD)"
 schemes:
+  RaynaMac:
+    build:
+      targets:
+        RaynaMac: all
+    run:
+      config: Debug
+    archive:
+      config: Release
   Rayna:
     build:
       targets:

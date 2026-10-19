@@ -24,7 +24,7 @@ public struct WaterBackground: View {
         TimelineView(.animation(minimumInterval: reduceMotion ? 1 : 1.0 / 30)) { tl in
             Canvas { ctx, size in
                 let t = reduceMotion ? 0 : tl.date.timeIntervalSinceReferenceDate
-                let level = size.height * (1 - (0.06 + 0.88 * max(0, min(1, progress))))
+                let level = Self.waterline(progress: progress, height: size.height)
                 func surface(_ amp: Double, _ k: Double, _ sp: Double, _ ph: Double) -> Path {
                     var p = Path()
                     p.move(to: CGPoint(x: 0, y: size.height))
@@ -59,6 +59,12 @@ public struct WaterBackground: View {
             }
         }
         .allowsHitTesting(false)
+    }
+
+    /// Y of the wave, from the top of a view of this height. 0% sits near the bottom, 100% near the top.
+    public static func waterline(progress: Double, height: CGFloat) -> CGFloat {
+        let p = max(0, min(1, progress))
+        return height * (1 - (0.06 + 0.88 * p))
     }
 }
 
