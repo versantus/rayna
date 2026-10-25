@@ -96,7 +96,7 @@ only bitmap sets (`ray0..4`, `glance_ray`, `launcher_icon`) generated from `/wor
 
 ## 6. Complication
 
-`resources/complications.xml` declares complication id 0 (long label "Rayna water", short "WATER", unit ml).
+`resources/complications.xml` declares complication id 0 (long label "Rayna water today", short "WATER", unit ml).
 `RaynaSync.publish()` updates it after every add/undo and every state message from the phone. Needs API 4.2+
 (all target devices). Watch faces choose it from the complication list; the native Garmin faces that support
 third-party complications vary by firmware.
