@@ -22,6 +22,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         DispatchQueue.global(qos: .utility).async { ReminderScheduler.registerCategories() }
         application.registerForRemoteNotifications()
         WatchSync.shared.start()
+        GarminBridge.shared.start()   // no-op unless RaynaFeatures.garmin
         RaynaCloudSync.configure(defaults: RaynaStore.shared.defaults) {
             // Remote intake/settings landed in the store: refresh UI, widgets, watch (no re-sync loop).
             RaynaStore.shared.reconcileGoal()   // synced glasses may have completed today's goal
@@ -90,6 +91,7 @@ struct RaynaIOSApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(model)
+                .onOpenURL { url in _ = GarminBridge.shared.handle(url: url) }   // Garmin Connect device selection
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active {
                         model.refresh()

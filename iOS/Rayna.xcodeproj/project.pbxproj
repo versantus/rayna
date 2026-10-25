@@ -37,10 +37,12 @@
 		8778C676A60D461AC5E17891 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7805989DD91471597445195 /* AppState.swift */; };
 		95282A47CCEA100E107EEF07 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 863099C9410707E2FB35E357 /* SwiftUI.framework */; };
 		9D17C91DC4965775C5245112 /* RaynaWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 2BA0B7DA59D31447E3612BF1 /* RaynaWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		9EC68004DDC67DBFD4E2EB85 /* ConnectIQTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6A9EFCFD4C2CBC52412066F /* ConnectIQTransport.swift */; };
 		A3477AAB197C05E6D317AA3D /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97F2495A7C6D826D1FC9909C /* SettingsView.swift */; };
 		AE227437B4CED4C815E5FA24 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 82B73698DB551000298D25BE /* WidgetKit.framework */; };
 		B70A92F429895BDB58AAB7F7 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D577DCB2A0A7A80F9AE672 /* ContentView.swift */; };
 		B749AC9B30305583EC443673 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6206752303AB1904950CB09D /* Assets.xcassets */; };
+		BD229BD67EFC808C310C3AD7 /* GarminBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E7EC32D690619CE65949958 /* GarminBridge.swift */; };
 		C18A18768CAC57BE984B6544 /* RaynaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFCCA9E99CEAC13B12DEE0F3 /* RaynaApp.swift */; };
 		C82EA0D6312AFF58307235C4 /* SeaSceneDraw.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5417246629C13B55C508693 /* SeaSceneDraw.swift */; };
 		CA72939AD8507F29B1AE1494 /* NudgeController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2D359B1E8091AA30A83B7FB /* NudgeController.swift */; };
@@ -126,6 +128,7 @@
 		2BA0B7DA59D31447E3612BF1 /* RaynaWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RaynaWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		35EA530E8AB7DEAC1CCCF6B9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		39E035FE300B9678173D4065 /* LiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityManager.swift; sourceTree = "<group>"; };
+		3E7EC32D690619CE65949958 /* GarminBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GarminBridge.swift; sourceTree = "<group>"; };
 		4093B516FE99081A70F112A2 /* RaynaWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RaynaWatch.entitlements; sourceTree = "<group>"; };
 		4562E3D0679E16F0A1F3B5CF /* AddGlassIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddGlassIntent.swift; sourceTree = "<group>"; };
 		4FC2DEBEB1CFA4F96E12E90D /* MenuGlyph@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "MenuGlyph@2x.png"; sourceTree = "<group>"; };
@@ -150,6 +153,7 @@
 		A774FC61B848A62767818FD2 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		AE7A5FDD6D45DF0BE71F2ABC /* rayna */ = {isa = PBXFileReference; lastKnownFileType = folder; name = rayna; path = ..; sourceTree = SOURCE_ROOT; };
 		BFCCA9E99CEAC13B12DEE0F3 /* RaynaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaynaApp.swift; sourceTree = "<group>"; };
+		C6A9EFCFD4C2CBC52412066F /* ConnectIQTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectIQTransport.swift; sourceTree = "<group>"; };
 		C9599807F678148A580D316F /* BrandedWindows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandedWindows.swift; sourceTree = "<group>"; };
 		CF74DB9546E72675E0EC7201 /* RaynaStage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaynaStage.swift; sourceTree = "<group>"; };
 		D6F0347DB03BE7020908CAEF /* WatchSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSync.swift; sourceTree = "<group>"; };
@@ -218,6 +222,15 @@
 				8B1FC377D193FDEDA140E983 /* Frameworks */,
 				2B9EFB0B92DA1EC2A6D6E134 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		1A0D44458C1977C9D8A50C8E /* Garmin */ = {
+			isa = PBXGroup;
+			children = (
+				C6A9EFCFD4C2CBC52412066F /* ConnectIQTransport.swift */,
+				3E7EC32D690619CE65949958 /* GarminBridge.swift */,
+			);
+			path = Garmin;
 			sourceTree = "<group>";
 		};
 		227E2AEE402C55C70624EE79 /* RaynaWidget */ = {
@@ -320,6 +333,7 @@
 				6407386D21DDEED7E499BE02 /* RaynaIOSApp.swift */,
 				97F2495A7C6D826D1FC9909C /* SettingsView.swift */,
 				D6F0347DB03BE7020908CAEF /* WatchSync.swift */,
+				1A0D44458C1977C9D8A50C8E /* Garmin */,
 			);
 			path = Rayna;
 			sourceTree = "<group>";
@@ -592,7 +606,9 @@
 			files = (
 				CFAD8179630905514B7EC447 /* AddGlassIntent.swift in Sources */,
 				2BDFBBD54BDB99541CCFD5CA /* AppModel.swift in Sources */,
+				9EC68004DDC67DBFD4E2EB85 /* ConnectIQTransport.swift in Sources */,
 				FFB1BAACB08BE3600EF7811C /* ContentView.swift in Sources */,
+				BD229BD67EFC808C310C3AD7 /* GarminBridge.swift in Sources */,
 				3C97EA50CE7563A8E08590AB /* HealthManager.swift in Sources */,
 				0CD9CA283ED8574C8396C7E9 /* LayoutPicker.swift in Sources */,
 				66A03C9C8FEA08D86DBC35EF /* LiveActivityManager.swift in Sources */,
