@@ -82,11 +82,27 @@ public final class RaynaStore {
     /// Adds a glass. Returns true if this glass just completed today's goal.
     @discardableResult
     public func addGlass(now: Date = Date()) -> Bool {
+        addDrink(ml: glassML, at: now)
+    }
+
+    /// Adds a drink of any size (Garmin Quick add). `at` is when it was drunk; it must be today.
+    /// Returns true if this drink just completed today's goal.
+    @discardableResult
+    public func addDrink(ml: Int, at now: Date = Date()) -> Bool {
         rolloverIfNeeded(now: now)
-        totalML += glassML
+        totalML += max(0, ml)
         log = log + [now]
         extras.recordDay(totalML, now: now)
         return checkGoal(now: now)
+    }
+
+    /// Takes back a drink of a given size (a Garmin undo). Like `undo`, but for that drink's ml.
+    public func removeDrink(ml: Int, now: Date = Date()) {
+        rolloverIfNeeded(now: now)
+        guard totalML > 0 else { return }
+        totalML = max(0, totalML - ml)
+        var l = log; if !l.isEmpty { l.removeLast() }; log = l
+        extras.recordDay(totalML, now: now)
     }
 
     public func undo(now: Date = Date()) {

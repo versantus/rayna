@@ -1,0 +1,10 @@
+<drawables>
+    <bitmap id="LauncherIcon" filename="launcher_icon.png"/>
+    <bitmap id="Ray0" filename="ray0.png"/>
+    <bitmap id="Ray1" filename="ray1.png"/>
+    <bitmap id="Ray2" filename="ray2.png"/>
+    <bitmap id="Ray3" filename="ray3.png"/>
+    <bitmap id="Ray4" filename="ray4.png"/>
+    <bitmap id="RayTilt" filename="ray_tilt.png"/>
+    <bitmap id="GlanceRay" filename="glance_ray.png" scope="glance"/>
+</drawables>

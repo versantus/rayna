@@ -11,3 +11,8 @@ builds/
 node_modules/
 tools/badge-art/out/
 __pycache__/
+
+# Connect IQ build output and keys (never commit keys)
+garmin/bin/
+*.der
+*.pem

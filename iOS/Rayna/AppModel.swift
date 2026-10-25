@@ -187,6 +187,22 @@ final class AppModel: ObservableObject {
         if !demoMode { requestNotificationsIfNeeded() }
     }
 
+    /// A drink (or undo) arrived from the Garmin watch and is already in the store: same side effects as a glass.
+    func garminDidLog(deltaML: Int, goalReached: Bool) {
+        objectWillChange.send()
+        if deltaML > 0 {
+            if !demoMode { HealthManager.shared.logGlass(ml: deltaML, store: store) }
+            glassEvent += 1
+            wiggleAt = Date()
+            if goalReached { celebrate = true; flipAt = Date().addingTimeInterval(0.3) }
+        } else if deltaML < 0 {
+            if !demoMode { HealthManager.shared.undoGlass() }
+            if store.progress < 1 { celebrate = false }
+        }
+        afterChange()
+        if deltaML > 0 { checkUnlocks() }
+    }
+
     func undo() {
         objectWillChange.send()
         store.undo()
@@ -214,6 +230,7 @@ final class AppModel: ObservableObject {
         Task { @MainActor in RaynaCloudSync.shared?.syncSoon() }
         publishToPod()
         WatchSync.shared.push()
+        GarminBridge.shared.push()
         LiveActivityManager.sync(store: store)
         WidgetCenter.shared.reloadAllTimelines()
         if !demoMode { ReminderScheduler.reschedule() }
@@ -223,6 +240,7 @@ final class AppModel: ObservableObject {
     func afterRemoteChange() {
         publishToPod()
         WatchSync.shared.push()
+        GarminBridge.shared.push()
         LiveActivityManager.sync(store: store)
         WidgetCenter.shared.reloadAllTimelines()
         if !demoMode { ReminderScheduler.reschedule() }

@@ -517,6 +517,10 @@ public struct RayVisitorsLayer: View {
 public enum RaynaFeatures {
     public static let kidMode = false
 
+    /// Rayna for Garmin (Connect IQ companion, docs/garmin/PLAN.md). Off until the ConnectIQ iOS SDK is linked
+    /// and the watch app is tested; with it off the app never touches Garmin code paths.
+    public static let garmin = false
+
     /// Rayna's colours are released: the free ones (turquoise, Coral, Mint) for everyone.
     public static let rayColours = true
     /// Not released yet, until the pack can be bought: the premium scenes (Coral Reef, Moon Jellies, Sunken Treasure,

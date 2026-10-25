@@ -1,0 +1,4 @@
+# Screenshot build only (garmin/scripts/shots.sh): seeds sample data and opens one screen. Never shipped.
+project.manifest = manifest.xml
+base.sourcePath = source;demo;bin/demo
+base.excludeAnnotations = nodemo
