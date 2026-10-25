@@ -28,7 +28,7 @@ class AddedView extends WatchUi.View {
         }
         if (!AddedView.autoReturn) { return; }
         _timer = new Timer.Timer();
-        (_timer as Timer.Timer).start(method(:done), goal ? 3500 : 2000, false);
+        (_timer as Timer.Timer).start(method(:done), goal ? 3500 : 5000, false);   // 5 s undo window (mockup 4a)
     }
 
     function onHide() as Void {
