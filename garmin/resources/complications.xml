@@ -1,0 +1,7 @@
+<complications>
+    <!-- Today's ml for watch faces (API 4.2+). Updated by RaynaModel.publish(). -->
+    <complication id="0" access="public" longLabel="@Strings.ComplicationLong" shortLabel="@Strings.ComplicationShort"
+        icon="@Drawables.ComplicationIcon" units="@Strings.UnitsML" value="0">
+        <faceIt defaultText="0"/>
+    </complication>
+</complications>

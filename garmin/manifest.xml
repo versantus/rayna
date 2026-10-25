@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!-- Rayna for Garmin. App id must match GarminConfig.appID in Sources/RaynaCore/Garmin/GarminProtocol.swift. -->
+<iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
+    <iq:application id="2936b767488443819fd00c78b83f4018" type="watch-app" name="@Strings.AppName"
+        entry="RaynaApp" launcherIcon="@Drawables.LauncherIcon" minApiLevel="4.2.0">
+        <iq:products>
+            <!-- Installed in the local SDK today. Add fr255*, fr265*, fenix7*, fenix8* once downloaded in SDK Manager (docs/garmin/PLAN.md). -->
+            <iq:product id="fr955"/>
+            <iq:product id="fr965"/>
+        </iq:products>
+        <iq:permissions>
+            <iq:uses-permission id="Communications"/>
+            <iq:uses-permission id="ComplicationPublisher"/>
+        </iq:permissions>
+        <iq:languages>
+            <iq:language>eng</iq:language>
+        </iq:languages>
+        <iq:barrels/>
+    </iq:application>
+</iq:manifest>
